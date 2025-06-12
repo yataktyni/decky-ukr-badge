@@ -27,6 +27,10 @@ jobs:
         registry-url: https://registry.npmjs.org
         cache: pnpm
 
+    - name: Increment version
+      id: increment_version
+      run: echo "NEW_VERSION=$(node scripts/increment-version.mjs)" >> $GITHUB_OUTPUT
+
     - name: Install & Build
       run: |
         pnpm i --frozen-lockfile
@@ -41,8 +45,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ github.run_number }}
-        name: Release v${{ github.run_number }}
+        tag_name: v${{ steps.increment_version.outputs.NEW_VERSION }}
+        name: Release v${{ steps.increment_version.outputs.NEW_VERSION }}
         draft: false
         prerelease: false
         files: |
@@ -52,9 +56,9 @@ jobs:
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
-        sed -i "s|<VERSION_PLACEHOLDER>|v${{ github.run_number }}|g" README.md
-        git add README.md
-        git commit -m "Docs: Update README with release version v${{ github.run_number }} [skip ci]"
+        sed -i "s|<VERSION_PLACEHOLDER>|v${{ steps.increment_version.outputs.NEW_VERSION }}|g" README.md
+        git add README.md package.json
+        git commit -m "Docs: Update README and package.json with release version v${{ steps.increment_version.outputs.NEW_VERSION }} [skip ci]"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

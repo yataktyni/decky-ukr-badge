@@ -2,7 +2,7 @@
   "name": "decky-ukr-badge",
   "author": "yataktyni",
   "api_version": 1,
-  "flags": ["root"],
+  "flags": [],
   "publish": {
     "tags": ["localization", "badge", "ukrainian", "steamdeck"],
     "description": "Shows a badge for Ukrainian language support in Steam games.",
