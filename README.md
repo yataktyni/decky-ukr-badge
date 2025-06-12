@@ -1,5 +1,4 @@
-[![Release](https://github.com/yataktyni/decky-ua-localization-badge/actions/workflows/release.yml/badge.svg)](https://github.com/yataktyni/decky-ua-localization-badge/actions/workflows/release.yml)
-**Latest Release:** <VERSION_PLACEHOLDER>
+[![Latest Release: <VERSION_PLACEHOLDER>](https://github.com/yataktyni/decky-ukr-badge/actions/workflows/release.yml/badge.svg)](https://github.com/yataktyni/decky-ukr-badge/actions/workflows/release.yml)
 
 ---
 
