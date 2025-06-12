@@ -20,8 +20,11 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: 20
+          cache: pnpm
+          always-auth: false
+          check-latest: false
+          token: ***
 
       - name: Clean install dependencies
         run: |
