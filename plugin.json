@@ -1,8 +1,8 @@
 {
-  "name": "Decky UKR Localization Badge",
-  "description": "Shows \ud83c\uddfa\ud83c\udde6 localization badges for Steam games: official, community, or none.",
+  "name": "UA Localization Badge",
   "version": "1.0.0",
+  "description": "Decky plugin — badge для підтримки української мови",
+  "main": "main.tsx",
   "author": "yataktyni",
-  "license": "MIT",
-  "main": "main.tsx"
+  "license": "MIT"
 }
