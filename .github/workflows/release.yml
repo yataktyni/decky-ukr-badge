@@ -16,11 +16,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          pnpm-version: 'latest-10'
           cache: 'pnpm'
 
-      - name: Ensure pnpm@latest-10 and clean install
+      - name: Clean install dependencies
         run: |
-          npm install -g pnpm@latest-10
           rm -rf node_modules pnpm-lock.yaml
           pnpm install
 
