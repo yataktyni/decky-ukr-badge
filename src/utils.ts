@@ -1,4 +1,6 @@
 // decky-ukr-badge/utils.ts
+import * as cheerio from "cheerio";
+
 export function getGameId(): string {
     // Replace with real Decky API method for getting appId
     return window.location.pathname.split("/").pop() || "";
@@ -22,13 +24,23 @@ export async function fetchSteamGameLanguages(appId: string): Promise<string[] |
     }
 }
 
-export async function fetchKuliTranslationStatus(urlName: string): Promise<boolean> {
+export async function fetchKuliTranslationStatus(urlName: string): Promise<"OFFICIAL" | "COMMUNITY" | null> {
     try {
         const res = await fetch(`https://kuli.com.ua/${urlName}#translations`, { method: "GET" });
         const html = await res.text();
-        return html.includes("🇺🇦");
-    } catch {
-        return false;
+        const $ = cheerio.load(html);
+        const hasInstruction = $(".item__instruction-main").length > 0;
+
+        if (!hasInstruction) {
+            return "OFFICIAL";
+        } else {
+            return "COMMUNITY";
+        }
+
+        return null;
+    } catch (e) {
+        console.error("Error fetching Kuli translation status:", e);
+        return null;
     }
 }
 
