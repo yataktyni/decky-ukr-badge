@@ -1,10 +1,4 @@
-<p align="center">
-[![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
-</p>
-
----
-
-# Плагін UA Localization Badge для Steam Deck Decky Loader
+# Плагін **decky-ukr-badge** для Steam Deck Decky Loader : [![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
 
 Додає бейдж на сторінки ігор у Steam, що показує наявність української локалізації:
 
@@ -63,7 +57,7 @@
 
 ---
 
-# UA Localization Badge Plugin for Steam Deck Decky Loader
+# **decky-ukr-badge** Plugin for Steam Deck Decky Loader: [![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
 
 Adds a badge to Steam game pages showing Ukrainian localization availability:
 
