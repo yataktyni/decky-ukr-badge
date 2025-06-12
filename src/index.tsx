@@ -1,7 +1,6 @@
 // decky-ukr-badge/index.tsx
 // React is provided globally by Decky Loader as SP_REACT
 import React, { useEffect, useState } from "react";
-declare const SP_REACT: typeof React;
 import { definePlugin, call } from "@decky/api";
 import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser } from "./utils";
 import { Settings, DEFAULT_SETTINGS } from "./settings";
@@ -99,7 +98,7 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
     );
 }
 
-export default definePlugin(() => {
+function MainPluginContent() {
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
     const [loading, setLoading] = useState(true);
 
@@ -112,6 +111,21 @@ export default definePlugin(() => {
         });
     }, []);
 
+    return loading ? (
+        <div>Loading...</div>
+    ) : (
+        <UAStatusBadge
+            appId={getGameId()}
+            gameName={getGameNameUrlified()}
+            position={settings.badgePosition}
+            offsetX={settings.offsetX}
+            offsetY={settings.offsetY}
+            badgeType={settings.badgeType}
+        />
+    );
+}
+
+export default definePlugin(() => {
     return {
         name: "decky-ukr-badge",
         title: React.createElement("div", null, "UA Localization Badge"),
@@ -119,18 +133,9 @@ export default definePlugin(() => {
         icon: React.createElement(FaFlag, null),
         settings: React.createElement(Settings, { serverAPI: call }),
         content: (
-            React.createElement("div", { style: { marginTop: "20px" } }, loading ? (
-                React.createElement("div", null, "Loading...")
-            ) : (
-                React.createElement(UAStatusBadge, {
-                    appId: getGameId(),
-                    gameName: getGameNameUrlified(),
-                    position: settings.badgePosition,
-                    offsetX: settings.offsetX,
-                    offsetY: settings.offsetY,
-                    badgeType: settings.badgeType
-                })
-            ))
+            React.createElement("div", { style: { marginTop: "20px" } },
+                React.createElement(MainPluginContent, null)
+            )
         ),
     };
 });
