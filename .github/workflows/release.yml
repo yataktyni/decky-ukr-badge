@@ -1,0 +1,60 @@
+name: Release Decky Plugin
+
+on: 
+  release:
+    types: [published]
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build plugin
+        run: pnpm build
+
+      - name: Get plugin version from package.json
+        id: get_version
+        run: echo "VERSION=$(node -p -e \"require('./package.json').version\")" >> $GITHUB_OUTPUT
+
+      - name: Create release artifact
+        run: |
+          PLUGIN_NAME=$(node -p -e "require('./package.json').name")
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          ZIP_FILE="${PLUGIN_NAME}-v${VERSION}.zip"
+          
+          mkdir "${PLUGIN_NAME}"
+          cp -r assets "${PLUGIN_NAME}/"
+          cp -r defaults "${PLUGIN_NAME}/"
+          cp -r dist "${PLUGIN_NAME}/"
+          cp -r src "${PLUGIN_NAME}/"
+          cp main.py "${PLUGIN_NAME}/"
+          cp package.json "${PLUGIN_NAME}/"
+          cp plugin.json "${PLUGIN_NAME}/"
+          cp README.md "${PLUGIN_NAME}/"
+          cp LICENSE "${PLUGIN_NAME}/"
+          
+          zip -r "$ZIP_FILE" "${PLUGIN_NAME}"
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_OUTPUT
+        id: create_zip
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./${{ steps.create_zip.outputs.ZIP_FILE }}
+          asset_name: ${{ steps.create_zip.outputs.ZIP_FILE }}
+          asset_content_type: application/zip 
