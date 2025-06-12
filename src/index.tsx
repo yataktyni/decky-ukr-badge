@@ -124,7 +124,7 @@ export default definePlugin((serverAPI: ServerAPI) => {
                         badgeType={settings.badgeType}
                     />
                 )}
-            </div>
+                </div>
         ),
     };
 });
