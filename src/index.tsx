@@ -88,10 +88,10 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
     };
 
     const text = badgeType === "default" ? badge.text : `${badge.text} ${t("ukrainian")}`;
-    const onClick = status !== "NONE" ? () => openInSteamBrowser(`https://kuli.com.ua/${gameName}#translations`) : undefined;
+    const onClick = status !== "NONE" ? () => openInSteamBrowser(`https://kuli.com.ua/${gameName}#translations`) : null;
 
     return (
-        <div style={badgeStyle} onClick={onClick}>
+        <div style={badgeStyle} { ...(onClick && { onClick }) }>
             {text}
         </div>
     );
