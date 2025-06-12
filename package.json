@@ -1,5 +1,5 @@
 {
-  "name": "decky-ua-localization-badge",
+  "name": "decky-ukr-badge",
   "main": "dist/index.js",
   "version": "1.0.0",
   "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
@@ -16,7 +16,7 @@
     "build": "rollup -c rollup.config.mjs",
     "dev": "rollup -c rollup.config.mjs -w",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "zip-dist": "mkdir -p temp-release/decky-ua-localization-badge && cp README.md temp-release/decky-ua-localization-badge/ && cp LICENSE temp-release/decky-ua-localization-badge/ && cp main.py temp-release/decky-ua-localization-badge/ && cp package.json temp-release/decky-ua-localization-badge/ && cp plugin.json temp-release/decky-ua-localization-badge/ && cp -r dist temp-release/decky-ua-localization-badge/ && cd temp-release && zip -r ../release.zip decky-ua-localization-badge && cd .. && rm -rf temp-release"
+    "zip-dist": "mkdir -p temp-release/decky-ukr-badge && cp README.md temp-release/decky-ukr-badge/ && cp LICENSE temp-release/decky-ukr-badge/ && cp main.py temp-release/decky-ukr-badge/ && cp package.json temp-release/decky-ukr-badge/ && cp plugin.json temp-release/decky-ukr-badge/ && cp -r dist temp-release/decky-ukr-badge/ && cd temp-release && zip -r ../release.zip decky-ukr-badge && cd .. && rm -rf temp-release"
   },
   "dependencies": {
     "decky-frontend-lib": "^3.7.0",
