@@ -1,5 +1,5 @@
 // decky-ukr-badge/settings.tsx
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "@decky/ui";
 import { call } from "@decky/api";
 import { t } from "./translations";
@@ -36,67 +36,67 @@ export function Settings({ serverAPI }: SettingsProps) {
         serverAPI("set_settings", { settings: newSettings });
     };
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return React.createElement("div", null, "Loading...");
 
     return (
-        <PanelSection title={t("settings_title")}>
-            <PanelSectionRow>
-                <DropdownItem
-                    label={t("badge_type")}
-                    description={t("badge_type_caption")}
-                    rgOptions={[
+        React.createElement(PanelSection, { title: t("settings_title") },
+            React.createElement(PanelSectionRow, null,
+                React.createElement(DropdownItem, {
+                    label: t("badge_type"),
+                    description: t("badge_type_caption"),
+                    rgOptions: [
                         { label: t("type_default"), data: "default" },
                         { label: t("type_full"), data: "full" },
-                    ]}
-                    selectedOption={settings.badgeType}
-                    onChange={(data: any) => updateSetting("badgeType", data.data)}
-                />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <DropdownItem
-                    label={t("badge_position")}
-                    description={t("badge_position_caption")}
-                    rgOptions={[
+                    ],
+                    selectedOption: settings.badgeType,
+                    onChange: (data: any) => updateSetting("badgeType", data.data)
+                })
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement(DropdownItem, {
+                    label: t("badge_position"),
+                    description: t("badge_position_caption"),
+                    rgOptions: [
                         { label: t("top_left"), data: "top-left" },
                         { label: t("top_right"), data: "top-right" },
-                    ]}
-                    selectedOption={settings.badgePosition}
-                    onChange={(data: any) => updateSetting("badgePosition", data.data)}
-                />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <SliderField
-                    label="X Offset"
-                    value={settings.offsetX}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onChange={(value: number) => updateSetting("offsetX", value)}
-                />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <SliderField
-                    label="Y Offset"
-                    value={settings.offsetY}
-                    min={0}
-                    max={100}
-                    step={1}
-                    onChange={(value: number) => updateSetting("offsetY", value)}
-                />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <ButtonItem layout="below" onClick={() => serverAPI("clear_cache", {})} label={t("clear_cache")} />
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <a href="https://ko-fi.com/YOUR_KOFI_NAME" target="_blank">
-                    ❤️ Ko-fi
-                </a>
-            </PanelSectionRow>
-            <PanelSectionRow>
-                <a href="https://github.com/yataktyni/decky-ukr-badge" target="_blank">
-                    📦 GitHub
-                </a>
-            </PanelSectionRow>
-        </PanelSection>
+                    ],
+                    selectedOption: settings.badgePosition,
+                    onChange: (data: any) => updateSetting("badgePosition", data.data)
+                })
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement(SliderField, {
+                    label: "X Offset",
+                    value: settings.offsetX,
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    onChange: (value: number) => updateSetting("offsetX", value)
+                })
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement(SliderField, {
+                    label: "Y Offset",
+                    value: settings.offsetY,
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    onChange: (value: number) => updateSetting("offsetY", value)
+                })
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement(ButtonItem, { layout: "below", onClick: () => serverAPI("clear_cache", {}), label: t("clear_cache") })
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement("a", { href: "https://ko-fi.com/YOUR_KOFI_NAME", target: "_blank" },
+                    "❤️ Ko-fi"
+                )
+            ),
+            React.createElement(PanelSectionRow, null,
+                React.createElement("a", { href: "https://github.com/yataktyni/decky-ukr-badge", target: "_blank" },
+                    "📦 GitHub"
+                )
+            )
+        )
     );
 }
