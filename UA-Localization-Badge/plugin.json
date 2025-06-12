@@ -1,0 +1,8 @@
+{
+  "name": "UA Localization Badge",
+  "version": "1.0.0",
+  "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
+  "main": "main.tsx",
+  "author": "yataktyni",
+  "license": "MIT"
+}
