@@ -16,7 +16,7 @@
     "build": "rollup -c rollup.config.mjs",
     "dev": "rollup -c rollup.config.mjs -w",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "zip-dist": "mkdir -p temp-release/decky-ukr-badge && cp README.md temp-release/decky-ukr-badge/ && cp LICENSE temp-release/decky-ukr-badge/ && cp main.py temp-release/decky-ukr-badge/ && cp package.json temp-release/decky-ukr-badge/ && cp plugin.json temp-release/decky-ukr-badge/ && cp -r dist temp-release/decky-ukr-badge/ && cd temp-release && zip -r ../release.zip decky-ukr-badge && cd .. && rm -rf temp-release"
+    "zip-dist": "mkdir -p temp-release && cp README.md temp-release/ && cp LICENSE temp-release/ && cp main.py temp-release/ && cp package.json temp-release/ && cp plugin.json temp-release/ && cp -r dist temp-release/ && cd temp-release && zip -r ../release.zip ./* && cd .. && rm -rf temp-release"
   },
   "dependencies": {
     "decky-frontend-lib": "^3.7.0",

@@ -1,4 +1,6 @@
-**DOWNLOAD:** [![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
+<p align="center">
+[![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
+</p>
 
 ---
 
