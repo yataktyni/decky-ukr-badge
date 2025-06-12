@@ -1,6 +1,6 @@
 import json
 import os
-import decky
+c
 
 class SettingsManager:
     def __init__(self, name):

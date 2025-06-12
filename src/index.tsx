@@ -76,8 +76,8 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
     const badgeStyle: React.CSSProperties = {
         position: "absolute",
         top: position === "top-left" || position === "top-right" ? `${offsetY}px` : "10px",
-        left: position === "top-left" ? `${offsetX}px` : undefined,
-        right: position === "top-right" ? `${offsetX}px` : undefined,
+        ...(position === "top-left" && { left: `${offsetX}px` }),
+        ...(position === "top-right" && { right: `${offsetX}px` }),
         backgroundColor: badge.color,
         padding: "4px 8px",
         borderRadius: "6px",
