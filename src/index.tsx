@@ -1,5 +1,7 @@
 // decky-ukr-badge/index.tsx
+// React is provided globally by Decky Loader as SP_REACT
 import React, { useEffect, useState } from "react";
+declare const SP_REACT: typeof React;
 import { definePlugin, call } from "@decky/api";
 import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser } from "./utils";
 import { Settings, DEFAULT_SETTINGS } from "./settings";
@@ -98,10 +100,10 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
 }
 
 export default definePlugin(() => {
-    const [settings, setSettings] = React.useState(DEFAULT_SETTINGS);
-    const [loading, setLoading] = React.useState(true);
+    const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+    const [loading, setLoading] = useState(true);
 
-    React.useEffect(() => {
+    useEffect(() => {
         call("get_settings", {}).then((resp: any) => {
             if (resp.success && resp.result) {
                 setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
@@ -112,25 +114,23 @@ export default definePlugin(() => {
 
     return {
         name: "decky-ukr-badge",
-        title: <div>UA Localization Badge</div>,
-        description: <div>{t("plugin_description")}</div>,
-        icon: <FaFlag />,
-        settings: <Settings serverAPI={call} />,
+        title: React.createElement("div", null, "UA Localization Badge"),
+        description: React.createElement("div", null, t("plugin_description")),
+        icon: React.createElement(FaFlag, null),
+        settings: React.createElement(Settings, { serverAPI: call }),
         content: (
-            <div style={{ marginTop: "20px" }}>
-                {loading ? (
-                    <div>Loading...</div>
-                ) : (
-                    <UAStatusBadge
-                        appId={getGameId()}
-                        gameName={getGameNameUrlified()}
-                        position={settings.badgePosition}
-                        offsetX={settings.offsetX}
-                        offsetY={settings.offsetY}
-                        badgeType={settings.badgeType}
-                    />
-                )}
-                </div>
+            React.createElement("div", { style: { marginTop: "20px" } }, loading ? (
+                React.createElement("div", null, "Loading...")
+            ) : (
+                React.createElement(UAStatusBadge, {
+                    appId: getGameId(),
+                    gameName: getGameNameUrlified(),
+                    position: settings.badgePosition,
+                    offsetX: settings.offsetX,
+                    offsetY: settings.offsetY,
+                    badgeType: settings.badgeType
+                })
+            ))
         ),
     };
 });
