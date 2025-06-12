@@ -1,6 +1,7 @@
 // decky-ukr-badge/index.tsx
 import React, { useEffect, useState } from "react";
-import { definePlugin, ServerAPI } from "decky-frontend-lib";
+import { definePlugin, call } from "@decky/api";
+import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "@decky/ui";
 import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser } from "./utils";
 import { Settings, DEFAULT_SETTINGS } from "./settings";
 import { t } from "./translations";
@@ -92,12 +93,12 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
     );
 }
 
-export default definePlugin((serverAPI: ServerAPI) => {
+export default definePlugin(() => {
     const [settings, setSettings] = React.useState(DEFAULT_SETTINGS);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
-        serverAPI.callPluginMethod("get_settings", {}).then((resp: any) => {
+        call("get_settings", {}).then((resp: any) => {
             if (resp.success && resp.result) {
                 setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
             }
@@ -106,10 +107,11 @@ export default definePlugin((serverAPI: ServerAPI) => {
     }, []);
 
     return {
+        name: "decky-ukr-badge",
         title: <div>UA Localization Badge</div>,
         description: <div>{t("plugin_description")}</div>,
         icon: <FaFlag />,
-        settings: <Settings serverAPI={serverAPI} />, 
+        settings: <Settings serverAPI={call} />,
         content: (
             <div style={{ marginTop: "20px" }}>
                 {loading ? (

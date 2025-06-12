@@ -13,19 +13,6 @@
 
 ## Встановлення
 
-### Використання "Встановити з URL" у Decky Loader (рекомендовано для користувачів)
-
-1.  Відкрийте **Decky Loader** на своєму Steam Deck.
-2.  Перейдіть на вкладку **Plugin Loader**.
-3.  Натисніть **значок ⚙️** у верхньому правому куті.
-4.  Виберіть **"Встановити з URL"**.
-5.  Вставте наступний URL-адресу останнього `release.zip`:
-    ```
-    https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
-    ```
-6.  Натисніть **Встановити**.
-7.  Готово! Плагін має з'явитися в меню Decky.
-
 ### Збірка з вихідного коду (для розробників)
 
 1.  **Клонуйте репозиторій:**
@@ -71,19 +58,6 @@ Adds a badge to Steam game pages showing Ukrainian localization availability:
 - UI in English and Ukrainian
 
 ## Installation
-
-### Using Decky Loader's "Install from URL" (Recommended for users)
-
-1.  Open **Decky Loader** on your Steam Deck.
-2.  Go to the **Plugin Loader** tab.
-3.  Click the **gear icon ⚙️** in the top right.
-4.  Choose **"Install from URL"**.
-5.  Paste the following URL to the latest `release.zip`:
-    ```
-    https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
-    ```
-6.  Click **Install**.
-7.  Done! The plugin should now appear in your Decky menu.
 
 ### Decky Loader Store : coming soon
 

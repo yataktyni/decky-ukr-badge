@@ -1,6 +1,7 @@
 // decky-ukr-badge/settings.tsx
 import React, { useEffect, useState } from "react";
-import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField, ServerAPI } from "decky-frontend-lib";
+import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "@decky/ui";
+import { call } from "@decky/api";
 import { t } from "./translations";
 
 export const DEFAULT_SETTINGS = {
@@ -13,7 +14,7 @@ export const DEFAULT_SETTINGS = {
 type SettingsType = typeof DEFAULT_SETTINGS;
 
 type SettingsProps = {
-    serverAPI: ServerAPI;
+    serverAPI: typeof call;
 };
 
 export function Settings({ serverAPI }: SettingsProps) {
@@ -21,7 +22,7 @@ export function Settings({ serverAPI }: SettingsProps) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        serverAPI.callPluginMethod("get_settings", {}).then((resp: any) => {
+        serverAPI("get_settings", {}).then((resp: any) => {
             if (resp.success && resp.result) {
                 setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
             }
@@ -32,7 +33,7 @@ export function Settings({ serverAPI }: SettingsProps) {
     const updateSetting = (key: keyof SettingsType, value: any) => {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
-        serverAPI.callPluginMethod("set_settings", { settings: newSettings });
+        serverAPI("set_settings", { settings: newSettings });
     };
 
     if (loading) return <div>Loading...</div>;
@@ -84,7 +85,7 @@ export function Settings({ serverAPI }: SettingsProps) {
                 />
             </PanelSectionRow>
             <PanelSectionRow>
-                <ButtonItem layout="below" onClick={() => serverAPI.callPluginMethod("clear_cache", {})} label={t("clear_cache")} />
+                <ButtonItem layout="below" onClick={() => serverAPI("clear_cache", {})} label={t("clear_cache")} />
             </PanelSectionRow>
             <PanelSectionRow>
                 <a href="https://ko-fi.com/YOUR_KOFI_NAME" target="_blank">
