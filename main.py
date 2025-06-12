@@ -1,10 +1,10 @@
 import json
 import os
-import decky_plugin
+import decky
 
 class SettingsManager:
     def __init__(self, name):
-        self.plugin_data_path = os.path.join(decky_plugin.DECKY_HOME, "plugins_data", "decky-ukr-badge")
+        self.plugin_data_path = os.path.join(decky.DECKY_HOME, "plugins_data", "decky-ukr-badge")
         self.file_path = os.path.join(self.plugin_data_path, f"{name}.json")
         self.settings = self._load_settings()
 
@@ -23,7 +23,7 @@ class SettingsManager:
             json.dump(self.settings, f, indent=4)
 
     async def clear_cache(self):
-        cache_path = os.path.join(decky_plugin.DECKY_HOME, "plugins_data", "decky-ukr-badge", "cache")
+        cache_path = os.path.join(decky.DECKY_HOME, "plugins_data", "decky-ukr-badge", "cache")
         try:
             if os.path.exists(cache_path):
                 os.remove(cache_path)

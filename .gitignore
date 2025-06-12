@@ -46,8 +46,8 @@ yalc.lock
 
 backend/out
 
-# Make sure to ignore any instance of the loader's decky_plugin.py
-decky_plugin.py
+# Make sure to ignore any instance of the loader's decky.py
+decky.pyi
 
 # Ignore decky CLI for building plugins
 out

@@ -1,7 +1,6 @@
 // decky-ukr-badge/index.tsx
 import React, { useEffect, useState } from "react";
 import { definePlugin, call } from "@decky/api";
-import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "@decky/ui";
 import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser } from "./utils";
 import { Settings, DEFAULT_SETTINGS } from "./settings";
 import { t } from "./translations";
@@ -50,8 +49,13 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
                 return;
             }
 
-            const hasKuli = await fetchKuliTranslationStatus(gameName);
-            if (hasKuli) {
+            const kuliStatus = await fetchKuliTranslationStatus(gameName);
+            if (kuliStatus === "OFFICIAL") {
+                setStatus("OFFICIAL");
+                cache[appId] = { timestamp: Date.now(), status: "OFFICIAL" };
+                setCache(cache);
+                return;
+            } else if (kuliStatus === "COMMUNITY") {
                 setStatus("COMMUNITY");
                 cache[appId] = { timestamp: Date.now(), status: "COMMUNITY" };
                 setCache(cache);
