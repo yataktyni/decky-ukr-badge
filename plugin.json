@@ -1,0 +1,8 @@
+{
+  "name": "Decky UKR Localization Badge",
+  "description": "Shows \ud83c\uddfa\ud83c\udde6 localization badges for Steam games: official, community, or none.",
+  "version": "1.0.0",
+  "author": "yataktyni",
+  "license": "MIT",
+  "main": "main.tsx"
+}
