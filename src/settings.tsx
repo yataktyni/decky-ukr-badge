@@ -44,11 +44,11 @@ export function Settings({ serverAPI }: SettingsProps) {
                     label={t("badge_type")}
                     description={t("badge_type_caption")}
                     rgOptions={[
-                        { label: t("type_default"), value: "default" },
-                        { label: t("type_full"), value: "full" },
+                        { label: t("type_default"), data: "default" },
+                        { label: t("type_full"), data: "full" },
                     ]}
                     selectedOption={settings.badgeType}
-                    onChange={(value: string) => updateSetting("badgeType", value)}
+                    onChange={(data: any) => updateSetting("badgeType", data.data)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>
@@ -56,11 +56,11 @@ export function Settings({ serverAPI }: SettingsProps) {
                     label={t("badge_position")}
                     description={t("badge_position_caption")}
                     rgOptions={[
-                        { label: t("top_left"), value: "top-left" },
-                        { label: t("top_right"), value: "top-right" },
+                        { label: t("top_left"), data: "top-left" },
+                        { label: t("top_right"), data: "top-right" },
                     ]}
                     selectedOption={settings.badgePosition}
-                    onChange={(value: string) => updateSetting("badgePosition", value)}
+                    onChange={(data: any) => updateSetting("badgePosition", data.data)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>

@@ -5,19 +5,34 @@
   "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
   "author": "yataktyni",
   "license": "MIT",
+  "keywords": [
+    "localization",
+    "badge",
+    "ukrainian",
+    "steamdeck",
+    "decky"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "rollup -c rollup.config.mjs",
+    "dev": "rollup -c rollup.config.mjs -w",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "zip-dist": "mkdir -p temp-release/decky-ua-localization-badge && cp README.md temp-release/decky-ua-localization-badge/ && cp LICENSE temp-release/decky-ua-localization-badge/ && cp main.py temp-release/decky-ua-localization-badge/ && cp package.json temp-release/decky-ua-localization-badge/ && cp plugin.json temp-release/decky-ua-localization-badge/ && cp -r dist temp-release/decky-ua-localization-badge/ && cd temp-release && zip -r ../release.zip decky-ua-localization-badge && cd .. && rm -rf temp-release"
   },
   "dependencies": {
     "decky-frontend-lib": "^3.7.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "tslib": "^2.8.1"
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@rollup/plugin-commonjs": "^24.0.1",
+    "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "rollup": "^3.19.1",
+    "rollup-plugin-import-assets": "^1.1.1",
     "typescript": "^5.0.0"
   }
 }

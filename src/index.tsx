@@ -106,27 +106,25 @@ export default definePlugin((serverAPI: ServerAPI) => {
     }, []);
 
     return {
-        title: () => "UA Localization Badge",
-        description: () => t("plugin_description"),
+        title: <div>UA Localization Badge</div>,
+        description: <div>{t("plugin_description")}</div>,
         icon: <FaFlag />,
-        settings: () => <Settings serverAPI={serverAPI} />, 
-        content: () => {
-            if (loading) return <div>Loading...</div>;
-            const appId = getGameId();
-            const gameName = getGameNameUrlified();
-            const { badgePosition, offsetX, offsetY, badgeType } = settings;
-            return (
-                <div>
+        settings: <Settings serverAPI={serverAPI} />, 
+        content: (
+            <div style={{ marginTop: "20px" }}>
+                {loading ? (
+                    <div>Loading...</div>
+                ) : (
                     <UAStatusBadge
-                        appId={appId}
-                        gameName={gameName}
-                        position={badgePosition}
-                        offsetX={offsetX}
-                        offsetY={offsetY}
-                        badgeType={badgeType}
+                        appId={getGameId()}
+                        gameName={getGameNameUrlified()}
+                        position={settings.badgePosition}
+                        offsetX={settings.offsetX}
+                        offsetY={settings.offsetY}
+                        badgeType={settings.badgeType}
                     />
-                </div>
-            );
-        },
+                )}
+            </div>
+        ),
     };
 });
