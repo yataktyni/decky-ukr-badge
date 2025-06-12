@@ -18,11 +18,17 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: Ensure pnpm@latest-10 and clean install
+        run: |
+          npm install -g pnpm@latest-10
+          rm -rf node_modules pnpm-lock.yaml
+          pnpm install
 
       - name: Build plugin
         run: pnpm build
+
+      - name: Verify dist folder contents
+        run: ls -R dist
 
       - name: Get plugin version from package.json
         id: get_version
@@ -38,7 +44,6 @@ jobs:
           cp -r assets "${PLUGIN_NAME}/"
           cp -r defaults "${PLUGIN_NAME}/"
           cp -r dist "${PLUGIN_NAME}/"
-          cp -r src "${PLUGIN_NAME}/"
           cp main.py "${PLUGIN_NAME}/"
           cp package.json "${PLUGIN_NAME}/"
           cp plugin.json "${PLUGIN_NAME}/"
