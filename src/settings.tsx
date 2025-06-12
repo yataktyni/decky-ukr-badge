@@ -1,5 +1,5 @@
 // decky-ukr-badge/settings.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "@decky/ui";
 import { call } from "@decky/api";
 import { t } from "./translations";

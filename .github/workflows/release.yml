@@ -30,12 +30,16 @@ jobs:
         registry-url: https://registry.npmjs.org
         cache: pnpm
 
-    - name: Show package.json content before increment
-      run: cat package.json
-
-    - name: Increment version
-      id: increment_version
-      run: echo "NEW_VERSION=$(node scripts/increment-version.mjs)" >> $GITHUB_OUTPUT
+    - name: Calculate version
+      id: calculate_version
+      run: |
+        RUN_NUMBER=${{ github.run_number }}
+        MAJOR=$(( RUN_NUMBER / 100 ))
+        MINOR=$(( (RUN_NUMBER % 100) / 10 ))
+        PATCH=$(( RUN_NUMBER % 10 ))
+        echo "major=$MAJOR" >> $GITHUB_OUTPUT
+        echo "minor=$MINOR" >> $GITHUB_OUTPUT
+        echo "patch=$PATCH" >> $GITHUB_OUTPUT
 
     - name: Install & Build
       run: |
@@ -51,8 +55,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v${{ steps.increment_version.outputs.NEW_VERSION }}
-        name: Release v${{ steps.increment_version.outputs.NEW_VERSION }}
+        tag_name: v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}
+        name: Release v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}
         draft: false
         prerelease: false
         files: |
@@ -62,9 +66,13 @@ jobs:
       run: |
         git config user.name "GitHub Actions Bot"
         git config user.email "actions@github.com"
-        sed -i "s|<VERSION_PLACEHOLDER>|v${{ steps.increment_version.outputs.NEW_VERSION }}|g" README.md
+        sed -i "s|<VERSION_PLACEHOLDER>|v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}|g" README.md
+        NEW_PACKAGE_VERSION="${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}"
+        # Use jq to update the version field in package.json
+        # Requires jq to be installed on the runner, which is usually available on GitHub-hosted runners.
+        jq '.version = "'"$NEW_PACKAGE_VERSION"'"' package.json > package.json.tmp && mv package.json.tmp package.json
         git add README.md package.json
-        git commit -m "Docs: Update README and package.json with release version v${{ steps.increment_version.outputs.NEW_VERSION }} [skip ci]"
+        git commit -m "Docs: Update README and package.json with release version v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }} [skip ci]"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
