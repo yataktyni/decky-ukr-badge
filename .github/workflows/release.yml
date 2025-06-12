@@ -13,22 +13,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 9
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
-        cache: 'pnpm'
+        node-version: 20
+        registry-url: https://registry.npmjs.org
+        cache: pnpm
 
-    - name: Set up pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 9.0.6
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile
-
-    - name: Build project
-      run: pnpm run build
+    - name: Install & Build
+      run: |
+        pnpm i --frozen-lockfile
+        pnpm build
 
     - name: Create release zip
       run: pnpm run zip-dist
