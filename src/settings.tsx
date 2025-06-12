@@ -1,14 +1,41 @@
 // decky-ukr-badge/settings.tsx
-import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField } from "decky-frontend-lib";
-import { useState } from "react";
-import { clearCache } from "./main";
+import React, { useEffect, useState } from "react";
+import { PanelSection, PanelSectionRow, ButtonItem, DropdownItem, SliderField, ServerAPI } from "decky-frontend-lib";
 import { t } from "./translations";
 
-export const Settings = () => {
-    const [badgeType, setBadgeType] = useState("full");
-    const [badgePosition, setBadgePosition] = useState("top-right");
-    const [offsetX, setOffsetX] = useState(10);
-    const [offsetY, setOffsetY] = useState(10);
+export const DEFAULT_SETTINGS = {
+    badgeType: "full",
+    badgePosition: "top-right",
+    offsetX: 10,
+    offsetY: 10,
+};
+
+type SettingsType = typeof DEFAULT_SETTINGS;
+
+type SettingsProps = {
+    serverAPI: ServerAPI;
+};
+
+export function Settings({ serverAPI }: SettingsProps) {
+    const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        serverAPI.callPluginMethod("get_settings", {}).then((resp: any) => {
+            if (resp.success && resp.result) {
+                setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
+            }
+            setLoading(false);
+        });
+    }, []);
+
+    const updateSetting = (key: keyof SettingsType, value: any) => {
+        const newSettings = { ...settings, [key]: value };
+        setSettings(newSettings);
+        serverAPI.callPluginMethod("set_settings", { settings: newSettings });
+    };
+
+    if (loading) return <div>Loading...</div>;
 
     return (
         <PanelSection title={t("settings_title")}>
@@ -20,8 +47,8 @@ export const Settings = () => {
                         { label: t("type_default"), value: "default" },
                         { label: t("type_full"), value: "full" },
                     ]}
-                    selectedOption={badgeType}
-                    onChange={(value) => setBadgeType(value)}
+                    selectedOption={settings.badgeType}
+                    onChange={(value: string) => updateSetting("badgeType", value)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>
@@ -32,34 +59,32 @@ export const Settings = () => {
                         { label: t("top_left"), value: "top-left" },
                         { label: t("top_right"), value: "top-right" },
                     ]}
-                    selectedOption={badgePosition}
-                    onChange={(value) => setBadgePosition(value)}
+                    selectedOption={settings.badgePosition}
+                    onChange={(value: string) => updateSetting("badgePosition", value)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>
                 <SliderField
                     label="X Offset"
-                    value={offsetX}
+                    value={settings.offsetX}
                     min={0}
                     max={100}
                     step={1}
-                    onChange={(value) => setOffsetX(value)}
+                    onChange={(value: number) => updateSetting("offsetX", value)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>
                 <SliderField
                     label="Y Offset"
-                    value={offsetY}
+                    value={settings.offsetY}
                     min={0}
                     max={100}
                     step={1}
-                    onChange={(value) => setOffsetY(value)}
+                    onChange={(value: number) => updateSetting("offsetY", value)}
                 />
             </PanelSectionRow>
             <PanelSectionRow>
-                <ButtonItem layout="below" onClick={clearCache}>
-                    {t("clear_cache")}
-                </ButtonItem>
+                <ButtonItem layout="below" onClick={() => serverAPI.callPluginMethod("clear_cache", {})} label={t("clear_cache")} />
             </PanelSectionRow>
             <PanelSectionRow>
                 <a href="https://ko-fi.com/YOUR_KOFI_NAME" target="_blank">
@@ -73,4 +98,4 @@ export const Settings = () => {
             </PanelSectionRow>
         </PanelSection>
     );
-};
+}

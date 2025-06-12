@@ -1,15 +1,18 @@
-// decky-ukr-badge/main.tsx
+// decky-ukr-badge/index.tsx
+import React, { useEffect, useState } from "react";
 import { definePlugin, ServerAPI } from "decky-frontend-lib";
-import { useEffect, useState } from "react";
-import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser, getSteamLanguage } from "./utils";
-import { Settings } from "./settings";
+import { fetchSteamGameLanguages, fetchKuliTranslationStatus, getGameId, getGameNameUrlified, openInSteamBrowser } from "./utils";
+import { Settings, DEFAULT_SETTINGS } from "./settings";
 import { t } from "./translations";
+import { FaFlag } from "react-icons/fa";
 
 const BADGE_STATES = {
     OFFICIAL: { text: "🇺🇦 🫡", color: "#28a745" },
     COMMUNITY: { text: "🇺🇦 🫂", color: "#ffc107" },
     NONE: { text: "🇺🇦 ❌", color: "#dc3545" },
 };
+
+type BadgeStatus = keyof typeof BADGE_STATES;
 
 const CACHE_KEY = "decky-ukr-badge-cache";
 const CACHE_DURATION = 86400000; // 1 day
@@ -27,18 +30,14 @@ function setCache(newCache: Record<string, any>) {
     localStorage.setItem(CACHE_KEY, JSON.stringify(newCache));
 }
 
-export function clearCache() {
-    localStorage.removeItem(CACHE_KEY);
-}
-
 function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType }: any) {
-    const [status, setStatus] = useState(null);
+    const [status, setStatus] = useState<BadgeStatus | null>(null);
     const cache = getCache();
 
     useEffect(() => {
         async function fetchStatus() {
             if (cache[appId] && Date.now() - cache[appId].timestamp < CACHE_DURATION) {
-                setStatus(cache[appId].status);
+                setStatus(cache[appId].status as BadgeStatus);
                 return;
             }
 
@@ -93,28 +92,40 @@ function UAStatusBadge({ appId, gameName, position, offsetX, offsetY, badgeType 
     );
 }
 
-export default definePlugin((serverApi: ServerAPI) => {
+export default definePlugin((serverAPI: ServerAPI) => {
+    const [settings, setSettings] = React.useState(DEFAULT_SETTINGS);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        serverAPI.callPluginMethod("get_settings", {}).then((resp: any) => {
+            if (resp.success && resp.result) {
+                setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
+            }
+            setLoading(false);
+        });
+    }, []);
+
     return {
         title: () => "UA Localization Badge",
         description: () => t("plugin_description"),
-        settings: Settings,
+        icon: <FaFlag />,
+        settings: () => <Settings serverAPI={serverAPI} />, 
         content: () => {
+            if (loading) return <div>Loading...</div>;
             const appId = getGameId();
             const gameName = getGameNameUrlified();
-            const position = "top-right";
-            const offsetX = 10;
-            const offsetY = 10;
-            const badgeType = "full";
-
+            const { badgePosition, offsetX, offsetY, badgeType } = settings;
             return (
-                <UAStatusBadge
-                    appId={appId}
-                    gameName={gameName}
-                    position={position}
-                    offsetX={offsetX}
-                    offsetY={offsetY}
-                    badgeType={badgeType}
-                />
+                <div>
+                    <UAStatusBadge
+                        appId={appId}
+                        gameName={gameName}
+                        position={badgePosition}
+                        offsetX={offsetX}
+                        offsetY={offsetY}
+                        badgeType={badgeType}
+                    />
+                </div>
             );
         },
     };
