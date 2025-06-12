@@ -1,4 +1,4 @@
-[![Latest Release: <VERSION_PLACEHOLDER>](https://github.com/yataktyni/decky-ukr-badge/actions/workflows/release.yml/badge.svg)](https://github.com/yataktyni/decky-ukr-badge/actions/workflows/release.yml)
+**DOWNLOAD:** [![Latest Release: <VERSION_PLACEHOLDER>](https://img.shields.io/badge/latest_release-<VERSION_PLACEHOLDER>-green)](https://github.com/yataktyni/decky-ua-localization-badge/releases/latest/download/release.zip)
 
 ---
 
