@@ -47,3 +47,14 @@ jobs:
         prerelease: false
         files: |
           release.zip
+
+    - name: Update README with release version
+      run: |
+        git config user.name "GitHub Actions Bot"
+        git config user.email "actions@github.com"
+        sed -i "s|<VERSION_PLACEHOLDER>|v${{ github.run_number }}|g" README.md
+        git add README.md
+        git commit -m "Docs: Update README with release version v${{ github.run_number }} [skip ci]"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
