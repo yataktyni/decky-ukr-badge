@@ -23,8 +23,8 @@ export function Settings({ serverAPI }: SettingsProps) {
 
     useEffect(() => {
         serverAPI("get_settings", {}).then((resp: any) => {
-            if (resp.success && resp.result) {
-                setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
+            if (resp && typeof resp === "object") {
+                setSettings({ ...DEFAULT_SETTINGS, ...resp });
             }
             setLoading(false);
         });
@@ -88,7 +88,7 @@ export function Settings({ serverAPI }: SettingsProps) {
                 React.createElement(ButtonItem, { layout: "below", onClick: () => serverAPI("clear_cache", {}), label: t("clear_cache") })
             ),
             React.createElement(PanelSectionRow, null,
-                React.createElement("a", { href: "https://ko-fi.com/YOUR_KOFI_NAME", target: "_blank" },
+                React.createElement("a", { href: "https://ko-fi.com/yataktyni", target: "_blank" },
                     "❤️ Ko-fi"
                 )
             ),

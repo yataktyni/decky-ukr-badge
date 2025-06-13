@@ -1,24 +1,19 @@
+# decky-ukr-badge/main.py
+
 import os
 import json
 import logging
-import decky
+from decky_plugin import logger, plugin
 
-# Setup logger for debug (CEF style debug)
-logger = logging.getLogger("decky-ukr-badge")
-logger.setLevel(logging.DEBUG)  # Capture all debug and above
+# Логування для діагностики
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler("/tmp/decky-ukr-badge.log", mode="a")
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
-# Console handler
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter("[%(asctime)s] %(levelname)s - %(message)s")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-# Optional: File logging (uncomment to enable)
-# fh = logging.FileHandler("plugin_debug.log")
-# fh.setLevel(logging.DEBUG)
-# fh.setFormatter(formatter)
-# logger.addHandler(fh)
+# Шлях до налаштувань
+SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "user_settings.json")
 
 DEFAULT_SETTINGS = {
     "badgeType": "full",
@@ -27,61 +22,50 @@ DEFAULT_SETTINGS = {
     "offsetY": 10,
 }
 
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "settings.json")
-
 def load_settings():
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                logger.debug(f"Loaded settings: {data}")
-                return {**DEFAULT_SETTINGS, **data}
+            with open(SETTINGS_FILE, "r") as f:
+                settings = json.load(f)
+                logger.debug(f"Loaded settings: {settings}")
+                return {**DEFAULT_SETTINGS, **settings}
         except Exception as e:
-            logger.error(f"Failed to load settings: {e}")
-    else:
-        logger.debug("Settings file not found, using default settings")
+            logger.exception("Failed to load settings file")
     return DEFAULT_SETTINGS.copy()
 
-def save_settings(settings):
+def save_settings(settings: dict):
     try:
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(settings, f, indent=4)
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(settings, f)
             logger.debug(f"Saved settings: {settings}")
+        return True
     except Exception as e:
-        logger.error(f"Failed to save settings: {e}")
+        logger.exception("Failed to save settings")
+        return False
 
-current_settings = load_settings()
+@plugin.method()
+async def get_settings() -> dict:
+    logger.debug("get_settings called")
+    return load_settings()
 
-def main():
-    @decky.plugin_api_method("get_settings")
-    def get_settings(params):
-        logger.debug(f"get_settings called with params: {params}")
-        return {
-            "success": True,
-            "result": current_settings
-        }
+@plugin.method()
+async def set_settings(key: str, value) -> bool:
+    logger.debug(f"set_settings called: {key} = {value}")
+    settings = load_settings()
+    if key in DEFAULT_SETTINGS:
+        settings[key] = value
+        return save_settings(settings)
+    logger.warning(f"Ignored unknown setting key: {key}")
+    return False
 
-    @decky.plugin_api_method("set_settings")
-    def set_settings(params):
-        global current_settings
-        new_settings = params.get("settings")
-        logger.debug(f"set_settings called with new settings: {new_settings}")
-        if not isinstance(new_settings, dict):
-            logger.warning(f"Invalid settings received: {new_settings}")
-            return {"success": False, "error": "Invalid settings"}
+@plugin.method()
+async def clear_cache() -> bool:
+    logger.debug("clear_cache called")
+    # Тут можеш очистити кеш, якщо треба
+    return True
 
-        current_settings.update(new_settings)
-        save_settings(current_settings)
-        return {"success": True}
+async def _main():
+    logger.info("decky-ukr-badge Plugin Loaded")
 
-    @decky.plugin_api_method("clear_cache")
-    def clear_cache(params):
-        logger.info("clear_cache called - clearing cache")
-        # Add your cache clearing logic here
-        return {"success": True}
-
-    logger.info("Starting decky plugin main loop")
-    decky.run()
-
-if __name__ == "__main__":
-    main()
+async def _unload():
+    logger.info("decky-ukr-badge Plugin Unloaded")
