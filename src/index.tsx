@@ -128,7 +128,7 @@ function MainPluginContent() {
 export default definePlugin(() => {
     return {
         name: "decky-ukr-badge",
-        title: React.createElement("div", null, "UA Localization Badge"),
+        title: React.createElement("div", null, "Decky UKR Badge"),
         description: React.createElement("div", null, t("plugin_description")),
         icon: React.createElement(FaFlag, null),
         settings: React.createElement(Settings, { serverAPI: call }),

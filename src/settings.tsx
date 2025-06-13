@@ -33,7 +33,7 @@ export function Settings({ serverAPI }: SettingsProps) {
     const updateSetting = (key: keyof SettingsType, value: any) => {
         const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
-        serverAPI("set_settings", { settings: newSettings });
+        serverAPI("set_settings", { key: key, value: value });
     };
 
     if (loading) return React.createElement("div", null, "Loading...");
