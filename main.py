@@ -47,12 +47,12 @@ def save_settings(settings: dict):
         logger.exception("Failed to save settings")
         return False
 
-@plugin.method()
+@decky.plugin.method()
 async def get_settings() -> dict:
     logger.debug("get_settings called")
     return load_settings()
 
-@plugin.method()
+@decky.plugin.method()
 async def set_settings(key: str, value) -> bool:
     logger.debug(f"set_settings called: {key} = {value}")
     settings = load_settings()
@@ -62,7 +62,7 @@ async def set_settings(key: str, value) -> bool:
     logger.warning(f"Ignored unknown setting key: {key}")
     return False
 
-@plugin.method()
+@decky.plugin.method()
 async def clear_cache() -> bool:
     logger.debug("clear_cache called")
     # Тут можеш очистити кеш, якщо треба

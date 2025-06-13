@@ -59,5 +59,6 @@ cli/decky
 # Local Development/Testing Artifacts
 decky_plugin.py
 mock_decky_home/
+protondb-decky-main/
 user_settings.json
 .venv/
