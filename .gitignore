@@ -55,3 +55,9 @@ out/*
 cli/
 cli/*
 cli/decky
+
+# Local Development/Testing Artifacts
+decky_plugin.py
+mock_decky_home/
+user_settings.json
+.venv/
