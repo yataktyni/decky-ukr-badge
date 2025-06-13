@@ -24,7 +24,7 @@
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "zip-dist": "mkdir -p temp-release/decky-ukr-badge && cp README.md temp-release/decky-ukr-badge/ && cp LICENSE temp-release/decky-ukr-badge/ && cp main.py temp-release/decky-ukr-badge/ && cp package.json temp-release/decky-ukr-badge/ && cp plugin.json temp-release/decky-ukr-badge/ && cp -r dist temp-release/decky-ukr-badge/ && cd temp-release && zip -r ../release.zip ./* && cd .. && rm -rf temp-release"
+    "zip-dist": "./scripts/update-version.sh && mkdir -p temp-release/decky-ukr-badge && cp README.md temp-release/decky-ukr-badge/ && cp LICENSE temp-release/decky-ukr-badge/ && cp main.py temp-release/decky-ukr-badge/ && cp package.json temp-release/decky-ukr-badge/ && cp plugin.json temp-release/decky-ukr-badge/ && cp -r dist temp-release/decky-ukr-badge/ && cd temp-release && zip -r ../release.zip ./* && cd .. && rm -rf temp-release"
   },
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
