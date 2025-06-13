@@ -18,7 +18,11 @@ export async function fetchSteamGameLanguages(appId: string): Promise<string[] |
     try {
         const res = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);
         const data = await res.json();
-        return data[appId]?.data?.supported_languages?.split(",").map((lang: string) => lang.trim()) || null;
+        const htmlLangs = data[appId]?.data?.supported_languages || "";
+        const $ = cheerio.load(htmlLangs);
+        // Steam wraps language names in <b> tags usually
+        const langs = $("b").map((_, el) => $(el).text().toLowerCase().trim()).get();
+        return langs.length ? langs : null;
     } catch {
         return null;
     }
