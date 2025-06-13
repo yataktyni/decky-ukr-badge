@@ -23,9 +23,10 @@ export function Settings({ serverAPI }: SettingsProps) {
 
     useEffect(() => {
         serverAPI("get_settings", {}).then((resp: any) => {
-            if (resp && typeof resp === "object") {
-                setSettings({ ...DEFAULT_SETTINGS, ...resp });
-            }
+            setSettings({ ...DEFAULT_SETTINGS, ...resp });
+            setLoading(false);
+        }).catch((e: any) => {
+            console.error("Failed to load settings:", e);
             setLoading(false);
         });
     }, []);

@@ -104,9 +104,10 @@ function MainPluginContent() {
 
     useEffect(() => {
         call("get_settings", {}).then((resp: any) => {
-            if (resp.success && resp.result) {
-                setSettings({ ...DEFAULT_SETTINGS, ...resp.result });
-            }
+            setSettings({ ...DEFAULT_SETTINGS, ...resp });
+            setLoading(false);
+        }).catch((e: any) => {
+            console.error("Failed to load settings:", e);
             setLoading(false);
         });
     }, []);
