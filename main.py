@@ -1,23 +1,12 @@
 # decky-ukr-badge/main.py
 
-import os
 import json
-import logging
-from decky_plugin import plugin
+import os
 
-# Configure logging first to capture all potential issues
-LOG_FILE = "/tmp/decky-ukr-badge.log"
-logging.basicConfig(
-    filename=LOG_FILE,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    filemode='w', # Use 'w' to overwrite the log file on each load for fresh diagnostics
-    level=logging.DEBUG,
-    force=True # Ensures the configuration is applied even if handlers exist
-)
-logger = logging.getLogger() # Get the root logger now that it's configured
+import decky
 
-# Шлях до налаштувань
-SETTINGS_FILE = os.path.join(os.path.dirname(__file__), "user_settings.json")
+# Path to settings file - use Decky's recommended settings directory
+SETTINGS_FILE = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
 
 DEFAULT_SETTINGS = {
     "badgeType": "full",
@@ -26,89 +15,57 @@ DEFAULT_SETTINGS = {
     "offsetY": 10,
 }
 
-def load_settings():
+
+def load_settings() -> dict:
     if os.path.exists(SETTINGS_FILE):
         try:
-            with open(SETTINGS_FILE, "r") as f:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 settings = json.load(f)
-                logger.debug(f"Loaded settings: {settings}")
+                decky.logger.debug(f"Loaded settings: {settings}")
                 return {**DEFAULT_SETTINGS, **settings}
         except Exception as e:
-            logger.exception("Failed to load settings file")
+            decky.logger.exception(f"Failed to load settings file: {e}")
     return DEFAULT_SETTINGS.copy()
 
-def save_settings(settings: dict):
+
+def save_settings(settings: dict) -> bool:
     try:
-        with open(SETTINGS_FILE, "w") as f:
-            json.dump(settings, f)
-            logger.debug(f"Saved settings: {settings}")
+        os.makedirs(os.path.dirname(SETTINGS_FILE), exist_ok=True)
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2)
+            decky.logger.debug(f"Saved settings: {settings}")
         return True
     except Exception as e:
-        logger.exception("Failed to save settings")
+        decky.logger.exception(f"Failed to save settings: {e}")
         return False
 
-@plugin.method()
+
+# Plugin methods exposed to frontend
 async def get_settings() -> dict:
-    logger.debug("get_settings called")
+    decky.logger.debug("get_settings called")
     return load_settings()
 
-@plugin.method()
+
 async def set_settings(key: str, value) -> bool:
-    logger.debug(f"set_settings called: {key} = {value}")
+    decky.logger.debug(f"set_settings called: {key} = {value}")
     settings = load_settings()
     if key in DEFAULT_SETTINGS:
         settings[key] = value
         return save_settings(settings)
-    logger.warning(f"Ignored unknown setting key: {key}")
+    decky.logger.warning(f"Ignored unknown setting key: {key}")
     return False
 
-@plugin.method()
+
 async def clear_cache() -> bool:
-    logger.debug("clear_cache called")
-    # Тут можеш очистити кеш, якщо треба
+    decky.logger.debug("clear_cache called")
+    # Cache is handled in frontend localStorage, this is a stub for potential future use
     return True
 
+
+# Plugin lifecycle
 async def _main():
-    logger.info("decky-ukr-badge Plugin Loaded")
+    decky.logger.info("decky-ukr-badge plugin loaded")
+
 
 async def _unload():
-    logger.info("decky-ukr-badge Plugin Unloaded")
-
-if __name__ == "__main__":
-    # This section is for local PC testing only
-    # It will not run when the plugin is deployed on the Steam Deck
-    async def test_plugin():
-        logger.info("--- Starting Local Plugin Test --- ")
-
-        # Initialize the plugin (this is usually done by Decky Loader)
-        await _main()
-
-        # Test get_settings
-        print("\n--- Testing get_settings ---")
-        settings = await get_settings()
-        print(f"Initial settings: {settings}")
-
-        # Test set_settings
-        print("\n--- Testing set_settings ---")
-        test_key = "badgeType"
-        test_value = "default"
-        print(f"Setting {test_key} to {test_value}")
-        success_set = await set_settings(test_key, test_value)
-        print(f"Set settings successful: {success_set}")
-
-        # Verify setting was saved
-        settings_after_set = await get_settings()
-        print(f"Settings after update: {settings_after_set}")
-
-        # Test clear_cache
-        print("\n--- Testing clear_cache ---")
-        success_clear = await clear_cache()
-        print(f"Clear cache successful: {success_clear}")
-
-        # Simulate plugin unload
-        await _unload()
-
-        logger.info("--- Local Plugin Test Finished --- ")
-
-    import asyncio
-    asyncio.run(test_plugin())
+    decky.logger.info("decky-ukr-badge plugin unloaded")

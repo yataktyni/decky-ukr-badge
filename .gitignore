@@ -1,64 +1,118 @@
-lib-cov
-*.seed
+# ===========================
+# Dependencies
+# ===========================
+node_modules/
+bower_components/
+.pnpm-store/
+
+# ===========================
+# Build Output
+# ===========================
+dist/
+out/
+build/
+*.js.map
+
+# ===========================
+# Release/Packaging Artifacts
+# ===========================
+temp-release/
+release.zip
+*.zip
+
+# ===========================
+# Python
+# ===========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+.eggs/
+*.egg-info/
+*.egg
+
+# ===========================
+# IDE / Editors
+# ===========================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ===========================
+# OS Generated Files
+# ===========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===========================
+# Logs
+# ===========================
+logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===========================
+# Testing & Coverage
+# ===========================
+coverage/
+.nyc_output/
+*.lcov
+
+# ===========================
+# Local Development / Testing
+# ===========================
+test_settings/
+user_settings.json
+mock_decky_home/
+decky_plugin.py
+
+# ===========================
+# Decky CLI
+# ===========================
+cli/
+backend/out/
+
+# ===========================
+# Misc
+# ===========================
+*.seed
 *.csv
 *.dat
 *.out
 *.pid
 *.gz
-*.swp
-
-pids
-logs
-results
-tmp
-
-# Coverage reports
-coverage
-
-# API keys and secrets
-.env
-
-# Dependency directory
-node_modules
-bower_components
-.pnpm-store
-
-# Editors
-.idea
-*.iml
-
-# OS metadata
-.DS_Store
-Thumbs.db
-
-# Ignore built ts files
-dist/
-
-__pycache__/
-
-/.yalc
+*.tgz
+*.tar
+.yalc/
 yalc.lock
-
-.vscode/settings.json
-
-# Ignore output folder
-
-backend/out
-
-# Make sure to ignore any instance of the loader's decky.py
-decky.pyi
-
-# Ignore decky CLI for building plugins
-out
-out/*
-cli/
-cli/*
-cli/decky
-
-# Local Development/Testing Artifacts
-decky_plugin.py
-mock_decky_home/
-protondb-decky-main/
-user_settings.json
-.venv/
+tmp/
+temp/

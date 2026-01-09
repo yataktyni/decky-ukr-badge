@@ -1,6 +1,6 @@
-name: Create Release
+name: Build and Release
 
-on: 
+on:
   push:
     branches:
       - main
@@ -12,75 +12,112 @@ jobs:
       contents: write
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Pull latest changes
-      run: git pull origin main
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 9
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        registry-url: https://registry.npmjs.org
-        cache: pnpm
+      - name: Calculate version
+        id: version
+        run: |
+          RUN_NUMBER=${{ github.run_number }}
+          MAJOR=$(( RUN_NUMBER / 100 ))
+          MINOR=$(( (RUN_NUMBER % 100) / 10 ))
+          PATCH=$(( RUN_NUMBER % 10 ))
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Version: $VERSION"
 
-    - name: Calculate version
-      id: calculate_version
-      run: |
-        RUN_NUMBER=${{ github.run_number }}
-        MAJOR=$(( RUN_NUMBER / 100 ))
-        MINOR=$(( (RUN_NUMBER % 100) / 10 ))
-        PATCH=$(( RUN_NUMBER % 10 ))
-        echo "major=$MAJOR" >> $GITHUB_OUTPUT
-        echo "minor=$MINOR" >> $GITHUB_OUTPUT
-        echo "patch=$PATCH" >> $GITHUB_OUTPUT
+      - name: Update version in package.json and plugin.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
 
-    - name: Update Package.json Version
-      run: |
-        NEW_PACKAGE_VERSION="${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}"
-        jq '.version = "'"$NEW_PACKAGE_VERSION"'"' package.json > package.json.tmp && mv package.json.tmp package.json
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Update package.json
+          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
+          mv package.json.tmp package.json
 
-    - name: Install & Build
-      run: |
-        pnpm i --frozen-lockfile
-        pnpm build
+          # Update plugin.json
+          jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp
+          mv plugin.json.tmp plugin.json
 
-    - name: Create release zip
-      run: pnpm run zip-dist
+          echo "✅ Updated versions to $VERSION"
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}
-        name: Release v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}
-        draft: false
-        prerelease: false
-        files: |
-          release.zip
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
 
-    - name: Update README with release version
-      run: |
-        git config user.name "GitHub Actions Bot"
-        git config user.email "actions@github.com"
-        sed -i "s|<VERSION_PLACEHOLDER>|v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}|g" README.md
-        NEW_PACKAGE_VERSION="${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }}"
-        # Use jq to update the version field in package.json
-        # Requires jq to be installed on the runner, which is usually available on GitHub-hosted runners.
-        jq '.version = "'"$NEW_PACKAGE_VERSION"'"' package.json > package.json.tmp && mv package.json.tmp package.json
-        git add README.md package.json
-        git commit -m "Docs: Update README and package.json with release version v${{ steps.calculate_version.outputs.major }}.${{ steps.calculate_version.outputs.minor }}.${{ steps.calculate_version.outputs.patch }} [skip ci]"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
- 
+      - name: Build plugin
+        run: pnpm build
+
+      - name: Create release zip
+        run: |
+          # Create release directory structure
+          mkdir -p release/decky-ukr-badge/dist
+
+          # Copy required files
+          cp -r dist/* release/decky-ukr-badge/dist/
+          cp main.py release/decky-ukr-badge/
+          cp plugin.json release/decky-ukr-badge/
+          cp package.json release/decky-ukr-badge/
+          cp LICENSE release/decky-ukr-badge/
+          cp README.md release/decky-ukr-badge/
+
+          # Create zip
+          cd release
+          zip -r ../release.zip decky-ukr-badge
+          cd ..
+
+          # Cleanup
+          rm -rf release
+
+          echo "✅ Created release.zip"
+          unzip -l release.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.tag }}
+          body: |
+            ## 🇺🇦 decky-ukr-badge ${{ steps.version.outputs.tag }}
+
+            ### Installation
+            1. Download `release.zip` below
+            2. On Steam Deck, open **Decky Loader** → ⚙️ **Settings** → **Developer**
+            3. Select **Install Plugin From File** and choose the downloaded zip
+
+            ### Changes
+            - Auto-generated release from commit ${{ github.sha }}
+
+            ---
+            [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
+          draft: false
+          prerelease: false
+          files: release.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit version updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes to commit
+          if git diff --quiet package.json plugin.json; then
+            echo "No version changes to commit"
+          else
+            git add package.json plugin.json
+            git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+            git push
+            echo "✅ Committed version updates"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

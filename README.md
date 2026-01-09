@@ -1,123 +1,183 @@
-# Плагін **decky-ukr-badge** для Steam Deck Decky Loader : [![Latest Release: v0.6.5](https://img.shields.io/badge/latest_release-v0.6.5-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
+# 🇺🇦 decky-ukr-badge
 
-Додає бейдж на сторінки ігор у Steam, що показує наявність української локалізації:
-
-- 🫡 Офіційна (Steam)
-- 🫂 Спільнотна (kuli.com.ua)
-- ❌ Відсутня
+[![Latest Release](https://img.shields.io/github/v/release/yataktyni/decky-ukr-badge?label=latest%20release&color=green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
+[![License](https://img.shields.io/github/license/yataktyni/decky-ukr-badge)](LICENSE)
 
 ---
 
-## Можливості
-- Налаштовувані стиль, позиція та розмір бейджа
-- Щоденне кешування з можливістю ручного очищення
-- Інтерфейс англійською та українською
+## 🇺🇦 Українська
+
+Плагін для **Decky Loader** на Steam Deck, який показує значок з інформацією про підтримку української мови в іграх.
+
+### ✨ Можливості
+
+- **🫡 Офіційна локалізація** — гра має українську мову в Steam
+- **🫂 Спільнотний переклад** — переклад доступний на [kuli.com.ua](https://kuli.com.ua/)
+- **❌ Відсутня** — українська локалізація недоступна
+
+### ⚙️ Налаштування
+
+- Тип значка (лише іконка / іконка + текст)
+- Позиція значка (вгорі зліва / вгорі справа)
+- Зміщення по X та Y
+- Очищення кешу
 
 ---
 
-## Встановлення
+### 📥 Встановлення
 
-### Збірка з вихідного коду (для розробників)
+#### Спосіб 1: Через меню Decky Loader (рекомендовано)
 
-1.  **Клонуйте репозиторій:**
-    ```bash
-    git clone https://github.com/yataktyni/decky-ukr-badge.git
-    cd decky-ukr-badge
-    ```
-2.  **Встановіть залежності:**
-    ```bash
-    pnpm install
-    # or
-    npm install
-    ```
-3.  **Зберіть плагін:**
-    ```bash
-    pnpm build
-    # or
-    npm run build
-    ```
-4.  Зібраний плагін буде знаходитися в каталозі `dist/` як `index.js`.
-5.  **Для ручного тестування:** Скопіюйте всю папку плагіна (що містить `plugin.json`, `package.json`, `main.py`, `dist/`, `src/`, `LICENSE` тощо) до `/home/deck/homebrew/plugins/` на вашому Steam Deck.
+1. Завантажте файл `release.zip` з [останнього релізу](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
+2. На Steam Deck відкрийте **Decky Loader** (кнопка `...`)
+3. Перейдіть до ⚙️ **Налаштування** → **Developer**
+4. Виберіть **Install Plugin From File**
+5. Знайдіть та виберіть завантажений `release.zip`
+6. Перезавантажте Decky Loader
 
-### Встановлення через меню Decky Loader (для всіх користувачів)
+#### Спосіб 2: Ручне встановлення
 
-1.  **Завантажте архів:** Завантажте файл `release.zip` з останнього [релізу](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip).
-2.  **Відкрийте Decky Loader:** На вашому Steam Deck перейдіть у `Налаштування > Decky Loader > Developer > Install Plugin From File` та виберіть завантажений `release.zip`.
-
-### Ручне встановлення (для досвідчених користувачів)
-
-1.  Перейдіть на сторінку [Релізів](https://github.com/yataktyni/decky-ukr-badge/releases).
-2.  Завантажте файл `release.zip` з останнього релізу.
-3.  Розпакуйте папку `decky-ukr-badge` з архіву `release.zip`.
-4.  Скопіюйте розпаковану папку `decky-ukr-badge` до `/home/deck/homebrew/plugins/` на вашому Steam Deck.
+1. Завантажте `release.zip` з [релізів](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
+2. Розпакуйте архів
+3. Скопіюйте папку `decky-ukr-badge` до:
+   ```
+   /home/deck/homebrew/plugins/
+   ```
+4. Перезавантажте Decky Loader або Steam Deck
 
 ---
 
-## Посилання
-- [Підтримка на Ko-fi ❤️](https://ko-fi.com/yataktyni)
-- [Інші Проєкти](https://github.com/yataktyni)
-- [Kuli (Спільнотні переклади)](https://kuli.com.ua/)
+### 🛠️ Збірка з вихідного коду (для розробників)
+
+**Вимоги:**
+- Node.js 18+
+- pnpm або npm
+
+**Кроки:**
+
+```bash
+# Клонуйте репозиторій
+git clone https://github.com/yataktyni/decky-ukr-badge.git
+cd decky-ukr-badge
+
+# Встановіть залежності
+pnpm install
+# або: npm install
+
+# Зберіть плагін
+pnpm build
+# або: npm run build
+```
+
+Після збірки файл `dist/index.js` буде створено.
+
+**Для тестування на Steam Deck:**
+
+Скопіюйте ці файли/папки на Steam Deck до `/home/deck/homebrew/plugins/decky-ukr-badge/`:
+- `dist/`
+- `main.py`
+- `plugin.json`
+- `package.json`
+- `LICENSE`
+- `README.md`
 
 ---
 
----
+### 🔗 Посилання
 
-# **decky-ukr-badge** Plugin for Steam Deck Decky Loader: [![Latest Release: v0.6.5](https://img.shields.io/badge/latest_release-v0.6.5-green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip)
-
-Adds a badge to Steam game pages showing Ukrainian localization availability:
-
-- 🫡 Official (Steam)
-- 🫂 Community (kuli.com.ua)
-- ❌ None
-
-## Features
-- Configurable badge style, position, and size
-- Daily cache with manual clear option
-- UI in English and Ukrainian
+- ❤️ [Підтримати на Ko-fi](https://ko-fi.com/yataktyni)
+- 📦 [GitHub](https://github.com/yataktyni/decky-ukr-badge)
+- 🇺🇦 [Kuli — спільнотні переклади](https://kuli.com.ua/)
 
 ---
+---
 
-## Installation
+## 🇬🇧 English
 
-### Decky Loader Store : coming soon
+A **Decky Loader** plugin for Steam Deck that displays a badge showing Ukrainian language support in games.
 
-### Building from Source (For developers)
+### ✨ Features
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/yataktyni/decky-ukr-badge.git
-    cd decky-ukr-badge
-    ```
-2.  **Install dependencies:**
-    ```bash
-    pnpm install
-    # or
-    npm install
-    ```
-3.  **Build the plugin:**
-    ```bash
-    pnpm build
-    # or
-    npm run build
-    ```
-4.  The built plugin will be located in the `dist/` directory as `index.js`.
-5.  **For manual testing:** Copy the entire plugin folder (containing `plugin.json`, `package.json`, `main.py`, `dist/`, `src/`, `LICENSE`, etc.) to `/home/deck/homebrew/plugins/` on your Steam Deck.
+- **🫡 Official localization** — game has Ukrainian language on Steam
+- **🫂 Community translation** — translation available on [kuli.com.ua](https://kuli.com.ua/)
+- **❌ None** — no Ukrainian localization available
 
-### Installation via Decky Loader Menu (For all users)
+### ⚙️ Settings
 
-1.  **Download the archive:** Download the `release.zip` file from the latest [release](https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip).
-2.  **Open Decky Loader:** On your Steam Deck, navigate to `Settings > Decky Loader > Developer > Install Plugin From File` and select the downloaded `release.zip`.
-
-### Manual Installation (Advanced users)
-
-1.  Go to the [Releases page](https://github.com/yataktyni/decky-ukr-badge/releases).
-2.  Download the `release.zip` from the latest release.
-3.  Extract the `decky-ukr-badge` folder from the `release.zip`.
-4.  Copy the extracted `decky-ukr-badge` folder to `/home/deck/homebrew/plugins/` on your Steam Deck.
+- Badge type (icon only / icon + text)
+- Badge position (top-left / top-right)
+- X and Y offset
+- Clear cache
 
 ---
 
-## Links
-- [Support on Ko-fi ❤️](https://ko-fi.com/yataktyni)
-- [Other Projects](https://github.com/yataktyni)
-- [Kuli (Community Translations)](https://kuli.com.ua/)
+### 📥 Installation
+
+#### Method 1: Via Decky Loader Menu (Recommended)
+
+1. Download `release.zip` from the [latest release](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
+2. On your Steam Deck, open **Decky Loader** (press `...` button)
+3. Go to ⚙️ **Settings** → **Developer**
+4. Select **Install Plugin From File**
+5. Find and select the downloaded `release.zip`
+6. Restart Decky Loader
+
+#### Method 2: Manual Installation
+
+1. Download `release.zip` from [releases](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
+2. Extract the archive
+3. Copy the `decky-ukr-badge` folder to:
+   ```
+   /home/deck/homebrew/plugins/
+   ```
+4. Restart Decky Loader or your Steam Deck
+
+---
+
+### 🛠️ Building from Source (For Developers)
+
+**Requirements:**
+- Node.js 18+
+- pnpm or npm
+
+**Steps:**
+
+```bash
+# Clone the repository
+git clone https://github.com/yataktyni/decky-ukr-badge.git
+cd decky-ukr-badge
+
+# Install dependencies
+pnpm install
+# or: npm install
+
+# Build the plugin
+pnpm build
+# or: npm run build
+```
+
+After building, `dist/index.js` will be created.
+
+**To test on Steam Deck:**
+
+Copy these files/folders to your Steam Deck at `/home/deck/homebrew/plugins/decky-ukr-badge/`:
+- `dist/`
+- `main.py`
+- `plugin.json`
+- `package.json`
+- `LICENSE`
+- `README.md`
+
+---
+
+### 🔗 Links
+
+- ❤️ [Support on Ko-fi](https://ko-fi.com/yataktyni)
+- 📦 [GitHub](https://github.com/yataktyni/decky-ukr-badge)
+- 🇺🇦 [Kuli — Community Translations](https://kuli.com.ua/)
+
+---
+
+## 📄 License
+
+[BSD-3-Clause](LICENSE)
