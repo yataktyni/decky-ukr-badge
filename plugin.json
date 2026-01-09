@@ -1,17 +1,11 @@
 {
-  "name": "decky-ukr-badge",
-  "author": "yataktyni",
-  "version": "0.6.6",
-  "api_version": 1,
-  "flags": [],
-  "publish": {
-    "tags": [
-      "localization",
-      "badge",
-      "ukrainian",
-      "steam-deck"
-    ],
-    "description": "Displays a badge on game pages showing Ukrainian language support status (Official, Community, or None).",
-    "image": "https://raw.githubusercontent.com/yataktyni/decky-ukr-badge/main/assets/ua-badge.png"
-  }
+    "name": "decky-ukr-badge",
+    "author": "yataktyni",
+    "version": "0.6.6",
+    "api_version": 1,
+    "flags": [],
+    "publish": {
+        "tags": ["localization", "badge", "ukrainian", "steam-deck"],
+        "description": "Displays a badge on game pages showing Ukrainian language support status (Official, Community, or None)."
+    }
 }
