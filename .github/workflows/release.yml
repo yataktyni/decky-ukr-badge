@@ -1,123 +1,106 @@
 name: Build and Release
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  build-and-release:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    build-and-release:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
 
-      - name: Calculate version
-        id: version
-        run: |
-          RUN_NUMBER=${{ github.run_number }}
-          MAJOR=$(( RUN_NUMBER / 100 ))
-          MINOR=$(( (RUN_NUMBER % 100) / 10 ))
-          PATCH=$(( RUN_NUMBER % 10 ))
-          VERSION="${MAJOR}.${MINOR}.${PATCH}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
+            - name: Calculate version
+              id: version
+              run: |
+                  RUN_NUMBER=${{ github.run_number }}
+                  MAJOR=$(( RUN_NUMBER / 100 ))
+                  MINOR=$(( (RUN_NUMBER % 100) / 10 ))
+                  PATCH=$(( RUN_NUMBER % 10 ))
+                  VERSION="${MAJOR}.${MINOR}.${PATCH}"
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+                  echo "📦 Version: $VERSION"
 
-      - name: Update version in package.json and plugin.json
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
+            - name: Update version in build files
+              run: |
+                  VERSION="${{ steps.version.outputs.version }}"
 
-          # Update package.json
-          jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
-          mv package.json.tmp package.json
+                  # Update package.json (for the release zip only, not committed)
+                  jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
+                  mv package.json.tmp package.json
 
-          # Update plugin.json
-          jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp
-          mv plugin.json.tmp plugin.json
+                  # Update plugin.json (for the release zip only, not committed)
+                  jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp
+                  mv plugin.json.tmp plugin.json
 
-          echo "✅ Updated versions to $VERSION"
+                  echo "✅ Updated versions to $VERSION (build only, not committed)"
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+            - name: Install dependencies
+              run: pnpm install --no-frozen-lockfile
 
-      - name: Build plugin
-        run: pnpm build
+            - name: Build plugin
+              run: pnpm build
 
-      - name: Create release zip
-        run: |
-          # Create release directory structure
-          mkdir -p release/decky-ukr-badge/dist
+            - name: Create release zip
+              run: |
+                  # Create release directory structure
+                  mkdir -p release/decky-ukr-badge/dist
 
-          # Copy required files
-          cp -r dist/* release/decky-ukr-badge/dist/
-          cp main.py release/decky-ukr-badge/
-          cp plugin.json release/decky-ukr-badge/
-          cp package.json release/decky-ukr-badge/
-          cp LICENSE release/decky-ukr-badge/
-          cp README.md release/decky-ukr-badge/
+                  # Copy required files
+                  cp -r dist/* release/decky-ukr-badge/dist/
+                  cp main.py release/decky-ukr-badge/
+                  cp plugin.json release/decky-ukr-badge/
+                  cp package.json release/decky-ukr-badge/
+                  cp LICENSE release/decky-ukr-badge/
+                  cp README.md release/decky-ukr-badge/
 
-          # Create zip
-          cd release
-          zip -r ../release.zip decky-ukr-badge
-          cd ..
+                  # Create zip
+                  cd release
+                  zip -r ../release.zip decky-ukr-badge
+                  cd ..
 
-          # Cleanup
-          rm -rf release
+                  # Cleanup
+                  rm -rf release
 
-          echo "✅ Created release.zip"
-          unzip -l release.zip
+                  echo "✅ Created release.zip"
+                  unzip -l release.zip
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: Release ${{ steps.version.outputs.tag }}
-          body: |
-            ## 🇺🇦 decky-ukr-badge ${{ steps.version.outputs.tag }}
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ steps.version.outputs.tag }}
+                  name: Release ${{ steps.version.outputs.tag }}
+                  body: |
+                      ## 🇺🇦 decky-ukr-badge ${{ steps.version.outputs.tag }}
 
-            ### Installation
-            1. Download `release.zip` below
-            2. On Steam Deck, open **Decky Loader** → ⚙️ **Settings** → **Developer**
-            3. Select **Install Plugin From File** and choose the downloaded zip
+                      ### Installation
+                      1. Download `release.zip` below
+                      2. On Steam Deck, open **Decky Loader** → ⚙️ **Settings** → **Developer**
+                      3. Select **Install Plugin From File** and choose the downloaded zip
 
-            ### Changes
-            - Auto-generated release from commit ${{ github.sha }}
+                      ### Changes
+                      - Auto-generated release from commit ${{ github.sha }}
 
-            ---
-            [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
-          draft: false
-          prerelease: false
-          files: release.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit version updates
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Check if there are changes to commit
-          if git diff --quiet package.json plugin.json; then
-            echo "No version changes to commit"
-          else
-            git add package.json plugin.json
-            git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
-            git push
-            echo "✅ Committed version updates"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                      ---
+                      [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
+                  draft: false
+                  prerelease: false
+                  files: release.zip
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
