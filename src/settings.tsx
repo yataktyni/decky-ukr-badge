@@ -12,6 +12,15 @@ import { t, getSupportedLanguage } from "./translations";
 import { useSettings } from "./hooks/useSettings";
 import Spinner from "./components/Spinner";
 
+// Declare SteamClient for TypeScript
+declare const SteamClient:
+    | {
+        System?: {
+            OpenInSystemBrowser?: (url: string) => void;
+        };
+    }
+    | undefined;
+
 const CACHE_KEY = "decky-ukr-badge-cache";
 
 export const Settings: FC = () => {
@@ -24,6 +33,7 @@ export const Settings: FC = () => {
         setOffsetY,
     } = useSettings();
     const [cacheCleared, setCacheCleared] = useState(false);
+    const [showKofiQR, setShowKofiQR] = useState(false);
 
     const lang = getSupportedLanguage();
 
@@ -39,10 +49,46 @@ export const Settings: FC = () => {
         }
     };
 
-    // Navigate to external URL using Steam's browser
+    // Navigate to external URL - try multiple methods for compatibility
     const openExternalUrl = (url: string) => {
-        Navigation.NavigateToExternalWeb(url);
+        try {
+            // Try SteamClient first (most reliable method like magicblack plugin)
+            if (
+                typeof SteamClient !== "undefined" &&
+                SteamClient.System?.OpenInSystemBrowser
+            ) {
+                SteamClient.System.OpenInSystemBrowser(url);
+                return;
+            }
+            // Fallback to Navigation (Decky UI method)
+            try {
+                if (Navigation && typeof Navigation.NavigateToExternalWeb === "function") {
+                    Navigation.NavigateToExternalWeb(url);
+                    return;
+                }
+            } catch (navError) {
+                console.warn("[decky-ukr-badge] Navigation method failed:", navError);
+            }
+            // Last resort - try window.open
+            if (typeof window !== "undefined" && window.open) {
+                window.open(url, "_blank");
+                return;
+            }
+            console.warn("[decky-ukr-badge] Could not open URL, all methods failed");
+        } catch (e) {
+            console.error("[decky-ukr-badge] Error opening URL:", e);
+        }
     };
+
+    // Generate QR code for ko-fi URL
+    const generateQRCode = (url: string): string => {
+        // Simple QR code using a QR code API service (no external dependencies)
+        const encoded = encodeURIComponent(url);
+        return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}`;
+    };
+
+    const kofiUrl = "https://ko-fi.com/yataktyni";
+    const kofiQRUrl = generateQRCode(kofiUrl);
 
     if (loading) {
         return (
@@ -163,14 +209,42 @@ export const Settings: FC = () => {
 
             <PanelSection title="🔗 Links">
                 <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() =>
-                            openExternalUrl("https://ko-fi.com/yataktyni")
-                        }
-                    >
-                        ❤️ Support on Ko-fi
-                    </ButtonItem>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <ButtonItem
+                            layout="below"
+                            onClick={() => openExternalUrl(kofiUrl)}
+                        >
+                            ❤️ Support on Ko-fi
+                        </ButtonItem>
+                        <ButtonItem
+                            layout="below"
+                            onClick={() => setShowKofiQR(!showKofiQR)}
+                        >
+                            {showKofiQR ? "📱 Hide QR Code" : "📱 Show QR Code"}
+                        </ButtonItem>
+                        {showKofiQR && (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    padding: "16px",
+                                    backgroundColor: "#1a1a2e",
+                                    borderRadius: "8px",
+                                    marginTop: "8px",
+                                }}
+                            >
+                                <img
+                                    src={kofiQRUrl}
+                                    alt="Ko-fi QR Code"
+                                    style={{
+                                        width: "200px",
+                                        height: "200px",
+                                        imageRendering: "pixelated",
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </PanelSectionRow>
 
                 <PanelSectionRow>

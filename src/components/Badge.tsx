@@ -27,6 +27,12 @@ const BADGE_CONFIG = {
 } as const;
 
 // Position settings matching ProtonDB style
+// Adjusted to avoid overlap with ProtonDB badge when it exists
+const POSITION_SETTINGS_WITH_PROTONDB = {
+    "top-left": { top: "80px", left: "20px" }, // Lower when ProtonDB exists
+    "top-right": { top: "100px", right: "20px" }, // Lower when ProtonDB exists
+} as const;
+
 const POSITION_SETTINGS = {
     "top-left": { top: "40px", left: "20px" },
     "top-right": { top: "60px", right: "20px" },
@@ -90,10 +96,14 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
     return topCapsule;
 }
 
+interface BadgeProps {
+    protonDBExists?: boolean;
+}
+
 /**
  * Badge component that displays Ukrainian localization status
  */
-export default function Badge(): React.ReactElement | null {
+export default function Badge({ protonDBExists = false }: BadgeProps): React.ReactElement | null {
     const { appId, appName, isLoading: appLoading } = useAppId();
     const { settings, loading: settingsLoading } = useSettings();
     const lang = getSupportedLanguage();
@@ -239,9 +249,11 @@ export default function Badge(): React.ReactElement | null {
     }
 
     const badge = BADGE_CONFIG[status];
+    // Adjust position if ProtonDB badge exists to avoid overlap
+    const positionSettings = protonDBExists ? POSITION_SETTINGS_WITH_PROTONDB : POSITION_SETTINGS;
     const position =
-        POSITION_SETTINGS[settings.badgePosition] ||
-        POSITION_SETTINGS["top-right"];
+        positionSettings[settings.badgePosition] ||
+        positionSettings["top-right"];
 
     // Build badge text based on settings
     const badgeText =

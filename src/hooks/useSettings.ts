@@ -48,13 +48,31 @@ const LoadingContext = new BehaviorSubject<boolean>(true);
  * Update a single setting and persist to backend
  */
 function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
-    const newSettings = { ...SettingsContext.value, [key]: value };
+    const oldSettings = SettingsContext.value;
+    const newSettings = { ...oldSettings, [key]: value };
     SettingsContext.next(newSettings);
 
-    // Persist to backend
-    call("set_settings", key, value).catch((error) => {
-        console.error("[decky-ukr-badge] Failed to save setting:", error);
+    // Persist to backend with timeout
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Settings save timeout after 2000ms")), 2000);
     });
+
+    Promise.race([
+        call("set_settings", key, value),
+        timeoutPromise,
+    ])
+        .then((success) => {
+            if (success === false) {
+                console.error("[decky-ukr-badge] Backend rejected setting save");
+                // Revert to previous value on save failure
+                SettingsContext.next(oldSettings);
+            }
+        })
+        .catch((error) => {
+            console.error("[decky-ukr-badge] Failed to save setting:", error);
+            // Revert to previous value on save failure
+            SettingsContext.next(oldSettings);
+        });
 }
 
 /**
@@ -64,15 +82,28 @@ export function loadSettings() {
     LoadingContext.next(true);
     console.log("[decky-ukr-badge] Loading settings...");
 
-    call<[], Settings>("get_settings")
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error("Settings load timeout after 3000ms")), 3000);
+    });
+
+    Promise.race([
+        call<[], Settings>("get_settings"),
+        timeoutPromise,
+    ])
         .then((settings) => {
             console.log("[decky-ukr-badge] Loaded settings:", settings);
             if (settings && typeof settings === "object") {
                 SettingsContext.next({ ...DEFAULT_SETTINGS, ...settings });
+            } else {
+                // Fallback to defaults if response is invalid
+                SettingsContext.next(DEFAULT_SETTINGS);
             }
         })
         .catch((error) => {
             console.error("[decky-ukr-badge] Failed to load settings:", error);
+            // Use defaults on error
+            SettingsContext.next(DEFAULT_SETTINGS);
         })
         .finally(() => {
             LoadingContext.next(false);
