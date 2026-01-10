@@ -40,11 +40,14 @@ export const DebugPanel: FC = () => {
 
     // Fetch network info
     const fetchNetworkInfo = async () => {
+        setLoading(true);
         try {
             const result = await callBackend<NetworkInfo>("get_network_info");
             setNetworkInfo(result);
         } catch (e) {
             console.error("[decky-ukr-badge] Failed to fetch network info:", e);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -111,8 +114,10 @@ export const DebugPanel: FC = () => {
 
     // SSH toggle
     const handleSSHToggle = async (enabled: boolean) => {
+        setLoading(true); // Set loading explicitly for toggle
         await executeCommand(enabled ? "enable_ssh" : "disable_ssh");
         await fetchNetworkInfo();
+        // setLoading(false) is handled in fetchNetworkInfo finally block
     };
 
     const sshEnabled = networkInfo?.ssh_status === "active";
@@ -149,7 +154,7 @@ export const DebugPanel: FC = () => {
                                     color: sshEnabled ? "#4caf50" : "#f44336",
                                 }}
                             >
-                                {networkInfo?.ssh_status || "Loading..."}
+                                {networkInfo ? (sshEnabled ? "Active" : "Inactive") : "Loading..."}
                             </span>
 
                             <span style={{ color: "#888" }}>SSH Port:</span>
@@ -195,6 +200,7 @@ export const DebugPanel: FC = () => {
                         description="Enable/disable SSH server"
                         checked={sshEnabled}
                         onChange={handleSSHToggle}
+                        disabled={loading}
                     />
                 </PanelSectionRow>
 
@@ -204,7 +210,7 @@ export const DebugPanel: FC = () => {
                         onClick={() => fetchNetworkInfo()}
                         disabled={loading}
                     >
-                        🔄 Refresh Network Info
+                        {loading ? "🔄 Refreshing..." : "🔄 Refresh Network Info"}
                     </ButtonItem>
                 </PanelSectionRow>
             </PanelSection>

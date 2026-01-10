@@ -29,7 +29,7 @@ function hasProtonDBBadge(): boolean {
             // Check if protonbadge elements exist
             const protonBadgeExists = document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protonbadge"]');
             if (protonBadgeExists) return true;
-            
+
             // Check window for ProtonDB plugin indicators
             if ((window as any).protonbadge || (window as any).ProtonDBBadge) {
                 return true;
@@ -128,7 +128,7 @@ function patchLibraryApp() {
                     if (typeof topCapsule === "object" && Array.isArray(topCapsule.props?.children)) {
                         // Check if ProtonDB exists - if so, place icon on the left side instead
                         const protonDBExists = hasProtonDBBadge();
-                        
+
                         // Create a small icon component for the header (like ProtonDB does)
                         const headerIcon = (
                             <div
@@ -167,6 +167,59 @@ function patchLibraryApp() {
 }
 
 /**
+ * Patches the store app page to inject the Ukrainian badge.
+ */
+function patchStorePage() {
+    return routerHook.addPatch("/store/app/:appid", (tree: any) => {
+        const routeProps = findInReactTree(tree, (x: any) => x?.renderFunc);
+
+        if (routeProps) {
+            const patchHandler = createReactTreePatcher(
+                [
+                    (tree: any) =>
+                        findInReactTree(
+                            tree,
+                            (x: any) => x?.props?.children?.props?.overview,
+                        )?.props?.children,
+                ],
+                (
+                    _: Array<Record<string, unknown>>,
+                    ret?: React.ReactElement,
+                ) => {
+                    const container = findInReactTree(
+                        ret,
+                        (x: React.ReactElement) =>
+                            Array.isArray(x?.props?.children) &&
+                            x?.props?.className?.includes(
+                                appDetailsClasses.InnerContainer,
+                            ),
+                    );
+
+                    if (typeof container !== "object") {
+                        return ret;
+                    }
+
+                    const protonDBExists = hasProtonDBBadge();
+
+                    // Inject the badge
+                    container.props.children.splice(
+                        1,
+                        0,
+                        <Badge key="ukr-badge-store" protonDBExists={protonDBExists} isStore={true} />,
+                    );
+
+                    return ret;
+                },
+            );
+
+            afterPatch(routeProps, "renderFunc", patchHandler);
+        }
+
+        return tree;
+    });
+}
+
+/**
  * Settings Panel Component for the Quick Access Menu
  */
 const SettingsPanel: React.FC = () => {
@@ -196,6 +249,8 @@ export default definePlugin(() => {
 
     // Patch the library app page
     const libraryPatch = patchLibraryApp();
+    // Patch the store app page
+    const storePatch = patchStorePage();
 
     return {
         name: "decky-ukr-badge",
@@ -204,6 +259,7 @@ export default definePlugin(() => {
         content: <SettingsPanel />,
         onDismount() {
             routerHook.removePatch("/library/app/:appid", libraryPatch);
+            routerHook.removePatch("/store/app/:appid", storePatch);
         },
     };
 });

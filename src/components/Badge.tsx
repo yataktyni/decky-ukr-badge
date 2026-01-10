@@ -98,12 +98,13 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
 
 interface BadgeProps {
     protonDBExists?: boolean;
+    isStore?: boolean;
 }
 
 /**
  * Badge component that displays Ukrainian localization status
  */
-export default function Badge({ protonDBExists = false }: BadgeProps): React.ReactElement | null {
+export default function Badge({ protonDBExists = false, isStore = false }: BadgeProps): React.ReactElement | null {
     const { appId, appName, isLoading: appLoading } = useAppId();
     const { settings, loading: settingsLoading } = useSettings();
     const lang = getSupportedLanguage();
@@ -248,21 +249,41 @@ export default function Badge({ protonDBExists = false }: BadgeProps): React.Rea
         return null;
     }
 
+    // Don't render on store if setting is disabled
+    if (isStore && !settings.showOnStore) {
+        return null;
+    }
+
     const badge = BADGE_CONFIG[status];
     // Adjust position if ProtonDB badge exists to avoid overlap
     const positionSettings = protonDBExists ? POSITION_SETTINGS_WITH_PROTONDB : POSITION_SETTINGS;
-    const position =
+    const basePosition =
         positionSettings[settings.badgePosition] ||
         positionSettings["top-right"];
 
+    // Apply offsets to position
+    const position: any = { ...basePosition };
+    if (position.top) position.top = `calc(${position.top} + ${settings.offsetY}px)`;
+    if (position.left) position.left = `calc(${position.left} + ${settings.offsetX}px)`;
+    if (position.right) position.right = `calc(${position.right} + ${settings.offsetX}px)`;
+
     // Build badge text based on settings
-    const badgeText =
-        settings.badgeType === "default"
-            ? badge.text
-            : `${badge.text} ${t("ukrainian", lang)}`;
+    // "Icon + Text" should show: ICON + "Official"/"Community"/"No Support" (derived from status)
+    // "Default" shows just ICON (and maybe short text from config)
+    let badgeText: string = badge.text;
+
+    if (settings.badgeType === "full") {
+        const statusText =
+            status === "OFFICIAL" ? t("official", lang) :
+                status === "COMMUNITY" ? t("community", lang) :
+                    t("none", lang);
+
+        badgeText = `${badge.text} ${statusText}`;
+    }
 
     // Click handler - open kuli.com.ua page
     const handleClick = () => {
+        console.log(`[decky-ukr-badge] Clicked badge. Status: ${status}, AppName: ${appName}`);
         if (status !== "NONE" && appName) {
             Navigation.NavigateToExternalWeb(
                 `https://kuli.com.ua/${urlifyGameName(appName)}`,
@@ -275,8 +296,8 @@ export default function Badge({ protonDBExists = false }: BadgeProps): React.Rea
         status === "OFFICIAL"
             ? `${t("ukrainian", lang)} (${t("official", lang)})`
             : status === "COMMUNITY"
-              ? `${t("ukrainian", lang)} (${t("community", lang)})`
-              : `${t("ukrainian", lang)} (${t("none", lang)})`;
+                ? `${t("ukrainian", lang)} (${t("community", lang)})`
+                : `${t("ukrainian", lang)} (${t("none", lang)})`;
 
     return (
         <div
@@ -296,7 +317,7 @@ export default function Badge({ protonDBExists = false }: BadgeProps): React.Rea
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
-                    padding: `${6 + settings.offsetY}px ${12 + settings.offsetX}px`,
+                    padding: "6px 12px", // Fixed padding
                     backgroundColor: badge.color,
                     color: badge.textColor,
                     border: "none",

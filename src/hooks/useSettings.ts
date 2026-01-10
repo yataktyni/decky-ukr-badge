@@ -30,6 +30,7 @@ export type Settings = {
     badgePosition: "top-left" | "top-right";
     offsetX: number;
     offsetY: number;
+    showOnStore: boolean;
 };
 
 // Default settings
@@ -38,6 +39,7 @@ const DEFAULT_SETTINGS: Settings = {
     badgePosition: "top-right",
     offsetX: 10,
     offsetY: 10,
+    showOnStore: false,
 };
 
 // Reactive state using BehaviorSubject (not using React context for simplicity)
@@ -61,13 +63,6 @@ function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
         call("set_settings", key, value),
         timeoutPromise,
     ])
-        .then((success) => {
-            if (success === false) {
-                console.error("[decky-ukr-badge] Backend rejected setting save");
-                // Revert to previous value on save failure
-                SettingsContext.next(oldSettings);
-            }
-        })
         .catch((error) => {
             console.error("[decky-ukr-badge] Failed to save setting:", error);
             // Revert to previous value on save failure
@@ -153,6 +148,10 @@ export function useSettings() {
         updateSetting("offsetY", value);
     }
 
+    function setShowOnStore(value: Settings["showOnStore"]) {
+        updateSetting("showOnStore", value);
+    }
+
     return {
         settings,
         loading,
@@ -160,6 +159,7 @@ export function useSettings() {
         setBadgePosition,
         setOffsetX,
         setOffsetY,
+        setShowOnStore,
     };
 }
 

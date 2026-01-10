@@ -123,7 +123,7 @@ async def clear_logs() -> bool:
     return True
 
 
-async def get_network_info() -> dict:
+    async def get_network_info() -> dict:
     """Get network information for remote debugging."""
     info = {
         "ip": "unknown",
@@ -134,7 +134,7 @@ async def get_network_info() -> dict:
     }
 
     try:
-        # Get IP address
+        # Get IP address - try multiple methods
         success, output = run_command(["hostname", "-I"])
         if success and output.strip():
             # Get first IP (usually the main one)
@@ -142,6 +142,20 @@ async def get_network_info() -> dict:
             if ips:
                 info["ip"] = ips[0]
                 info["cef_debug_url"] = f"http://{ips[0]}:8080"
+        
+        if info["ip"] == "unknown":
+             # Fallback: ip route get 1
+             success, output = run_command(["ip", "route", "get", "1"])
+             if success and "src" in output:
+                 try:
+                     # Extract IP after 'src'
+                     parts = output.split()
+                     src_idx = parts.index("src")
+                     if src_idx + 1 < len(parts):
+                         info["ip"] = parts[src_idx + 1]
+                         info["cef_debug_url"] = f"http://{info['ip']}:8080"
+                 except Exception:
+                     pass
 
         # Check SSH status
         success, output = run_command(["systemctl", "is-active", "sshd"])

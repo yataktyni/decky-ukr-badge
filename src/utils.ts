@@ -15,7 +15,9 @@ export function getGameId(): string | null {
 
     // Try to get from current route params
     const pathname = window.location.pathname;
-    const match = pathname.match(/\/routes\/appdetails\/(\d+)/);
+    const match = pathname.match(/\/routes\/appdetails\/(\d+)/) ||
+      pathname.match(/\/store\/app\/(\d+)/) ||
+      pathname.match(/\/shopping\/app\/(\d+)/);
     if (match) {
       return match[1];
     }
@@ -141,9 +143,10 @@ export async function fetchKuliTranslationStatus(
     });
 
     if (!res.ok) {
-      // 404 means the game isn't on kuli.com.ua
+      // 404 means the game isn't on kuli.com.ua at this URL
       if (res.status === 404) {
-        return null;
+        console.log(`[decky-ukr-badge] Direct URL failed for ${gameName}, trying search...`);
+        return await searchKuliForGame(gameName);
       }
       console.warn(`[decky-ukr-badge] Kuli returned ${res.status}`);
       return null;
@@ -162,8 +165,11 @@ export async function fetchKuliTranslationStatus(
 
     // If the page exists but has no instruction, it's officially supported
     // Check if it's actually a game page (not a 404 page or error)
+    // "html-product-details-page" is the class on the html tag for product pages
     const isGamePage =
-      html.includes("game-page") || html.includes("item__title");
+      html.includes("html-product-details-page") ||
+      html.includes("game-page") ||
+      html.includes("item__title");
 
     if (isGamePage) {
       return "OFFICIAL";
@@ -171,7 +177,55 @@ export async function fetchKuliTranslationStatus(
 
     return null;
   } catch (e) {
-    console.error("[decky-ukr-badge] Error fetching Kuli status:", e);
+    console.error(`[decky-ukr-badge] Error fetching Kuli status for ${gameName}:`, e);
+
+    // Fallback to search if direct access failed (except for network errors which usually throw)
+    // We only want to search if we didn't get a definitive result
+    if (e) {
+      // If it was a network error, maybe don't search? But let's try search as a last resort in a separate try-catch
+    }
+    return null;
+  }
+}
+
+/**
+ * Helper to search Kuli if direct URL fails
+ */
+async function searchKuliForGame(gameName: string): Promise<"OFFICIAL" | "COMMUNITY" | null> {
+  try {
+    const res = await fetch(`https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`);
+    if (!res.ok) return null;
+
+    const html = await res.text();
+
+    // Simple regex to find the first product item link
+    // Looking for <div class="product-item... <a href="/something"
+    // This is a rough approximation since we don't have a DOM parser
+    const match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
+    if (!match || !match[1]) return null;
+
+    let href = match[1];
+    if (!href.startsWith("http")) {
+      href = `https://kuli.com.ua${href.startsWith("/") ? "" : "/"}${href}`;
+    }
+
+    // Fetch the found page
+    const gameRes = await fetch(href);
+    if (!gameRes.ok) return null;
+
+    const gameHtml = await gameRes.text();
+
+    if (gameHtml.includes("item__instruction-main")) {
+      return "COMMUNITY";
+    }
+
+    if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title")) {
+      return "OFFICIAL";
+    }
+
+    return null;
+  } catch (e) {
+    console.error("[decky-ukr-badge] Search fallback failed:", e);
     return null;
   }
 }
@@ -223,11 +277,11 @@ export function getSteamLanguage(): string {
 // Declare SteamClient for TypeScript
 declare const SteamClient:
   | {
-      System?: {
-        OpenInSystemBrowser?: (url: string) => void;
-      };
-      Settings?: {
-        GetClientSettings?: () => unknown;
-      };
-    }
+    System?: {
+      OpenInSystemBrowser?: (url: string) => void;
+    };
+    Settings?: {
+      GetClientSettings?: () => unknown;
+    };
+  }
   | undefined;
