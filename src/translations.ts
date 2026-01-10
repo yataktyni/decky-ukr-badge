@@ -22,6 +22,13 @@ const translations: Record<string, TranslationDict> = {
     none: "None",
     links: "Links",
     support_on_kofi: "Support on Ko-fi",
+    show_on_store: "Show on Store Page",
+    show_on_store_caption: "Show badge on Game Store pages",
+    store_x_offset: "Store X Offset",
+    store_y_offset: "Store Y Offset",
+    x_offset: "X Offset",
+    y_offset: "Y Offset",
+    instruction: "Instruction",
   },
   uk: {
     plugin_description:
@@ -42,6 +49,13 @@ const translations: Record<string, TranslationDict> = {
     none: "Відсутня",
     links: "Посилання",
     support_on_kofi: "Підтримати на Ko-fi",
+    show_on_store: "Показувати в магазині",
+    show_on_store_caption: "Показувати бейдж на сторінках магазину",
+    store_x_offset: "Зміщення X в магазині",
+    store_y_offset: "Зміщення Y в магазині",
+    x_offset: "Зміщення X",
+    y_offset: "Зміщення Y",
+    instruction: "Інструкція",
   },
 };
 

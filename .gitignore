@@ -102,14 +102,6 @@ cli/
 backend/out/
 
 # ===========================
-# AI / Development Docs (local only)
-# ===========================
-CLAUDE_SKILLS.md
-DEVELOPMENT.md
-AI_*.md
-*_PROMPT.md
-
-# ===========================
 # Misc
 # ===========================
 *.seed

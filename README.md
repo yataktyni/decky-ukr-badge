@@ -1,7 +1,7 @@
-# 🇺🇦 decky-ukr-badge
+# <img src="https://flagcdn.com/48x36/ua.png" width="24" height="18" alt="UA" /> decky-ukr-badge
 
 [![Latest Release](https://img.shields.io/github/v/release/yataktyni/decky-ukr-badge?label=latest%20release&color=green)](https://github.com/yataktyni/decky-ukr-badge/releases/latest)
-[![License](https://img.shields.io/github/license/yataktyni/decky-ukr-badge)](LICENSE)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
 ---
 
@@ -180,4 +180,4 @@ Copy these files/folders to your Steam Deck at `/home/deck/homebrew/plugins/deck
 
 ## 📄 License
 
-[BSD-3-Clause](LICENSE)
+[GNU Lesser General Public License v3.0](LICENSE)

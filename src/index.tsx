@@ -16,7 +16,9 @@ import { FaFlag } from "react-icons/fa";
 
 import { Settings } from "./settings";
 import { DebugPanel } from "./debugPanel";
+
 import Badge from "./components/Badge";
+import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
 
 /**
@@ -166,58 +168,7 @@ function patchLibraryApp() {
     });
 }
 
-/**
- * Patches the store app page to inject the Ukrainian badge.
- */
-function patchStorePage() {
-    return routerHook.addPatch("/store/app/:appid", (tree: any) => {
-        const routeProps = findInReactTree(tree, (x: any) => x?.renderFunc);
 
-        if (routeProps) {
-            const patchHandler = createReactTreePatcher(
-                [
-                    (tree: any) =>
-                        findInReactTree(
-                            tree,
-                            (x: any) => x?.props?.children?.props?.overview,
-                        )?.props?.children,
-                ],
-                (
-                    _: Array<Record<string, unknown>>,
-                    ret?: React.ReactElement,
-                ) => {
-                    const container = findInReactTree(
-                        ret,
-                        (x: React.ReactElement) =>
-                            Array.isArray(x?.props?.children) &&
-                            x?.props?.className?.includes(
-                                appDetailsClasses.InnerContainer,
-                            ),
-                    );
-
-                    if (typeof container !== "object") {
-                        return ret;
-                    }
-
-                    const protonDBExists = hasProtonDBBadge();
-
-                    // Inject the badge
-                    container.props.children.splice(
-                        1,
-                        0,
-                        <Badge key="ukr-badge-store" protonDBExists={protonDBExists} isStore={true} />,
-                    );
-
-                    return ret;
-                },
-            );
-
-            afterPatch(routeProps, "renderFunc", patchHandler);
-        }
-
-        return tree;
-    });
-}
 
 /**
  * Settings Panel Component for the Quick Access Menu
@@ -249,8 +200,9 @@ export default definePlugin(() => {
 
     // Patch the library app page
     const libraryPatch = patchLibraryApp();
-    // Patch the store app page
-    const storePatch = patchStorePage();
+
+    // Register store overlay
+    routerHook.addGlobalComponent("UKRStoreOverlay", StoreOverlay);
 
     return {
         name: "decky-ukr-badge",
@@ -259,7 +211,7 @@ export default definePlugin(() => {
         content: <SettingsPanel />,
         onDismount() {
             routerHook.removePatch("/library/app/:appid", libraryPatch);
-            routerHook.removePatch("/store/app/:appid", storePatch);
+            routerHook.removeGlobalComponent("UKRStoreOverlay");
         },
     };
 });

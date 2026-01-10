@@ -1,5 +1,6 @@
 // decky-ukr-badge/src/components/Badge.tsx
 import React, { useEffect, useState, useRef } from "react";
+import { FaCheckCircle, FaInfoCircle, FaTimesCircle } from "react-icons/fa";
 import {
     Navigation,
     appDetailsClasses,
@@ -20,22 +21,44 @@ import { t, getSupportedLanguage } from "../translations";
 type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
 
 // Badge configuration
+// Badge configuration
 const BADGE_CONFIG = {
-    OFFICIAL: { text: "🇺🇦 🫡", color: "#28a745", textColor: "#fff" },
-    COMMUNITY: { text: "🇺🇦 🫂", color: "#ffc107", textColor: "#000" },
-    NONE: { text: "🇺🇦 ❌", color: "#dc3545", textColor: "#fff" },
+    OFFICIAL: {
+        icon: FaCheckCircle,
+        text: "🇺🇦",
+        color: "#28a745",
+        textColor: "#fff",
+    },
+    COMMUNITY: {
+        icon: FaInfoCircle,
+        text: "🇺🇦",
+        color: "#ffc107",
+        textColor: "#000",
+    },
+    NONE: {
+        icon: FaTimesCircle,
+        text: "🇺🇦",
+        color: "#dc3545",
+        textColor: "#fff",
+    },
 } as const;
 
 // Position settings matching ProtonDB style
-// Adjusted to avoid overlap with ProtonDB badge when it exists
+// Adjusted to avoid overlap when ProtonDB badge exists
 const POSITION_SETTINGS_WITH_PROTONDB = {
-    "top-left": { top: "80px", left: "20px" }, // Lower when ProtonDB exists
-    "top-right": { top: "100px", right: "20px" }, // Lower when ProtonDB exists
+    "top-left": { top: "90px", left: "20px" }, // Below ProtonDB (which is usually at ~40px)
+    "top-right": { top: "100px", right: "20px" },
 } as const;
 
 const POSITION_SETTINGS = {
     "top-left": { top: "40px", left: "20px" },
-    "top-right": { top: "60px", right: "20px" },
+    "top-right": { top: "40px", right: "20px" },
+} as const;
+
+const STORE_BASE_POSITION = {
+    bottom: "60px",
+    left: "50%",
+    transform: "translateX(-50%)",
 } as const;
 
 // Cache configuration
@@ -99,13 +122,27 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
 interface BadgeProps {
     protonDBExists?: boolean;
     isStore?: boolean;
+    appId?: string;
+    appName?: string;
 }
 
 /**
  * Badge component that displays Ukrainian localization status
  */
-export default function Badge({ protonDBExists = false, isStore = false }: BadgeProps): React.ReactElement | null {
-    const { appId, appName, isLoading: appLoading } = useAppId();
+export default function Badge({
+    protonDBExists = false,
+    isStore = false,
+    appId: propAppId,
+    appName: propAppName
+}: BadgeProps): React.ReactElement | null {
+    const { appId: hookAppId, appName: hookAppName, isLoading: hookLoading } = useAppId();
+
+    const appId = propAppId || hookAppId;
+    // If we have a prop name, use it. Otherwise use hook name.
+    const appName = propAppName || hookAppName;
+    // If props are provided, we are not loading from hook (or parent handles loading)
+    const appLoading = propAppId ? false : hookLoading;
+
     const { settings, loading: settingsLoading } = useSettings();
     const lang = getSupportedLanguage();
 
@@ -255,30 +292,36 @@ export default function Badge({ protonDBExists = false, isStore = false }: Badge
     }
 
     const badge = BADGE_CONFIG[status];
+    const BadgeIcon = badge.icon;
+
     // Adjust position if ProtonDB badge exists to avoid overlap
     const positionSettings = protonDBExists ? POSITION_SETTINGS_WITH_PROTONDB : POSITION_SETTINGS;
-    const basePosition =
-        positionSettings[settings.badgePosition] ||
-        positionSettings["top-right"];
 
-    // Apply offsets to position
-    const position: any = { ...basePosition };
-    if (position.top) position.top = `calc(${position.top} + ${settings.offsetY}px)`;
-    if (position.left) position.left = `calc(${position.left} + ${settings.offsetX}px)`;
-    if (position.right) position.right = `calc(${position.right} + ${settings.offsetX}px)`;
+    let position: any = {};
 
-    // Build badge text based on settings
-    // "Icon + Text" should show: ICON + "Official"/"Community"/"No Support" (derived from status)
-    // "Default" shows just ICON (and maybe short text from config)
-    let badgeText: string = badge.text;
+    if (isStore) {
+        position = { ...STORE_BASE_POSITION };
+        // Apply store offsets
+        // For bottom/left base:
+        if (settings.storeOffsetY) position.bottom = `calc(${position.bottom} - ${settings.storeOffsetY}px)`;
+        if (settings.storeOffsetX) position.left = `calc(${position.left} + ${settings.storeOffsetX}px)`;
+    } else {
+        const basePosition =
+            positionSettings[settings.badgePosition] ||
+            positionSettings["top-right"];
 
+        position = { ...basePosition };
+        if (position.top) position.top = `calc(${position.top} + ${settings.offsetY}px)`;
+        if (position.left) position.left = `calc(${position.left} + ${settings.offsetX}px)`;
+        if (position.right) position.right = `calc(${position.right} + ${settings.offsetX}px)`;
+    }
+
+    let statusText = "";
     if (settings.badgeType === "full") {
-        const statusText =
+        statusText =
             status === "OFFICIAL" ? t("official", lang) :
                 status === "COMMUNITY" ? t("community", lang) :
                     t("none", lang);
-
-        badgeText = `${badge.text} ${statusText}`;
     }
 
     // Click handler - open kuli.com.ua page
@@ -342,7 +385,9 @@ export default function Badge({ protonDBExists = false, isStore = false }: Badge
                         "0 2px 8px rgba(0, 0, 0, 0.4)";
                 }}
             >
-                {badgeText}
+                <span style={{ fontSize: "1.2em", lineHeight: "1" }}>{badge.text}</span>
+                <BadgeIcon size={16} />
+                {settings.badgeType === "full" && <span>{statusText}</span>}
             </button>
         </div>
     );

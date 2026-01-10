@@ -31,15 +31,19 @@ export type Settings = {
     offsetX: number;
     offsetY: number;
     showOnStore: boolean;
+    storeOffsetX: number;
+    storeOffsetY: number;
 };
 
 // Default settings
 const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
-    badgePosition: "top-right",
+    badgePosition: "top-left",
     offsetX: 10,
     offsetY: 10,
     showOnStore: false,
+    storeOffsetX: 0,
+    storeOffsetY: 0,
 };
 
 // Reactive state using BehaviorSubject (not using React context for simplicity)
@@ -152,6 +156,14 @@ export function useSettings() {
         updateSetting("showOnStore", value);
     }
 
+    function setStoreOffsetX(value: Settings["storeOffsetX"]) {
+        updateSetting("storeOffsetX", value);
+    }
+
+    function setStoreOffsetY(value: Settings["storeOffsetY"]) {
+        updateSetting("storeOffsetY", value);
+    }
+
     return {
         settings,
         loading,
@@ -160,6 +172,8 @@ export function useSettings() {
         setOffsetX,
         setOffsetY,
         setShowOnStore,
+        setStoreOffsetX,
+        setStoreOffsetY,
     };
 }
 

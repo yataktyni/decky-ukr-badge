@@ -33,17 +33,23 @@ export const Settings: FC = () => {
         setOffsetX,
         setOffsetY,
         setShowOnStore,
+        setStoreOffsetX,
+        setStoreOffsetY,
     } = useSettings();
     const [cacheCleared, setCacheCleared] = useState(false);
     const [offsetXValue, setOffsetXValue] = useState(10);
     const [offsetYValue, setOffsetYValue] = useState(10);
-    const [offsetXTimeout, setOffsetXTimeout] = useState<NodeJS.Timeout | null>(null);
-    const [offsetYTimeout, setOffsetYTimeout] = useState<NodeJS.Timeout | null>(null);
+    const [storeOffsetXValue, setStoreOffsetXValue] = useState(0);
+    const [storeOffsetYValue, setStoreOffsetYValue] = useState(0);
+
+    const [offsetXTimeout, setOffsetXTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [offsetYTimeout, setOffsetYTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [storeOffsetXTimeout, setStoreOffsetXTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [storeOffsetYTimeout, setStoreOffsetYTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
     const [showKofiQR, setShowKofiQR] = useState(false);
 
-    const lang = getSupportedLanguage();
-
-    // Sync local slider values with settings
+    // Create local state for slider values that syncs with settings but allows smooth sliding
+    // We use a useEffect to update local state when settings change from outside (e.g. load)
     useEffect(() => {
         setOffsetXValue(settings.offsetX);
     }, [settings.offsetX]);
@@ -51,6 +57,26 @@ export const Settings: FC = () => {
     useEffect(() => {
         setOffsetYValue(settings.offsetY);
     }, [settings.offsetY]);
+
+    useEffect(() => {
+        setStoreOffsetXValue(settings.storeOffsetX);
+    }, [settings.storeOffsetX]);
+
+    useEffect(() => {
+        setStoreOffsetYValue(settings.storeOffsetY);
+    }, [settings.storeOffsetY]);
+
+    // Cleanup timeouts
+    useEffect(() => {
+        return () => {
+            if (offsetXTimeout) clearTimeout(offsetXTimeout);
+            if (offsetYTimeout) clearTimeout(offsetYTimeout);
+            if (storeOffsetXTimeout) clearTimeout(storeOffsetXTimeout);
+            if (storeOffsetYTimeout) clearTimeout(storeOffsetYTimeout);
+        };
+    }, []);
+
+    const lang = getSupportedLanguage();
 
     // Clear localStorage cache
     const handleClearCache = () => {
@@ -64,38 +90,28 @@ export const Settings: FC = () => {
         }
     };
 
-    // Navigate to external URL - try multiple methods for compatibility
+    // Navigate to external URL
     const openExternalUrl = (url: string) => {
         try {
-            // Try SteamClient first (most reliable method like magicblack plugin)
-            if (
-                typeof SteamClient !== "undefined" &&
-                SteamClient.System?.OpenInSystemBrowser
-            ) {
+            if (typeof SteamClient !== "undefined" && SteamClient.System?.OpenInSystemBrowser) {
                 SteamClient.System.OpenInSystemBrowser(url);
                 return;
             }
-            // Fallback to Navigation (Decky UI method)
-            try {
-                if (Navigation && typeof Navigation.NavigateToExternalWeb === "function") {
-                    Navigation.NavigateToExternalWeb(url);
-                    return;
-                }
-            } catch (navError) {
-                console.warn("[decky-ukr-badge] Navigation method failed:", navError);
-            }
-            // Last resort - try window.open
-            if (typeof window !== "undefined" && window.open) {
-                window.open(url, "_blank");
+            // Fallback methods
+            if (Navigation && typeof Navigation.NavigateToExternalWeb === "function") {
+                Navigation.NavigateToExternalWeb(url);
                 return;
             }
-            console.warn("[decky-ukr-badge] Could not open URL, all methods failed");
+            if (typeof window !== "undefined" && window.open) {
+                window.open(url, "_blank");
+            }
         } catch (e) {
             console.error("[decky-ukr-badge] Error opening URL:", e);
         }
     };
 
     const kofiUrl = "https://ko-fi.com/yataktyni";
+    const instructionUrl = "https://www.youtube.com/watch?v=24gxXddKNv0";
 
     // Generate QR code for ko-fi URL
     const generateQRCode = (url: string): string => {
@@ -105,49 +121,33 @@ export const Settings: FC = () => {
 
     const kofiQRUrl = generateQRCode(kofiUrl);
 
-    // Handle slider changes with debouncing to prevent lag
-    const handleOffsetXChange = (value: number) => {
-        setOffsetXValue(value);
-        if (offsetXTimeout) {
-            clearTimeout(offsetXTimeout);
-        }
-        const timeout = setTimeout(() => {
-            setOffsetX(value);
-        }, 150);
-        setOffsetXTimeout(timeout);
-    };
-
-    const handleOffsetYChange = (value: number) => {
-        setOffsetYValue(value);
-        if (offsetYTimeout) {
-            clearTimeout(offsetYTimeout);
-        }
-        const timeout = setTimeout(() => {
-            setOffsetY(value);
-        }, 150);
-        setOffsetYTimeout(timeout);
-    };
-
-    // Cleanup timeouts on unmount
-    useEffect(() => {
-        return () => {
-            if (offsetXTimeout) clearTimeout(offsetXTimeout);
-            if (offsetYTimeout) clearTimeout(offsetYTimeout);
+    // Handle slider changes with debouncing
+    const createSliderHandler = (
+        setter: (val: number) => void,
+        persister: (val: number) => void,
+        timeoutState: ReturnType<typeof setTimeout> | null,
+        timeoutSetter: (t: ReturnType<typeof setTimeout> | null) => void
+    ) => {
+        return (value: number) => {
+            setter(value);
+            if (timeoutState) clearTimeout(timeoutState);
+            const timeout = setTimeout(() => {
+                persister(value);
+            }, 300); // 300ms debounce
+            timeoutSetter(timeout);
         };
-    }, [offsetXTimeout, offsetYTimeout]);
+    };
+
+    const handleOffsetXChange = createSliderHandler(setOffsetXValue, setOffsetX, offsetXTimeout, setOffsetXTimeout);
+    const handleOffsetYChange = createSliderHandler(setOffsetYValue, setOffsetY, offsetYTimeout, setOffsetYTimeout);
+    const handleStoreOffsetXChange = createSliderHandler(setStoreOffsetXValue, setStoreOffsetX, storeOffsetXTimeout, setStoreOffsetXTimeout);
+    const handleStoreOffsetYChange = createSliderHandler(setStoreOffsetYValue, setStoreOffsetY, storeOffsetYTimeout, setStoreOffsetYTimeout);
 
     if (loading) {
         return (
             <PanelSection title={t("settings_title", lang)}>
                 <PanelSectionRow>
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            padding: 10,
-                        }}
-                    >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 10 }}>
                         <Spinner />
                     </div>
                 </PanelSectionRow>
@@ -165,6 +165,10 @@ export const Settings: FC = () => {
         { data: 1, label: t("top_right", lang), value: "top-right" as const },
     ];
 
+    // Find currently selected option index properly
+    const selectedBadgeTypeIndex = badgeTypeOptions.findIndex(o => o.value === settings.badgeType);
+    const selectedPositionIndex = positionOptions.findIndex(o => o.value === settings.badgePosition);
+
     return (
         <>
             <PanelSection title={t("settings_title", lang)}>
@@ -173,22 +177,12 @@ export const Settings: FC = () => {
                         label={t("badge_type", lang)}
                         description={t("badge_type_caption", lang)}
                         menuLabel={t("badge_type", lang)}
-                        rgOptions={badgeTypeOptions.map((o) => ({
-                            data: o.data,
-                            label: o.label,
-                        }))}
-                        selectedOption={
-                            badgeTypeOptions.find(
-                                (o) => o.value === settings.badgeType,
-                            )?.data ?? 1
-                        }
+                        rgOptions={badgeTypeOptions}
+                        selectedOption={selectedBadgeTypeIndex !== -1 ? selectedBadgeTypeIndex : 0}
                         onChange={(newVal: { data: number; label: string }) => {
-                            const newType =
-                                badgeTypeOptions.find(
-                                    (o) => o.data === newVal.data,
-                                )?.value;
-                            if (newType) {
-                                setBadgeType(newType);
+                            const option = badgeTypeOptions.find(o => o.data === newVal.data);
+                            if (option) {
+                                setBadgeType(option.value);
                             }
                         }}
                     />
@@ -199,22 +193,12 @@ export const Settings: FC = () => {
                         label={t("badge_position", lang)}
                         description={t("badge_position_caption", lang)}
                         menuLabel={t("badge_position", lang)}
-                        rgOptions={positionOptions.map((o) => ({
-                            data: o.data,
-                            label: o.label,
-                        }))}
-                        selectedOption={
-                            positionOptions.find(
-                                (o) => o.value === settings.badgePosition,
-                            )?.data ?? 1
-                        }
+                        rgOptions={positionOptions}
+                        selectedOption={selectedPositionIndex !== -1 ? selectedPositionIndex : 0} // Default to top-left (index 0)
                         onChange={(newVal: { data: number; label: string }) => {
-                            const newPosition =
-                                positionOptions.find(
-                                    (o) => o.data === newVal.data,
-                                )?.value;
-                            if (newPosition) {
-                                setBadgePosition(newPosition);
+                            const option = positionOptions.find(o => o.data === newVal.data);
+                            if (option) {
+                                setBadgePosition(option.value);
                             }
                         }}
                     />
@@ -222,19 +206,47 @@ export const Settings: FC = () => {
 
                 <PanelSectionRow>
                     <ToggleField
-                        label="Show on Store Page"
-                        description="Show badge on Game Store pages"
+                        label={t("show_on_store", lang)}
+                        description={t("show_on_store_caption", lang)}
                         checked={settings.showOnStore}
                         onChange={setShowOnStore}
                     />
                 </PanelSectionRow>
 
+                {settings.showOnStore && (
+                    <>
+                        <PanelSectionRow>
+                            <SliderField
+                                label={t("store_x_offset", lang)}
+                                value={storeOffsetXValue}
+                                min={-200}
+                                max={200}
+                                step={1}
+                                onChange={handleStoreOffsetXChange}
+                                showValue
+                            />
+                        </PanelSectionRow>
+
+                        <PanelSectionRow>
+                            <SliderField
+                                label={t("store_y_offset", lang)}
+                                value={storeOffsetYValue}
+                                min={-200}
+                                max={200}
+                                step={1}
+                                onChange={handleStoreOffsetYChange}
+                                showValue
+                            />
+                        </PanelSectionRow>
+                    </>
+                )}
+
                 <PanelSectionRow>
                     <SliderField
-                        label="X Offset"
+                        label={t("x_offset", lang)}
                         value={offsetXValue}
                         min={0}
-                        max={100}
+                        max={300}
                         step={1}
                         onChange={handleOffsetXChange}
                         showValue
@@ -243,10 +255,10 @@ export const Settings: FC = () => {
 
                 <PanelSectionRow>
                     <SliderField
-                        label="Y Offset"
+                        label={t("y_offset", lang)}
                         value={offsetYValue}
                         min={0}
-                        max={100}
+                        max={300}
                         step={1}
                         onChange={handleOffsetYChange}
                         showValue
@@ -267,83 +279,83 @@ export const Settings: FC = () => {
             </PanelSection>
 
             <PanelSection title={`🔗 ${t("links", lang)}`}>
-                <PanelSectionRow>
+                {/* Donate Row - Horizontal Layout */}
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "16px",
+                    gap: "12px"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                        {/* Ko-fi Icon SVG */}
+                        <svg height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="#FF5E5B">
+                            <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 5.422-2.721 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-4.417-2.924-5.466-2.937-5.408-.267-.059 1.941-1.42 2.613-2.193.376-.433.973-.243.973-.243s.694-.239 1.139.298c1.328 1.602 2.766 2.368 2.641 3.637zm5.467 1.258c-.792 1.34-2.887 1.229-2.887 1.229V6.366s1.611-.08 2.559.576c1.378.956 1.121 2.809.328 3.264z" />
+                        </svg>
+                        <span style={{ fontWeight: 600, fontSize: "14px" }}>{t("support_on_kofi", lang)}</span>
+                    </div>
+
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <ButtonItem
-                            layout="below"
+                        <button
+                            style={{
+                                backgroundColor: "#FF5E5B",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                padding: "8px 16px",
+                                fontWeight: "bold",
+                                cursor: "pointer",
+                                fontSize: "12px",
+                                minWidth: "80px"
+                            }}
                             onClick={() => openExternalUrl(kofiUrl)}
                         >
-                            ❤️ {t("support_on_kofi", lang)}
-                        </ButtonItem>
+                            Donate
+                        </button>
+
                         <button
                             onClick={() => setShowKofiQR(!showKofiQR)}
                             style={{
-                                background: "transparent",
+                                background: "rgba(255, 255, 255, 0.1)",
                                 border: "none",
+                                borderRadius: "4px",
                                 cursor: "pointer",
                                 padding: "8px",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
-                                color: "currentColor",
-                                marginLeft: "0.5em",
+                                color: "white"
                             }}
                             title={showKofiQR ? "Hide QR Code" : "Show QR Code"}
                         >
-                            <svg
-                                width="20px"
-                                height="20px"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path
-                                    fillRule="evenodd"
-                                    clipRule="evenodd"
-                                    d="M8.56301 1.2002H3.39768C2.7752 1.20089 2.17841 1.44848 1.73825 1.88864C1.29808 2.3288 1.0505 2.92559 1.0498 3.54807V8.7134C1.0505 9.33588 1.29808 9.93267 1.73825 10.3728C2.17841 10.813 2.7752 11.0606 3.39768 11.0613H8.56301C9.18549 11.0606 9.78228 10.813 10.2224 10.3728C10.6626 9.93267 10.9102 9.33588 10.9109 8.7134V3.54807C10.9102 2.92559 10.6626 2.3288 10.2224 1.88864C9.78228 1.44848 9.18549 1.20089 8.56301 1.2002ZM8.09343 8.24382H3.86726V4.01765H8.09343V8.24382ZM8.56301 12.9385H3.39768C2.7752 12.9392 2.17841 13.1868 1.73825 13.6269C1.29808 14.0671 1.0505 14.6639 1.0498 15.2864V20.4517C1.0505 21.0742 1.29808 21.671 1.73825 22.1111C2.17841 22.5513 2.7752 22.7989 3.39768 22.7996H8.56301C9.18549 22.7989 9.78228 22.5513 10.2224 22.1111C10.6626 21.671 10.9102 21.0742 10.9109 20.4517V15.2864C10.9102 14.6639 10.6626 14.0671 10.2224 13.6269C9.78228 13.1868 9.18549 12.9392 8.56301 12.9385ZM8.09343 19.9821H3.86726V15.7559H8.09343V19.9821ZM15.1374 1.2002H20.3028C20.9252 1.20089 21.522 1.44848 21.9622 1.88864C22.4024 2.3288 22.6499 2.92559 22.6506 3.54807V8.7134C22.6499 9.33588 22.4024 9.93267 21.9622 10.3728C21.522 10.813 20.9252 11.0606 20.3028 11.0613H15.1374C14.5149 11.0606 13.9182 10.813 13.478 10.3728C13.0378 9.93267 12.7902 9.33588 12.7896 8.7134V3.54807C12.7902 2.92559 13.0378 2.3288 13.478 1.88864C13.9182 1.44848 14.5149 1.20089 15.1374 1.2002ZM15.607 8.24382H19.8332V4.01765H15.607V8.24382ZM14.1983 18.5734C14.5719 18.5734 14.9302 18.4249 15.1944 18.1608C15.4586 17.8966 15.607 17.5383 15.607 17.1647V14.3472C15.607 13.9736 15.4586 13.6153 15.1944 13.3511C14.9302 13.0869 14.5719 12.9385 14.1983 12.9385C13.8247 12.9385 13.4663 13.0869 13.2022 13.3511C12.938 13.6153 12.7896 13.9736 12.7896 14.3472V17.1647C12.7896 17.5383 12.938 17.8966 13.2022 18.1608C13.4664 18.4249 13.8247 18.5734 14.1983 18.5734ZM19.8332 14.8168H21.2419C21.6155 14.8168 21.9738 14.9652 22.238 15.2294C22.5022 15.4936 22.6506 15.8519 22.6506 16.2255C22.6506 16.5991 22.5022 16.9574 22.238 17.2216C21.9738 17.4858 21.6155 17.6342 21.2419 17.6342H19.8332V21.3908C19.8332 21.7644 19.6847 22.1227 19.4206 22.3869C19.1564 22.6511 18.7981 22.7995 18.4245 22.7996H14.1983C13.8247 22.7996 13.4663 22.6511 13.2022 22.3869C12.938 22.1228 12.7896 21.7644 12.7896 21.3908C12.7896 21.0172 12.938 20.6589 13.2022 20.3947C13.4663 20.1305 13.8247 19.9821 14.1983 19.9821H17.0157V14.3472C17.0157 13.9736 17.1641 13.6153 17.4283 13.3511C17.6925 13.0869 18.0508 12.9385 18.4245 12.9385C18.7981 12.9385 19.1564 13.0869 19.4206 13.3511C19.6848 13.6153 19.8332 13.9736 19.8332 14.3472V14.8168Z"
-                                    fill="currentColor"
-                                />
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 2h2v2h-2v-2zm3 3h3v3h-3v-3zm-3-3h-3v2h3v-2zm-3 3h3v3h-3v-3zm3 3h2v2h-2v-2z" fillRule="evenodd" clipRule="evenodd" />
                             </svg>
                         </button>
                     </div>
-                </PanelSectionRow>
+                </div>
+
                 {showKofiQR && (
                     <PanelSectionRow>
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "center",
-                                padding: "16px",
-                                backgroundColor: "#1a1a2e",
-                                borderRadius: "8px",
-                                marginTop: "8px",
-                            }}
-                        >
+                        <div style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            padding: "16px",
+                            backgroundColor: "white",
+                            borderRadius: "8px",
+                            marginTop: "8px",
+                            marginBottom: "16px"
+                        }}>
                             <img
                                 src={kofiQRUrl}
                                 alt="Ko-fi QR Code"
-                                style={{
-                                    width: "200px",
-                                    height: "200px",
-                                    imageRendering: "pixelated",
-                                }}
+                                style={{ width: "200px", height: "200px", imageRendering: "pixelated" }}
                             />
                         </div>
                     </PanelSectionRow>
                 )}
 
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() =>
-                            openExternalUrl(
-                                "https://github.com/yataktyni/decky-ukr-badge",
-                            )
-                        }
-                    >
-                        📦 GitHub
-                    </ButtonItem>
-                </PanelSectionRow>
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "8px 16px" }} />
 
                 <PanelSectionRow>
                     <ButtonItem
@@ -351,6 +363,31 @@ export const Settings: FC = () => {
                         onClick={() => openExternalUrl("https://kuli.com.ua/")}
                     >
                         🇺🇦 Kuli.com.ua
+                    </ButtonItem>
+                </PanelSectionRow>
+
+                <PanelSectionRow>
+                    <ButtonItem
+                        layout="below"
+                        onClick={() => openExternalUrl(instructionUrl)}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.009.104c-.05.572-.124 1.14-.235 1.558a2.007 2.007 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.007 2.007 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31.4 31.4 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.007 2.007 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A99.788 99.788 0 0 1 7.858 2h.193zM6.4 5.209v4.818l4.157-2.408L6.4 5.209z" />
+                            </svg>
+                            {t("instruction", lang)}
+                        </div>
+                    </ButtonItem>
+                </PanelSectionRow>
+
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.1)", margin: "8px 16px" }} />
+
+                <PanelSectionRow>
+                    <ButtonItem
+                        layout="below"
+                        onClick={() => openExternalUrl("https://github.com/yataktyni/decky-ukr-badge")}
+                    >
+                        📦 GitHub
                     </ButtonItem>
                 </PanelSectionRow>
             </PanelSection>

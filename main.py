@@ -12,9 +12,12 @@ SETTINGS_FILE = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
 
 DEFAULT_SETTINGS = {
     "badgeType": "full",
-    "badgePosition": "top-right",
+    "badgePosition": "top-left",
     "offsetX": 10,
     "offsetY": 10,
+    "showOnStore": False,
+    "storeOffsetX": 0,
+    "storeOffsetY": 0,
 }
 
 # In-memory log buffer for frontend display
