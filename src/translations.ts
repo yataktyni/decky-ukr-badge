@@ -28,7 +28,8 @@ const translations: Record<string, TranslationDict> = {
     store_y_offset: "Store Y Offset",
     x_offset: "X Offset",
     y_offset: "Y Offset",
-    instruction: "Instruction",
+    video_guide: "Video Guide",
+    text_guide: "Guide",
   },
   uk: {
     plugin_description:
@@ -55,7 +56,8 @@ const translations: Record<string, TranslationDict> = {
     store_y_offset: "Зміщення Y в магазині",
     x_offset: "Зміщення X",
     y_offset: "Зміщення Y",
-    instruction: "Інструкція",
+    video_guide: "Відеопосібник",
+    text_guide: "Посібник",
   },
 };
 
