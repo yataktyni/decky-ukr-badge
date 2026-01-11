@@ -9,6 +9,7 @@ import {
 
 import { useAppId } from "../hooks/useAppId";
 import { useSettings } from "../hooks/useSettings";
+import { useDebugSettings } from "../hooks/useDebugSettings";
 import {
     fetchSteamGameLanguages,
     fetchKuliTranslationStatus,
@@ -144,6 +145,7 @@ export default function Badge({
     const appLoading = propAppId ? false : hookLoading;
 
     const { settings, loading: settingsLoading } = useSettings();
+    const { debugSettings } = useDebugSettings();
     const lang = getSupportedLanguage();
 
     const [status, setStatus] = useState<BadgeStatus | null>(null);
@@ -157,6 +159,13 @@ export default function Badge({
 
         async function fetchStatus() {
             if (!appId) {
+                setLoading(false);
+                return;
+            }
+
+            // Check Mock Mode
+            if (debugSettings.mockMode) {
+                setStatus(debugSettings.mockStatus);
                 setLoading(false);
                 return;
             }
@@ -228,7 +237,7 @@ export default function Badge({
         return () => {
             cancelled = true;
         };
-    }, [appId, appName]);
+    }, [appId, appName, debugSettings.mockMode, debugSettings.mockStatus]);
 
     // Handle fullscreen visibility (like ProtonDB)
     useEffect(() => {

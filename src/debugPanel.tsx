@@ -5,8 +5,17 @@ import {
     PanelSectionRow,
     ButtonItem,
     ToggleField,
+    TextField,
+    DropdownItem,
 } from "@decky/ui";
 import { callBackend } from "./hooks/useSettings";
+import { useDebugSettings } from "./hooks/useDebugSettings";
+import {
+    fetchSteamGameLanguages,
+    fetchKuliTranslationStatus,
+    hasUkrainianSupport,
+    urlifyGameName,
+} from "./utils";
 
 interface NetworkInfo {
     ip: string;
@@ -33,6 +42,13 @@ export const DebugPanel: FC = () => {
     const [loading, setLoading] = useState(false);
     const [autoRefresh, setAutoRefresh] = useState(false);
     const logContainerRef = useRef<HTMLDivElement>(null);
+
+    // Mock Settings
+    const { debugSettings, setMockMode, setMockStatus } = useDebugSettings();
+
+    // Tester State
+    const [testerInput, setTesterInput] = useState("The Witcher 3: Wild Hunt");
+    const [testerResult, setTesterResult] = useState<string>("");
 
     // Fetch logs from backend
     const fetchLogs = async () => {
@@ -65,7 +81,24 @@ export const DebugPanel: FC = () => {
         fetchNetworkInfo();
     }, []);
 
-    // ... (rest of log logic irrelevant to blocking) ...
+    // Auto refresh logs
+    useEffect(() => {
+        let interval: any;
+        if (autoRefresh) {
+            interval = setInterval(fetchLogs, 2000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [autoRefresh]);
+
+    // Scroll logs
+    useEffect(() => {
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop =
+                logContainerRef.current.scrollHeight;
+        }
+    }, [logs]);
 
     // Clear logs
     const handleClearLogs = async () => {
@@ -86,11 +119,9 @@ export const DebugPanel: FC = () => {
             return;
         }
 
-        // Don't set global loading for commands to avoid freezing UI
         try {
             const result = await callBackend<CommandResult>(command);
             if (result.message) {
-                console.log(`[decky-ukr-badge] ${command}: ${result.message}`);
                 // Add to local logs immediately for feedback
                 setLogs((prev) => [...prev, `[CMD] ${result.message}`]);
             }
@@ -104,156 +135,107 @@ export const DebugPanel: FC = () => {
 
     // SSH toggle
     const handleSSHToggle = async (enabled: boolean) => {
-        // Optimistic update? No, safer to wait, but don't block
         await executeCommand(enabled ? "enable_ssh" : "disable_ssh");
         await fetchNetworkInfo();
     };
 
     const sshEnabled = networkInfo.ssh_status === "active";
 
+    // Run Detection Test
+    const runDetectionTest = async () => {
+        setTesterResult("Running...");
+        const logs: string[] = [];
+        const log = (msg: string) => logs.push(msg);
+
+        try {
+            log(`Testing: "${testerInput}"`);
+            log(`Slug: ${urlifyGameName(testerInput)}`);
+
+            // Check Kuli
+            log("Fetching Kuli status...");
+            const kuliStatus = await fetchKuliTranslationStatus(testerInput);
+            log(`Kuli Result: ${kuliStatus}`);
+
+            // Cannot easily test Steam status without AppID, but we can try if input is digits
+            if (/^\d+$/.test(testerInput)) {
+                log(`Input looks like AppID. Fetching Steam langs...`);
+                const steamLangs = await fetchSteamGameLanguages(testerInput);
+                log(`Steam Langs: ${steamLangs?.join(", ") || "None/Error"}`);
+                const hasSupport = steamLangs ? hasUkrainianSupport(steamLangs) : false;
+                log(`Official Support: ${hasSupport}`);
+            }
+
+        } catch (e: any) {
+            log(`Exception: ${e.message}`);
+        }
+
+        setTesterResult(logs.join("\n"));
+    };
+
+    const mockStatusOptions = [
+        { data: 0, label: "Official", value: "OFFICIAL" },
+        { data: 1, label: "Community", value: "COMMUNITY" },
+        { data: 2, label: "None", value: "NONE" },
+    ];
+
+    const currentMockStatusIndex = mockStatusOptions.findIndex(o => o.value === debugSettings.mockStatus);
+
     return (
         <>
-            {/* Network & Debug Info */}
-            <PanelSection title="🔧 Debug Info">
-                <PanelSectionRow>
-                    <div
-                        style={{
-                            backgroundColor: "#1a1a2e",
-                            borderRadius: "8px",
-                            padding: "12px",
-                            fontSize: "12px",
-                            fontFamily: "monospace",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "grid",
-                                gridTemplateColumns: "auto 1fr",
-                                gap: "4px 12px",
-                            }}
-                        >
-                            <span style={{ color: "#888" }}>IP Address:</span>
-                            <span style={{ color: "#4fc3f7" }}>
-                                {networkInfo.ip}
-                            </span>
-
-                            <span style={{ color: "#888" }}>SSH Status:</span>
-                            <span
-                                style={{
-                                    color: sshEnabled ? "#4caf50" : "#f44336",
-                                }}
-                            >
-                                {networkInfo.ssh_status}
-                            </span>
-
-                            <span style={{ color: "#888" }}>SSH Port:</span>
-                            <span style={{ color: "#fff" }}>
-                                {networkInfo.ssh_port}
-                            </span>
-
-                            <span style={{ color: "#888" }}>CEF Debug:</span>
-                            <span style={{ color: "#ffb74d" }}>
-                                {networkInfo.cef_debug_url}
-                            </span>
-                        </div>
-
-                        {networkInfo.ip !== "unknown" && (
-                            <div
-                                style={{
-                                    marginTop: "12px",
-                                    padding: "8px",
-                                    backgroundColor: "#0d1117",
-                                    borderRadius: "4px",
-                                    fontSize: "11px",
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        color: "#888",
-                                        marginBottom: "4px",
-                                    }}
-                                >
-                                    SSH Command:
-                                </div>
-                                <code style={{ color: "#7ee787" }}>
-                                    ssh deck@{networkInfo.ip}
-                                </code>
-                            </div>
-                        )}
-                    </div>
-                </PanelSectionRow>
-
+            {/* Mocking Section */}
+            <PanelSection title="🎭 Mocking (UI Testing)">
                 <PanelSectionRow>
                     <ToggleField
-                        label="SSH Enabled"
-                        description="Enable/disable SSH server"
-                        checked={sshEnabled}
-                        onChange={handleSSHToggle}
+                        label="Enable Mock Mode"
+                        description="Force badge status for all games"
+                        checked={debugSettings.mockMode}
+                        onChange={setMockMode}
                     />
                 </PanelSectionRow>
-
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() => fetchNetworkInfo()}
-                    >
-                        {loading ? "🔄 Refreshing..." : "🔄 Refresh Network Info"}
-                    </ButtonItem>
-                </PanelSectionRow>
+                {debugSettings.mockMode && (
+                    <PanelSectionRow>
+                        <DropdownItem
+                            label="Mock Status"
+                            menuLabel="Mock Status"
+                            rgOptions={mockStatusOptions}
+                            selectedOption={currentMockStatusIndex !== -1 ? currentMockStatusIndex : 0}
+                            onChange={(opt: any) => {
+                                const option = mockStatusOptions.find(o => o.data === opt.data);
+                                if (option) setMockStatus(option.value as any);
+                            }}
+                        />
+                    </PanelSectionRow>
+                )}
             </PanelSection>
 
-            {/* System Controls */}
-            <PanelSection title="⚡ System Controls">
+            {/* Detection Tester */}
+            <PanelSection title="🧪 Detection Tester">
                 <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() => executeCommand("restart_decky")}
-                    >
-                        🔄 Restart Decky
+                    <TextField
+                        label="Game Name or AppID"
+                        value={testerInput}
+                        onChange={(e) => setTesterInput(e.target.value)}
+                    />
+                </PanelSectionRow>
+                <PanelSectionRow>
+                    <ButtonItem layout="below" onClick={runDetectionTest}>
+                        Run Test
                     </ButtonItem>
                 </PanelSectionRow>
-
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() =>
-                            executeCommand(
-                                "restart_steam",
-                                "This will restart Steam. Continue?",
-                            )
-                        }
-                    >
-                        🎮 Restart Steam
-                    </ButtonItem>
-                </PanelSectionRow>
-
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() =>
-                            executeCommand(
-                                "disable_decky_temporarily",
-                                "This will disable Decky until next reboot. Continue?",
-                            )
-                        }
-                    >
-                        ⏸️ Disable Decky (until reboot)
-                    </ButtonItem>
-                </PanelSectionRow>
-
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
-                        onClick={() =>
-                            executeCommand(
-                                "restart_deck",
-                                "This will restart your Steam Deck. Continue?",
-                            )
-                        }
-                    >
-                        🔌 Restart Steam Deck
-                    </ButtonItem>
-                </PanelSectionRow>
+                {testerResult && (
+                    <PanelSectionRow>
+                        <div style={{
+                            backgroundColor: "#0d1117",
+                            padding: "8px",
+                            borderRadius: "4px",
+                            fontFamily: "monospace",
+                            fontSize: "12px",
+                            whiteSpace: "pre-wrap"
+                        }}>
+                            {testerResult}
+                        </div>
+                    </PanelSectionRow>
+                )}
             </PanelSection>
 
             {/* Console Logs */}
@@ -266,7 +248,6 @@ export const DebugPanel: FC = () => {
                         onChange={setAutoRefresh}
                     />
                 </PanelSectionRow>
-
                 <PanelSectionRow>
                     <div
                         ref={logContainerRef}
@@ -274,7 +255,7 @@ export const DebugPanel: FC = () => {
                             backgroundColor: "#0d1117",
                             borderRadius: "8px",
                             padding: "8px",
-                            height: "200px",
+                            height: "150px",
                             overflowY: "auto",
                             fontFamily: "monospace",
                             fontSize: "10px",
@@ -289,12 +270,9 @@ export const DebugPanel: FC = () => {
                             logs.map((log, index) => {
                                 let color = "#c9d1d9";
                                 if (log.includes("[ERROR]")) color = "#f85149";
-                                else if (log.includes("[WARN]"))
-                                    color = "#d29922";
-                                else if (log.includes("[DEBUG]"))
-                                    color = "#8b949e";
-                                else if (log.includes("[INFO]"))
-                                    color = "#58a6ff";
+                                else if (log.includes("[WARN]")) color = "#d29922";
+                                else if (log.includes("[DEBUG]")) color = "#8b949e";
+                                else if (log.includes("[INFO]")) color = "#58a6ff";
 
                                 return (
                                     <div
@@ -313,26 +291,101 @@ export const DebugPanel: FC = () => {
                         )}
                     </div>
                 </PanelSectionRow>
-
-                <PanelSectionRow>
-                    <ButtonItem
-                        layout="below"
+                <div style={{ display: "flex", gap: "10px", padding: "0 10px 10px 10px" }}>
+                    <button
+                        className="DialogButton"
                         onClick={fetchLogs}
                         disabled={loading}
+                        style={{ flex: 1, minWidth: "0" }}
                     >
-                        🔄 Refresh Logs
-                    </ButtonItem>
+                        🔄 Refresh
+                    </button>
+                    <button
+                        className="DialogButton"
+                        onClick={handleClearLogs}
+                        disabled={loading}
+                        style={{ flex: 1, minWidth: "0" }}
+                    >
+                        🗑️ Clear
+                    </button>
+                </div>
+            </PanelSection>
+
+            {/* Network & System */}
+            <PanelSection title="🔧 System Toolbox">
+                <PanelSectionRow>
+                    <div
+                        style={{
+                            backgroundColor: "#1a1a2e",
+                            borderRadius: "8px",
+                            padding: "12px",
+                            fontSize: "12px",
+                            fontFamily: "monospace",
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "auto 1fr",
+                                gap: "4px 12px",
+                            }}
+                        >
+                            <span style={{ color: "#888" }}>IP:</span>
+                            <span style={{ color: "#4fc3f7" }}>{networkInfo.ip}</span>
+
+                            <span style={{ color: "#888" }}>SSH:</span>
+                            <span style={{ color: sshEnabled ? "#4caf50" : "#f44336" }}>
+                                {networkInfo.ssh_status} ({networkInfo.ssh_port})
+                            </span>
+
+                            <span style={{ color: "#888" }}>CEF:</span>
+                            <span style={{ color: "#ffb74d" }}>
+                                {networkInfo.cef_debug_url}
+                            </span>
+                        </div>
+                    </div>
+                </PanelSectionRow>
+
+                <PanelSectionRow>
+                    <ToggleField
+                        label="SSH Server"
+                        checked={sshEnabled}
+                        onChange={handleSSHToggle}
+                    />
                 </PanelSectionRow>
 
                 <PanelSectionRow>
                     <ButtonItem
                         layout="below"
-                        onClick={handleClearLogs}
-                        disabled={loading}
+                        onClick={() => executeCommand("restart_decky")}
                     >
-                        🗑️ Clear Logs
+                        🔄 Restart Decky
                     </ButtonItem>
                 </PanelSectionRow>
+
+                <div style={{
+                    marginTop: "10px",
+                    padding: "10px",
+                    borderTop: "1px solid rgba(255,255,255,0.1)"
+                }}>
+                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>Dangerous Zone</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        <button
+                            className="DialogButton"
+                            style={{ flex: 1, minWidth: "120px", fontSize: "12px" }}
+                            onClick={() => executeCommand("restart_steam", "Restart Steam?")}
+                        >
+                            Restart Steam
+                        </button>
+                        <button
+                            className="DialogButton"
+                            style={{ flex: 1, minWidth: "120px", fontSize: "12px" }}
+                            onClick={() => executeCommand("restart_deck", "Restart Deck?")}
+                        >
+                            Reboot Deck
+                        </button>
+                    </div>
+                </div>
             </PanelSection>
         </>
     );
