@@ -26,37 +26,23 @@ export const Settings: FC = () => {
         resetSettings,
     } = useSettings();
 
-    // Always call hook (rules of hooks), even if we return early
-    const versionInfo = useVersionInfo();
+    // Always call hook (rules of hooks)
+    const { info: versionInfo, error: versionError } = useVersionInfo();
 
-    const [cacheCleared, setCacheCleared] = useState(false);
     const [offsets, setOffsets] = useState({ x: 10, y: 10, sx: 0, sy: 0 });
     const [timeouts, setTimeouts] = useState<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
     // Sync local state with settings only when not actively dragging/debouncing
     useEffect(() => {
-        setOffsets(prev => {
-            const next = { ...prev };
-            let changed = false;
-
-            if (!timeouts.x && prev.x !== settings.offsetX) { next.x = settings.offsetX; changed = true; }
-            if (!timeouts.y && prev.y !== settings.offsetY) { next.y = settings.offsetY; changed = true; }
-            if (!timeouts.sx && prev.sx !== settings.storeOffsetX) { next.sx = settings.storeOffsetX; changed = true; }
-            if (!timeouts.sy && prev.sy !== settings.storeOffsetY) { next.sy = settings.storeOffsetY; changed = true; }
-
-            // Forced sync for resets (when loading just finished or settings changed and no timeouts exist)
-            if (Object.keys(timeouts).length === 0) {
-                if (prev.x !== settings.offsetX) { next.x = settings.offsetX; changed = true; }
-                if (prev.y !== settings.offsetY) { next.y = settings.offsetY; changed = true; }
-                if (prev.sx !== settings.storeOffsetX) { next.sx = settings.storeOffsetX; changed = true; }
-                if (prev.sy !== settings.storeOffsetY) { next.sy = settings.storeOffsetY; changed = true; }
-            }
-
-            return changed ? next : prev;
+        setOffsets({
+            x: settings.offsetX,
+            y: settings.offsetY,
+            sx: settings.storeOffsetX,
+            sy: settings.storeOffsetY,
         });
-    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY, timeouts]);
+    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY]);
 
-    // Cleanup timeouts on unmount and during resets
+    // Cleanup timeouts on unmount
     useEffect(() => {
         return () => {
             Object.values(timeouts).forEach(t => {
@@ -66,12 +52,6 @@ export const Settings: FC = () => {
     }, [timeouts]);
 
     const lang = getSupportedLanguage();
-
-    const handleClearCache = () => {
-        localStorage.removeItem(CACHE_KEY);
-        setCacheCleared(true);
-        setTimeout(() => setCacheCleared(false), 2000);
-    };
 
     const handleResetSettings = () => {
         // Clear all pending debounced updates before resetting
@@ -149,12 +129,6 @@ export const Settings: FC = () => {
                                 {t("default", lang)}
                             </ButtonItem>
                         </PanelSectionRow>
-
-                        <PanelSectionRow>
-                            <ButtonItem layout="below" onClick={handleClearCache} disabled={cacheCleared}>
-                                {cacheCleared ? "✓ " + t("clear_cache", lang) : t("clear_cache", lang)}
-                            </ButtonItem>
-                        </PanelSectionRow>
                     </>
                 )}
             </PanelSection>
@@ -179,6 +153,10 @@ export const Settings: FC = () => {
                                         <span style={{ fontWeight: "bold" }}>{t("decky_version", lang)}</span>
                                         <span>{versionInfo.decky_version}</span>
                                     </div>
+                                </div>
+                            ) : versionError ? (
+                                <div style={{ padding: "10px", textAlign: "center", color: "#ff5e5b" }}>
+                                    Error loading system info
                                 </div>
                             ) : (
                                 <div style={{ padding: "10px", textAlign: "center", color: "#888" }}>

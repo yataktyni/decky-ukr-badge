@@ -121,12 +121,21 @@ export function useSettings() {
 
 export function useVersionInfo() {
     const [versionInfo, setVersionInfo] = useState<{ plugin_version: string, steamos_version: string, decky_version: string } | null>(null);
+    const [error, setError] = useState<boolean>(false);
 
     useEffect(() => {
-        callBackend<any>("get_system_info").then(setVersionInfo).catch(console.error);
+        Promise.race([
+            callBackend<any>("get_system_info"),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
+        ])
+            .then(setVersionInfo)
+            .catch((e) => {
+                console.error("[decky-ukr-badge] VersionInfo hang:", e);
+                setError(true);
+            });
     }, []);
 
-    return versionInfo;
+    return { info: versionInfo, error };
 }
 
 export { SettingsContext, DEFAULT_SETTINGS };

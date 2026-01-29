@@ -82,6 +82,7 @@ async def get_system_info() -> Dict[str, str]:
     """Get system details including plugin, OS, and Decky versions."""
     steamos_version = "Unknown"
     plugin_version = "Unknown"
+    decky_version = "Unknown"
     
     # Get SteamOS version
     try:
@@ -91,25 +92,30 @@ async def get_system_info() -> Dict[str, str]:
                     if line.startswith("VERSION_ID="):
                         steamos_version = line.split("=")[1].strip().strip('"')
                         break
-        decky.logger.info(f"UA Badge: SteamOS Version: {steamos_version}")
     except Exception as e:
         decky.logger.error(f"UA Badge: SteamOS version error: {e}")
 
     # Get Plugin version from plugin.json
     try:
-        plugin_json_path = os.path.join(os.path.dirname(__file__), "plugin.json")
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        plugin_json_path = os.path.join(current_dir, "plugin.json")
         if os.path.exists(plugin_json_path):
             with open(plugin_json_path, "r") as f:
                 data = json.load(f)
                 plugin_version = data.get("version", "Unknown")
-        decky.logger.info(f"UA Badge: Plugin Version: {plugin_version}")
     except Exception as e:
         decky.logger.error(f"UA Badge: Plugin version error: {e}")
+
+    # Get Decky version
+    try:
+        decky_version = getattr(decky, "DECKY_VERSION", "Unknown")
+    except:
+        pass
 
     info = {
         "plugin_version": plugin_version,
         "steamos_version": steamos_version,
-        "decky_version": getattr(decky, "DECKY_VERSION", "Unknown")
+        "decky_version": decky_version
     }
     decky.logger.info(f"UA Badge: System info: {info}")
     return info
@@ -117,6 +123,7 @@ async def get_system_info() -> Dict[str, str]:
 async def reset_settings() -> Settings:
     """Reset all settings to defaults."""
     global SETTINGS
+    decky.logger.info("UA Badge: Resetting settings to defaults")
     SETTINGS = DEFAULT_SETTINGS.copy()
     save_settings()
     return SETTINGS
