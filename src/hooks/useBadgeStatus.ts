@@ -1,5 +1,5 @@
+// decky-ukr-badge/src/hooks/useBadgeStatus.ts
 import { useState, useEffect } from "react";
-import { useDebugSettings } from "./useDebugSettings";
 import {
     fetchSteamGameLanguages,
     fetchKuliTranslationStatus,
@@ -43,20 +43,12 @@ function setCache(newCache: CacheData): void {
 export function useBadgeStatus(appId: string | undefined, appName: string | undefined) {
     const [status, setStatus] = useState<BadgeStatus | null>(null);
     const [loading, setLoading] = useState(true);
-    const { debugSettings } = useDebugSettings();
 
     useEffect(() => {
         let cancelled = false;
 
         async function fetchStatus() {
             if (!appId) {
-                setLoading(false);
-                return;
-            }
-
-            // Mock Mode override
-            if (debugSettings.mockMode) {
-                setStatus(debugSettings.mockStatus);
                 setLoading(false);
                 return;
             }
@@ -112,7 +104,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
         fetchStatus();
 
         return () => { cancelled = true; };
-    }, [appId, appName, debugSettings.mockMode, debugSettings.mockStatus]);
+    }, [appId, appName]);
 
     return { status, loading };
 }

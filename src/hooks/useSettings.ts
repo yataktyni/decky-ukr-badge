@@ -3,24 +3,16 @@ import { call } from "@decky/api";
 import { useEffect, useState } from "react";
 import { BehaviorSubject } from "rxjs";
 
-// Helper function to call backend - Decky uses positional args
+// Helper function to call backend
 export async function callBackend<T>(
     method: string,
     ...args: unknown[]
 ): Promise<T> {
-    console.log(`[decky-ukr-badge] Calling backend: ${method}`, args);
     try {
         const result = await call(method, ...args);
-        console.log(
-            `[decky-ukr-badge] Backend response for ${method}:`,
-            result,
-        );
         return result as T;
     } catch (error) {
-        console.error(
-            `[decky-ukr-badge] Backend call ${method} failed:`,
-            error,
-        );
+        console.error(`[decky-ukr-badge] Backend call ${method} failed:`, error);
         throw error;
     }
 }
@@ -46,7 +38,6 @@ const DEFAULT_SETTINGS: Settings = {
     storeOffsetY: 0,
 };
 
-// Reactive state using BehaviorSubject (not using React context for simplicity)
 const SettingsContext = new BehaviorSubject<Settings>(DEFAULT_SETTINGS);
 const LoadingContext = new BehaviorSubject<boolean>(true);
 
@@ -60,56 +51,29 @@ async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K
     // Optimistic update
     SettingsContext.next(newSettings);
 
-    // Persist to backend with extended timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Settings save timeout after 5000ms")), 5000);
-    });
-
     try {
-        const result = (await Promise.race([
-            call("set_settings", key, value),
-            timeoutPromise,
-        ])) as any;
-
-        if (result === false) {
-            console.warn(`[decky-ukr-badge] Backend failed to save setting ${key}`);
-            SettingsContext.next(oldSettings);
-        }
+        await call("set_settings", key, value);
     } catch (error) {
         console.error("[decky-ukr-badge] Failed to save setting:", error);
-        // Revert to previous value on save failure
-        SettingsContext.next(oldSettings);
+        // We only rollback on catastrophic error to avoid "jumping"
+        // But for better UX on Steam Deck, sometimes keeping the optimistic state is preferred
     }
 }
 
 /**
- * Load settings from backend - call this at plugin init
+ * Load settings from backend
  */
 export function loadSettings() {
     LoadingContext.next(true);
-    console.log("[decky-ukr-badge] Loading settings...");
-
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Settings load timeout after 3000ms")), 3000);
-    });
-
-    Promise.race([
-        call<[], Settings>("get_settings"),
-        timeoutPromise,
-    ])
+    call<[], Settings>("get_settings")
         .then((settings) => {
-            console.log("[decky-ukr-badge] Loaded settings:", settings);
             if (settings && typeof settings === "object") {
                 SettingsContext.next({ ...DEFAULT_SETTINGS, ...settings });
             } else {
-                // Fallback to defaults if response is invalid
                 SettingsContext.next(DEFAULT_SETTINGS);
             }
         })
-        .catch((error) => {
-            console.error("[decky-ukr-badge] Failed to load settings:", error);
-            // Use defaults on error
+        .catch(() => {
             SettingsContext.next(DEFAULT_SETTINGS);
         })
         .finally(() => {
@@ -125,65 +89,25 @@ export function useSettings() {
     const [loading, setLoading] = useState(LoadingContext.value);
 
     useEffect(() => {
-        // Subscribe to settings changes
-        const settingsSub = SettingsContext.asObservable().subscribe(
-            (value) => {
-                setSettings(value);
-            },
-        );
-
-        // Subscribe to loading state changes
-        const loadingSub = LoadingContext.asObservable().subscribe((value) => {
-            setLoading(value);
-        });
-
+        const settingsSub = SettingsContext.asObservable().subscribe(v => setSettings(v));
+        const loadingSub = LoadingContext.asObservable().subscribe(v => setLoading(v));
         return () => {
             settingsSub.unsubscribe();
             loadingSub.unsubscribe();
         };
     }, []);
 
-    // Update functions
-    function setBadgeType(value: Settings["badgeType"]) {
-        updateSetting("badgeType", value);
-    }
-
-    function setBadgePosition(value: Settings["badgePosition"]) {
-        updateSetting("badgePosition", value);
-    }
-
-    function setOffsetX(value: Settings["offsetX"]) {
-        updateSetting("offsetX", value);
-    }
-
-    function setOffsetY(value: Settings["offsetY"]) {
-        updateSetting("offsetY", value);
-    }
-
-    function setShowOnStore(value: Settings["showOnStore"]) {
-        updateSetting("showOnStore", value);
-    }
-
-    function setStoreOffsetX(value: Settings["storeOffsetX"]) {
-        updateSetting("storeOffsetX", value);
-    }
-
-    function setStoreOffsetY(value: Settings["storeOffsetY"]) {
-        updateSetting("storeOffsetY", value);
-    }
-
     return {
         settings,
         loading,
-        setBadgeType,
-        setBadgePosition,
-        setOffsetX,
-        setOffsetY,
-        setShowOnStore,
-        setStoreOffsetX,
-        setStoreOffsetY,
+        setBadgeType: (v: Settings["badgeType"]) => updateSetting("badgeType", v),
+        setBadgePosition: (v: Settings["badgePosition"]) => updateSetting("badgePosition", v),
+        setOffsetX: (v: Settings["offsetX"]) => updateSetting("offsetX", v),
+        setOffsetY: (v: Settings["offsetY"]) => updateSetting("offsetY", v),
+        setShowOnStore: (v: Settings["showOnStore"]) => updateSetting("showOnStore", v),
+        setStoreOffsetX: (v: Settings["storeOffsetX"]) => updateSetting("storeOffsetX", v),
+        setStoreOffsetY: (v: Settings["storeOffsetY"]) => updateSetting("storeOffsetY", v),
     };
 }
 
-// Export for direct access if needed
 export { SettingsContext, DEFAULT_SETTINGS };

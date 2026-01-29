@@ -15,7 +15,6 @@ import {
 import { FaFlag } from "react-icons/fa";
 
 import { Settings } from "./settings";
-import { DebugPanel } from "./debugPanel";
 
 import Badge from "./components/Badge";
 import StoreOverlay from "./components/StoreOverlay";
@@ -174,22 +173,9 @@ function patchLibraryApp() {
  * Settings Panel Component for the Quick Access Menu
  */
 const SettingsPanel: React.FC = () => {
-    const [showDebugPanel, setShowDebugPanel] = useState(false);
-
     return (
         <>
             <Settings />
-            <PanelSection title="🛠️ Developer">
-                <PanelSectionRow>
-                    <ToggleField
-                        label="Show Developer Tools"
-                        description="Debug info, logs, and system controls"
-                        checked={showDebugPanel}
-                        onChange={setShowDebugPanel}
-                    />
-                </PanelSectionRow>
-            </PanelSection>
-            {showDebugPanel && <DebugPanel />}
         </>
     );
 };
