@@ -13,6 +13,7 @@ import { FaFlag } from "react-icons/fa";
 import { Settings } from "./settings";
 
 import Badge from "./components/Badge";
+import HeaderBadge from "./components/HeaderBadge";
 import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
 import { initStorePatch } from "./patches/StorePatch";
@@ -67,9 +68,9 @@ function patchLibraryApp() {
                     if (typeof container !== "object") return ret;
 
                     const topCapsule = findInReactTree(ret, (x: any) => x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule));
-                    if (topCapsule && !findInReactTree(topCapsule, (x: any) => x?.key === "ukr-flag-header")) {
+                    if (topCapsule && !findInReactTree(topCapsule, (x: any) => x?.key === "ukr-header-badge")) {
                         topCapsule.props.children.unshift(
-                            <span key="ukr-flag-header" style={{ marginRight: "10px", fontSize: "1.2em", verticalAlign: "middle" }}>🇺🇦</span>
+                            <HeaderBadge key="ukr-header-badge" />
                         );
                     }
 
