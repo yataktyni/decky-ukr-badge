@@ -52,6 +52,18 @@ async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K
     }
 }
 
+async function resetSettings() {
+    LoadingContext.next(true);
+    try {
+        const settings = await callBackend<Settings>("reset_settings");
+        SettingsContext.next(settings);
+    } catch (error) {
+        console.error("[decky-ukr-badge] Failed to reset settings:", error);
+    } finally {
+        LoadingContext.next(false);
+    }
+}
+
 export function loadSettings() {
     if (!LoadingContext.value && SettingsContext.value !== DEFAULT_SETTINGS) return;
 
@@ -98,7 +110,18 @@ export function useSettings() {
         setShowOnStore: (v: Settings["showOnStore"]) => updateSetting("showOnStore", v),
         setStoreOffsetX: (v: Settings["storeOffsetX"]) => updateSetting("storeOffsetX", v),
         setStoreOffsetY: (v: Settings["storeOffsetY"]) => updateSetting("storeOffsetY", v),
+        resetSettings,
     };
+}
+
+export function useVersionInfo() {
+    const [versionInfo, setVersionInfo] = useState<{ plugin_version: string, steamos_version: string, decky_version: string } | null>(null);
+
+    useEffect(() => {
+        callBackend<any>("get_version_info").then(setVersionInfo).catch(console.error);
+    }, []);
+
+    return versionInfo;
 }
 
 export { SettingsContext, DEFAULT_SETTINGS };

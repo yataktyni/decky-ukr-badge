@@ -30,9 +30,8 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
 export default function Badge({
     appId: pAppId,
     appName: pAppName,
-    isStore = false,
     protonDBExists = false
-}: { appId?: string; appName?: string; isStore?: boolean; protonDBExists?: boolean }) {
+}: { appId?: string; appName?: string; protonDBExists?: boolean }) {
     const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
     const appId = pAppId || hAppId;
     const appName = pAppName || hAppName;
@@ -48,6 +47,9 @@ export default function Badge({
         const topCapsule = findTopCapsuleParent(ref.current);
         if (!topCapsule) return undefined;
 
+        // Start visible by default
+        setIsVisible(true);
+
         const observer = new MutationObserver((mutations) => {
             for (const m of mutations) {
                 if (m.type === "attributes" && m.attributeName === "class") {
@@ -60,10 +62,12 @@ export default function Badge({
 
         observer.observe(topCapsule, { attributes: true, attributeFilter: ["class"] });
         return () => observer.disconnect();
-    }, [status]);
+    }, [status]); // Re-run if status changes, though mainly dependent on DOM
 
     if (hLoading || sLoading || bLoading || !status || !isVisible) return null;
-    if (isStore && !settings.showOnStore) return null;
+
+    // Safety check for NONE
+    if (status === "NONE") return null;
 
     const config = BADGE_CONFIG[status];
     const BadgeIcon = config.icon;
@@ -75,28 +79,22 @@ export default function Badge({
         transition: "all 0.3s ease",
     };
 
-    if (isStore) {
-        style.bottom = `calc(60px - ${settings.storeOffsetY}px)`;
-        style.left = `calc(50% + ${settings.storeOffsetX}px)`;
-        style.transform = "translateX(-50%)";
-    } else {
-        const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "40px", right: "20px" };
+    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "40px", right: "20px" };
 
-        // Adjust for ProtonDB if it exists (standard Decky practice)
-        let top = parseInt(base.top);
-        if (protonDBExists) {
-            top += 50; // Shift down to avoid overlapping ProtonDB badge
-        }
-
-        style.top = `calc(${top}px + ${settings.offsetY}px)`;
-        if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
-        if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
+    // Adjust for ProtonDB if it exists (standard Decky practice)
+    let top = parseInt(base.top);
+    if (protonDBExists) {
+        top += 50; // Shift down to avoid overlapping ProtonDB badge
     }
+
+    style.top = `calc(${top}px + ${settings.offsetY}px)`;
+    if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
+    if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
 
     return (
         <div ref={ref} style={style}>
             <button
-                onClick={() => status !== "NONE" && appName && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName)}`)}
+                onClick={() => appName && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName)}`)}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -109,7 +107,7 @@ export default function Badge({
                     fontWeight: 800,
                     fontSize: "14px",
                     boxShadow: `0 4px 12px ${config.shadow}`,
-                    cursor: status !== "NONE" ? "pointer" : "default",
+                    cursor: "pointer",
                 }}
             >
                 <span style={{ fontSize: "1.2em" }}>🇺🇦</span>

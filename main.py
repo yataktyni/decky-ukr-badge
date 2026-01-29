@@ -78,6 +78,48 @@ async def set_settings(key: str, value: Any) -> bool:
         return save_settings()
     return False
 
+async def get_version_info() -> Dict[str, str]:
+    """Get version details for settings page from plugin.json."""
+    steamos_version = "Unknown"
+    plugin_version = "Unknown"
+    
+    # Get SteamOS version
+    try:
+        if os.path.exists("/etc/os-release"):
+            with open("/etc/os-release", "r") as f:
+                for line in f:
+                    if line.startswith("VERSION_ID="):
+                        steamos_version = line.split("=")[1].strip().strip('"')
+                        break
+    except Exception:
+        pass
+
+    # Get Plugin version from plugin.json
+    try:
+        plugin_json_path = os.path.join(os.path.dirname(__file__), "plugin.json")
+        if os.path.exists(plugin_json_path):
+            with open(plugin_json_path, "r") as f:
+                data = json.load(f)
+                plugin_version = data.get("version", "Unknown")
+        else:
+            plugin_version = getattr(decky, "DECKY_PLUGIN_VERSION", "Unknown")
+    except Exception as e:
+        decky.logger.error(f"Failed to read plugin.json: {e}")
+        plugin_version = getattr(decky, "DECKY_PLUGIN_VERSION", "Unknown")
+
+    return {
+        "plugin_version": plugin_version,
+        "steamos_version": steamos_version,
+        "decky_version": getattr(decky, "DECKY_VERSION", "Unknown")
+    }
+
+async def reset_settings() -> Settings:
+    """Reset all settings to defaults."""
+    global SETTINGS
+    SETTINGS = DEFAULT_SETTINGS.copy()
+    save_settings()
+    return SETTINGS
+
 async def get_steam_languages(app_id: str) -> List[str]:
     """Fetch official language support via Steam API (using requests)."""
     url = f"https://store.steampowered.com/api/appdetails?appids={app_id}&l=en"
@@ -101,56 +143,58 @@ async def get_steam_languages(app_id: str) -> List[str]:
         decky.logger.error(f"Steam API error: {e}")
         return []
 
-async def get_kuli_status(game_name: str) -> str:
-    """Fetch localization status from kuli.com.ua."""
+async def get_kuli_status(game_name: str) -> Dict[str, str]:
+    """Fetch localization status and URL from kuli.com.ua."""
     def urlify(name):
-        return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[':’]", "", name.lower())).strip("-")
+        return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[':']", "", name.lower())).strip("-")
 
     slug = urlify(game_name)
     url = f"https://kuli.com.ua/{slug}"
     
     try:
         resp = requests.get(url, timeout=10.0, headers={"Accept": "text/html"})
+        
         if resp.status_code == 404:
             return await search_kuli(game_name)
         
         if resp.status_code != 200:
-            return "NONE"
+            return {"status": "NONE", "url": ""}
         
         html = resp.text
         if "item__instruction-main" in html:
-            return "COMMUNITY"
+            return {"status": "COMMUNITY", "url": url}
         if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
-            return "OFFICIAL"
+            return {"status": "OFFICIAL", "url": url}
     except Exception as e:
         decky.logger.error(f"Kuli error: {e}")
-    return "NONE"
+    return {"status": "NONE", "url": ""}
 
-async def search_kuli(game_name: str) -> str:
-    """Search fallback for kuli.com.ua."""
+async def search_kuli(game_name: str) -> Dict[str, str]:
+    """Search fallback for kuli.com.ua, returns dict with status and url."""
     search_url = f"https://kuli.com.ua/games?query={urllib.parse.quote(game_name)}"
     try:
         resp = requests.get(search_url, timeout=10.0)
         if resp.status_code != 200:
-            return "NONE"
+            return {"status": "NONE", "url": ""}
         
+        # Improved regex to find product link
         match = re.search(r'class="product-item[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
         if not match:
-            return "NONE"
+            return {"status": "NONE", "url": ""}
         
         href = match.group(1)
-        full_url = href if href.startswith("http") else f"https://kuli.com.ua/{href.lstrip('/')}"
+        full_url = href if href.startswith("http") else f"https://kuli.com.ua{'' if href.startswith('/') else '/'}{href.lstrip('/')}"
         
         game_resp = requests.get(full_url, timeout=10.0)
         if game_resp.status_code == 200:
             html = game_resp.text
             if "item__instruction-main" in html:
-                return "COMMUNITY"
+                return {"status": "COMMUNITY", "url": full_url}
             if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
-                return "OFFICIAL"
-        except Exception as e:
-            decky.logger.error(f"Kuli search error: {e}")
-        return "NONE"
+                return {"status": "OFFICIAL", "url": full_url}
+    except Exception as e:
+        decky.logger.error(f"Kuli search error: {e}")
+    return {"status": "NONE", "url": ""}
 
 # Lifecycle
 async def _main():

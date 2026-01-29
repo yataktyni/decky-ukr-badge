@@ -11,6 +11,7 @@ import {
     PanelSectionRow,
     ToggleField,
     staticClasses,
+    Navigation,
 } from "@decky/ui";
 import { FaFlag } from "react-icons/fa";
 
@@ -19,26 +20,22 @@ import { Settings } from "./settings";
 import Badge from "./components/Badge";
 import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
+import { initStorePatch } from "./patches/StorePatch";
 
 /**
  * Check if ProtonDB badge plugin is present to avoid overlap
  */
 function hasProtonDBBadge(): boolean {
     try {
-        // Check for ProtonDB badge indicators in the DOM or window
         if (typeof window !== "undefined") {
-            // Check if protonbadge elements exist
-            const protonBadgeExists = document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protonbadge"]');
+            const protonBadgeExists = document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protondb"]');
             if (protonBadgeExists) return true;
 
-            // Check window for ProtonDB plugin indicators
             if ((window as any).protonbadge || (window as any).ProtonDBBadge) {
                 return true;
             }
         }
-    } catch (e) {
-        // Ignore errors in detection
-    }
+    } catch (e) { }
     return false;
 }
 
@@ -146,6 +143,7 @@ function patchLibraryApp() {
                                     pointerEvents: "auto",
                                 }}
                                 title="Ukrainian Language Support"
+                                onClick={() => Navigation.NavigateToExternalWeb("https://kuli.com.ua/")}
                             >
                                 🇺🇦
                             </div>
@@ -187,7 +185,10 @@ export default definePlugin(() => {
     // Patch the library app page
     const libraryPatch = patchLibraryApp();
 
-    // Register store overlay
+    // Initialize store patch (WebSocket injection)
+    const stopStorePatch = initStorePatch();
+
+    // Register store overlay placeholder (required for global component but does nothing visually)
     routerHook.addGlobalComponent("UKRStoreOverlay", StoreOverlay);
 
     return {
@@ -198,6 +199,7 @@ export default definePlugin(() => {
         onDismount() {
             routerHook.removePatch("/library/app/:appid", libraryPatch);
             routerHook.removeGlobalComponent("UKRStoreOverlay");
+            stopStorePatch();
         },
     };
 });

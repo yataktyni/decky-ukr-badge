@@ -10,7 +10,7 @@ import {
     Navigation,
 } from "@decky/ui";
 import { t, getSupportedLanguage } from "./translations";
-import { useSettings } from "./hooks/useSettings";
+import { useSettings, useVersionInfo } from "./hooks/useSettings";
 import Spinner from "./components/Spinner";
 import { LinksSection } from "./components/LinksSection";
 
@@ -23,7 +23,11 @@ export const Settings: FC = () => {
     const {
         settings, loading, setBadgeType, setBadgePosition,
         setOffsetX, setOffsetY, setShowOnStore, setStoreOffsetX, setStoreOffsetY,
+        resetSettings,
     } = useSettings();
+
+    // Always call hook (rules of hooks), even if we return early
+    const versionInfo = useVersionInfo();
 
     const [cacheCleared, setCacheCleared] = useState(false);
     const [offsets, setOffsets] = useState({ x: 10, y: 10, sx: 0, sy: 0 });
@@ -43,6 +47,10 @@ export const Settings: FC = () => {
         localStorage.removeItem(CACHE_KEY);
         setCacheCleared(true);
         setTimeout(() => setCacheCleared(false), 2000);
+    };
+
+    const handleResetSettings = () => {
+        resetSettings();
     };
 
     const openUrl = (url: string) => {
@@ -106,10 +114,33 @@ export const Settings: FC = () => {
                 <PanelSectionRow><SliderField label={t("y_offset", lang)} value={offsets.y} min={0} max={300} onChange={v => debouncedSet("y", v, setOffsetY)} showValue /></PanelSectionRow>
 
                 <PanelSectionRow>
+                    <ButtonItem layout="below" onClick={handleResetSettings}>
+                        {t("default", lang)}
+                    </ButtonItem>
+                </PanelSectionRow>
+
+                <PanelSectionRow>
                     <ButtonItem layout="below" onClick={handleClearCache} disabled={cacheCleared}>
                         {cacheCleared ? "✓ " + t("clear_cache", lang) : t("clear_cache", lang)}
                     </ButtonItem>
                 </PanelSectionRow>
+
+                {versionInfo && (
+                    <div style={{ padding: "10px 0", marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                            <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
+                            <span>{versionInfo.plugin_version}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                            <span style={{ fontWeight: "bold" }}>{t("steamos_version", lang)}</span>
+                            <span>{versionInfo.steamos_version}</span>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                            <span style={{ fontWeight: "bold" }}>{t("decky_version", lang)}</span>
+                            <span>{versionInfo.decky_version}</span>
+                        </div>
+                    </div>
+                )}
             </PanelSection>
 
             <LinksSection lang={lang} openUrl={openUrl} />

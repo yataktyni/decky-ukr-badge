@@ -12,17 +12,16 @@
 ### ✨ Можливості
 
 - **✅ Офіційна локалізація** — гра має офіційну підтримку української мови в Steam.
-- **🤝 Спільнотний переклад** — переклад доступний завдяки спільноті на [kuli.com.ua](https://kuli.com.ua/).
-- **❌ Відсутня** — наразі українська локалізація для цієї гри не знайдена.
+- **🤝 Переклад від спільноти** — переклад доступний завдяки спільноті на [kuli.com.ua](https://kuli.com.ua/).
+- **❌ Відсутня локалізація** — наразі українська локалізація для цієї гри не знайдена.
 - **🛒 Відображення в магазині** — значок автоматично з'являється на сторінках Steam Store.
 - **📖 Корисні посилання** — швидкий доступ до відеоінструкцій та посібників Steam.
 
 ### ⚙️ Налаштування
 
-- **Тип значка**: вибір між лише іконкою або іконкою з текстом ("Офіційна"/"Спільнотна").
+- **Тип значка**: вибір між лише іконкою або іконкою з текстом ("Офіційна локалізація"/"Переклад  від спільноти").
 - **Позиція**: можливість вибору кута (вгорі зліва/справа) з автоматичним уникненням накладання на Badge від ProtonDB.
 - **Зміщення (Offsets)**: точне налаштування координат X та Y для бібліотеки та магазину окремо.
-- **Developer Tools**: вбудована панель налагодження з можливістю тестування детекції та перегляду логів.
 
 ---
 
@@ -67,15 +66,19 @@ pnpm install
 
 # Зберіть плагін
 pnpm build
+
+# Створіть release.zip
+pnpm zip
 ```
 
 ---
 
 ### 🔗 Посилання
 
-- ❤️ [Підтримати на Ko-fi](https://ko-fi.com/yataktyni)
+- ❤️ [Підтримати на Ko-fi](https://ko-fi.com/yataktyni/tip)
+- 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 📦 [GitHub](https://github.com/yataktyni/decky-ukr-badge)
-- 🇺🇦 [Kuli — спільнотні переклади](https://kuli.com.ua/)
+- 🎈 [Kuli — каталог української локалізації ігор](https://kuli.com.ua/)
 
 ---
 ---
@@ -88,7 +91,7 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 
 - **✅ Official localization** — the game has official Ukrainian language support on Steam.
 - **🤝 Community translation** — translations provided by the community via [kuli.com.ua](https://kuli.com.ua/).
-- **❌ None** — no Ukrainian localization found for this game yet.
+- **❌ No localization** — no Ukrainian localization found for this game yet.
 - **🛒 Store Overlay** — the badge automatically appears on Steam Store pages.
 - **📖 Useful Links** — quick access to video guides and Steam Community guides.
 
@@ -97,7 +100,6 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 - **Badge Type**: switch between "Icon Only" or "Icon + Text" (Official/Community).
 - **Position**: choose between top-left/top-right with automatic ProtonDB badge avoidance.
 - **Offsets**: fine-tune X and Y coordinates for Library and Store pages separately.
-- **Developer Tools**: built-in debug panel with detection testing and log viewing.
 
 ---
 
@@ -142,15 +144,19 @@ pnpm install
 
 # Build the plugin
 pnpm build
+
+# Create release.zip
+pnpm zip
 ```
 
 ---
 
 ### 🔗 Links
 
-- ❤️ [Support on Ko-fi](https://ko-fi.com/yataktyni)
+- ❤️ [Support on Ko-fi](https://ko-fi.com/yataktyni/tip)
+- 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 📦 [GitHub](https://github.com/yataktyni/decky-ukr-badge)
-- 🇺🇦 [Kuli — Community Translations](https://kuli.com.ua/)
+- 🎈 [Kuli — Сatalog of Ukrainian game translations](https://kuli.com.ua/)
 
 ---
 
