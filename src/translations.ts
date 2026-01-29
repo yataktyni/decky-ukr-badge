@@ -7,7 +7,7 @@ const translations: Record<string, TranslationDict> = {
     plugin_description:
       "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
     ukrainian: "Ukrainian",
-    settings_title: "Ukrainian Badge Settings",
+    settings_title: "Ukrainian localization badge settings",
     badge_type: "Badge Type",
     badge_type_caption: "Choose the badge display type.",
     type_default: "Icon Only",
@@ -40,7 +40,7 @@ const translations: Record<string, TranslationDict> = {
     plugin_description:
       "Плагін Decky Loader для Steam Deck, що показує бейдж локалізації українською для ігор.",
     ukrainian: "Українська",
-    settings_title: "Налаштування бейджа UA",
+    settings_title: "Налаштування бейджа української локалізації",
     badge_type: "Тип бейджа",
     badge_type_caption: "Виберіть, як виглядатиме бейдж.",
     type_default: "Лише іконка",

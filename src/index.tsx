@@ -48,8 +48,7 @@ function patchLibraryApp() {
         const routeProps = findInReactTree(tree, (x: any) => x?.renderFunc);
 
         if (routeProps) {
-            // Patch 1: Inject badge into InnerContainer (existing behavior)
-            const patchHandlerInner = createReactTreePatcher(
+            const patchHandler = createReactTreePatcher(
                 [
                     (tree: any) =>
                         findInReactTree(
@@ -88,85 +87,7 @@ function patchLibraryApp() {
                 },
             );
 
-            // Patch 2: Add icon to TopCapsule header (like ProtonDB does)
-            const patchHandlerHeader = createReactTreePatcher(
-                [
-                    (tree: any) =>
-                        findInReactTree(
-                            tree,
-                            (x: any) => x?.props?.children?.props?.overview,
-                        )?.props?.children,
-                ],
-                (
-                    _: Array<Record<string, unknown>>,
-                    ret?: React.ReactElement,
-                ) => {
-                    // console.log("[UA Badge] Header Patch Trace", ret);
-
-                    // Find the Header container - try multiple ways if possible
-                    const headerContainer = findInReactTree(
-                        ret,
-                        (x: React.ReactElement) =>
-                            x?.props?.className?.includes(appDetailsClasses.Header) ||
-                            x?.props?.className?.includes("AppDetailsHeader")
-                    );
-
-                    if (typeof headerContainer !== "object") {
-                        return ret;
-                    }
-
-                    // Find TopCapsule within Header
-                    const topCapsule = findInReactTree(
-                        headerContainer,
-                        (x: React.ReactElement) =>
-                            x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule) ||
-                            x?.props?.className?.includes("TopCapsule")
-                    );
-
-                    if (typeof topCapsule === "object" && topCapsule.props) {
-                        // Ensure children is an array
-                        if (!Array.isArray(topCapsule.props.children)) {
-                            topCapsule.props.children = [topCapsule.props.children].filter(Boolean);
-                        }
-
-                        // Check if ProtonDB exists - if so, place icon on the left side instead
-                        const protonDBExists = hasProtonDBBadge();
-
-                        // Create a small icon component for the header
-                        const headerIcon = (
-                            <div
-                                key="ukr-badge-header-icon"
-                                style={{
-                                    position: "relative", // Changed from absolute to flow with other header items if possible, or stay absolute if needed
-                                    marginLeft: protonDBExists ? "0" : "auto",
-                                    marginRight: protonDBExists ? "auto" : "0",
-                                    paddingRight: protonDBExists ? "10px" : "20px",
-                                    paddingLeft: protonDBExists ? "20px" : "10px",
-                                    zIndex: 1000,
-                                    fontSize: "24px",
-                                    cursor: "pointer",
-                                    opacity: 0.9,
-                                    pointerEvents: "auto",
-                                    display: "flex",
-                                    alignItems: "center"
-                                }}
-                                title="Ukrainian Language Support"
-                                onClick={() => Navigation.NavigateToExternalWeb("https://kuli.com.ua/")}
-                            >
-                                🇺🇦
-                            </div>
-                        );
-
-                        // Inject icon at the beginning of TopCapsule children
-                        topCapsule.props.children.unshift(headerIcon);
-                    }
-
-                    return ret;
-                },
-            );
-
-            afterPatch(routeProps, "renderFunc", patchHandlerInner);
-            afterPatch(routeProps, "renderFunc", patchHandlerHeader);
+            afterPatch(routeProps, "renderFunc", patchHandler);
         }
 
         return tree;

@@ -20,11 +20,28 @@ const BADGE_CONFIG = {
 } as const;
 
 function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
-    const parent = ref?.parentElement;
-    if (!parent) return null;
-    const header = Array.from(parent.children).find(c => c.className.includes(appDetailsClasses.Header));
-    if (!header) return null;
-    return Array.from(header.children).find(c => c.className.includes(appDetailsHeaderClasses.TopCapsule)) || null;
+    const children = ref?.parentElement?.children;
+    if (!children) return null;
+
+    let headerContainer: Element | undefined;
+    for (const child of children) {
+        if (child.className.includes(appDetailsClasses.Header)) {
+            headerContainer = child;
+            break;
+        }
+    }
+
+    if (!headerContainer) return null;
+
+    let topCapsule: Element | null = null;
+    for (const child of headerContainer.children) {
+        if (child.className.includes(appDetailsHeaderClasses.TopCapsule)) {
+            topCapsule = child;
+            break;
+        }
+    }
+
+    return topCapsule;
 }
 
 export default function Badge({
