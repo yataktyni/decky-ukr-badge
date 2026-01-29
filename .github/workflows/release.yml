@@ -59,9 +59,9 @@ jobs:
               run: |
                   git config --global user.name "github-actions[bot]"
                   git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  # Pull and rebase with autostash to avoid conflicts if main moved during build
+                  git pull origin main --rebase --autostash
                   git add package.json plugin.json
-                  # Pull and rebase to avoid conflicts if main moved during build
-                  git pull origin main --rebase
                   git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]" || echo "No changes to commit"
                   git push origin main
               env:
