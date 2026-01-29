@@ -29,9 +29,9 @@ DEFAULT_SETTINGS: Settings = {
     "badgePosition": "top-left",
     "offsetX": 16,
     "offsetY": 16,
-    "showOnStore": False,
-    "storeOffsetX": 0,
-    "storeOffsetY": 20,
+    "showOnStore": True,
+    "storeOffsetX": 16,
+    "storeOffsetY": 16,
 }
 
 SETTINGS: Settings = DEFAULT_SETTINGS.copy()

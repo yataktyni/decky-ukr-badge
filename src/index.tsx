@@ -87,71 +87,7 @@ function patchLibraryApp() {
                 },
             );
 
-            // Patch 2: Add flag icon to TopCapsule header (matches user request for header badge)
-            const patchHandlerHeader = createReactTreePatcher(
-                [
-                    (tree: any) =>
-                        findInReactTree(
-                            tree,
-                            (x: any) => x?.props?.children?.props?.overview,
-                        )?.props?.children,
-                ],
-                (
-                    _: Array<Record<string, unknown>>,
-                    ret?: React.ReactElement,
-                ) => {
-                    const headerContainer = findInReactTree(
-                        ret,
-                        (x: React.ReactElement) =>
-                            x?.props?.className?.includes(appDetailsClasses.Header),
-                    );
-
-                    if (typeof headerContainer !== "object") return ret;
-
-                    const topCapsule = findInReactTree(
-                        headerContainer,
-                        (x: React.ReactElement) =>
-                            x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule),
-                    );
-
-                    if (typeof topCapsule === "object" && topCapsule?.props) {
-                        const protonDBExists = hasProtonDBBadge();
-                        const headerIcon = (
-                            <div
-                                key="ukr-badge-header-icon"
-                                style={{
-                                    marginRight: protonDBExists ? "10px" : "20px",
-                                    marginLeft: "10px",
-                                    fontSize: "24px",
-                                    cursor: "pointer",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    zIndex: 100
-                                }}
-                                title="Ukrainian Language Support"
-                                onClick={() => Navigation.NavigateToExternalWeb("https://store.steampowered.com/search/?supportedlang=ukrainian")}
-                            >
-                                🇺🇦
-                            </div>
-                        );
-
-                        // Ensure children is an array and add icon if not already present
-                        const children = topCapsule.props.children;
-                        if (Array.isArray(children)) {
-                            if (!children.some((c: any) => c?.key === "ukr-badge-header-icon")) {
-                                children.unshift(headerIcon);
-                            }
-                        } else {
-                            topCapsule.props.children = [headerIcon, children].filter(Boolean);
-                        }
-                    }
-
-                    return ret;
-                },
-            );
-
             afterPatch(routeProps, "renderFunc", patchHandler);
-            afterPatch(routeProps, "renderFunc", patchHandlerHeader);
         }
 
         return tree;

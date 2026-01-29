@@ -30,8 +30,8 @@ const DEFAULT_SETTINGS: Settings = {
     offsetX: 16,
     offsetY: 16,
     showOnStore: true,
-    storeOffsetX: 0,
-    storeOffsetY: 20,
+    storeOffsetX: 16,
+    storeOffsetY: 16,
 };
 
 const SettingsContext = new BehaviorSubject<Settings>(DEFAULT_SETTINGS);
