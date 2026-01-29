@@ -87,7 +87,75 @@ function patchLibraryApp() {
                 },
             );
 
+            // Patch 2: Add flag icon to TopCapsule header (matches user request for header badge)
+            const patchHandlerHeader = createReactTreePatcher(
+                [
+                    (tree: any) =>
+                        findInReactTree(
+                            tree,
+                            (x: any) => x?.props?.children?.props?.overview,
+                        )?.props?.children,
+                ],
+                (
+                    _: Array<Record<string, unknown>>,
+                    ret?: React.ReactElement,
+                ) => {
+                    const headerContainer = findInReactTree(
+                        ret,
+                        (x: React.ReactElement) =>
+                            x?.props?.className?.includes(appDetailsClasses.Header),
+                    );
+
+                    if (typeof headerContainer !== "object") return ret;
+
+                    const topCapsule = findInReactTree(
+                        headerContainer,
+                        (x: React.ReactElement) =>
+                            x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule),
+                    );
+
+                    if (typeof topCapsule === "object" && topCapsule?.props) {
+                        // Ensure children is an array
+                        if (!Array.isArray(topCapsule.props.children)) {
+                            topCapsule.props.children = [topCapsule.props.children].filter(Boolean);
+                        }
+
+                        // Check if icon already added
+                        if (topCapsule.props.children.some((c: any) => c?.key === "ukr-badge-header-icon")) {
+                            return ret;
+                        }
+
+                        const protonDBExists = hasProtonDBBadge();
+
+                        // Icon positions itself relative to others
+                        const headerIcon = (
+                            <div
+                                key="ukr-badge-header-icon"
+                                style={{
+                                    marginRight: protonDBExists ? "10px" : "20px",
+                                    marginLeft: "10px",
+                                    fontSize: "24px",
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    zIndex: 100
+                                }}
+                                title="Ukrainian Language Support"
+                                onClick={() => Navigation.NavigateToExternalWeb("https://kuli.com.ua/")}
+                            >
+                                🇺🇦
+                            </div>
+                        );
+
+                        topCapsule.props.children.unshift(headerIcon);
+                    }
+
+                    return ret;
+                },
+            );
+
             afterPatch(routeProps, "renderFunc", patchHandler);
+            afterPatch(routeProps, "renderFunc", patchHandlerHeader);
         }
 
         return tree;

@@ -108,10 +108,7 @@ async function injectBadgeIntoStore(appId: string) {
             }
         }
 
-        const config = BADGE_COLORS[status as keyof typeof BADGE_COLORS];
-
-        // Only show if localization exists (Official or Community)
-        if (status === "NONE") return;
+        const config = BADGE_COLORS[status as keyof typeof BADGE_COLORS] || BADGE_COLORS.NONE;
 
         // Use localized labels (simplified: "Official", "Community", "None")
         const lang = (navigator.language || "en").startsWith("uk") ? "uk" : "en";
@@ -121,7 +118,7 @@ async function injectBadgeIntoStore(appId: string) {
             NONE: lang === "uk" ? "Відсутня" : "None"
         };
 
-        const label = labels[status as keyof typeof labels] || "Official";
+        const label = labels[status as keyof typeof labels] || labels.NONE;
         const icon = "🇺🇦";
 
         const { storeOffsetX, storeOffsetY } = SettingsContext.value;
@@ -136,11 +133,31 @@ async function injectBadgeIntoStore(appId: string) {
           badge.id = 'ukr-store-badge';
           badge.title = 'Ukrainian Localization Status: ${label}';
           
-          // Detect ProtonDB to avoid overlap
-          const hasProtonDB = !!document.querySelector('[id*="protondb-store-badge"]');
-          const finalY = hasProtonDB ? (60 + ${storeOffsetY}) : (20 + ${storeOffsetY});
+          function updatePosition() {
+            const hasProtonDB = !!document.querySelector('[id*="protondb-store-badge"]');
+            
+            // Logic: If slider is not zero, use slider directly.
+            // If slider is zero, use smart default (20 or 60).
+            let finalY = ${storeOffsetY};
+            if (finalY === 0) {
+              finalY = hasProtonDB ? 60 : 20;
+            }
+            
+            badge.style.bottom = finalY + 'px';
+          }
+
+          // Initial position
+          updatePosition();
           
-          badge.style.cssText = 'position: fixed; bottom: ' + finalY + 'px; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
+          // Monitoring loop for 2 seconds to catch late-loading ProtonDB badge
+          let checks = 0;
+          const posInterval = setInterval(() => {
+            updatePosition();
+            checks++;
+            if (checks > 20) clearInterval(posInterval);
+          }, 100);
+          
+          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
           badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${icon}</span><span style="margin-left: 8px; font-size: 14px;">${label}</span>';
           badge.onclick = function() { window.open('https://kuli.com.ua/${gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}', '_blank'); };
           document.body.appendChild(badge);

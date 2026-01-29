@@ -81,12 +81,10 @@ export default function Badge({
         return () => observer.disconnect();
     }, [status]); // Re-run if status changes, though mainly dependent on DOM
 
+    // Safety check for status
     if (hLoading || sLoading || bLoading || !status || !isVisible) return null;
 
-    // Safety check for NONE
-    if (status === "NONE") return null;
-
-    const config = BADGE_CONFIG[status];
+    const config = BADGE_CONFIG[status as keyof typeof BADGE_CONFIG] || BADGE_CONFIG.NONE;
     const BadgeIcon = config.icon;
     const displayText = settings.badgeType === "full" ? (status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang)) : "";
 
