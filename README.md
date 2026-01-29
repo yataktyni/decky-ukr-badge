@@ -11,9 +11,9 @@
 
 ### ✨ Можливості
 
-- **✅ Офіційна локалізація** — гра має офіційну підтримку української мови в Steam.
-- **🤝 Переклад від спільноти** — переклад доступний завдяки спільноті на [kuli.com.ua](https://kuli.com.ua/).
-- **❌ Відсутня локалізація** — наразі українська локалізація для цієї гри не знайдена.
+- **✅ Офіційна** — гра має офіційну підтримку української мови в Steam.
+- **🤝 Спільнота** — переклад доступний завдяки спільноті на [kuli.com.ua](https://kuli.com.ua/).
+- **❌ Відсутня** — наразі українська локалізація для цієї гри не знайдена.
 - **🛒 Відображення в магазині** — значок автоматично з'являється на сторінках Steam Store.
 - **📖 Корисні посилання** — швидкий доступ до відеоінструкцій та посібників Steam.
 
@@ -89,9 +89,9 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 
 ### ✨ Features
 
-- **✅ Official localization** — the game has official Ukrainian language support on Steam.
-- **🤝 Community translation** — translations provided by the community via [kuli.com.ua](https://kuli.com.ua/).
-- **❌ No localization** — no Ukrainian localization found for this game yet.
+- **✅ Official** — the game has official Ukrainian language support on Steam.
+- **🤝 Community** — translations provided by the community via [kuli.com.ua](https://kuli.com.ua/).
+- **❌ None** — no Ukrainian localization found for this game yet.
 - **🛒 Store Overlay** — the badge automatically appears on Steam Store pages.
 - **📖 Useful Links** — quick access to video guides and Steam Community guides.
 

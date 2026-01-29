@@ -101,13 +101,14 @@ function patchLibraryApp() {
                     _: Array<Record<string, unknown>>,
                     ret?: React.ReactElement,
                 ) => {
-                    // Find the Header container
+                    // console.log("[UA Badge] Header Patch Trace", ret);
+
+                    // Find the Header container - try multiple ways if possible
                     const headerContainer = findInReactTree(
                         ret,
                         (x: React.ReactElement) =>
-                            x?.props?.className?.includes(
-                                appDetailsClasses.Header,
-                            ),
+                            x?.props?.className?.includes(appDetailsClasses.Header) ||
+                            x?.props?.className?.includes("AppDetailsHeader")
                     );
 
                     if (typeof headerContainer !== "object") {
@@ -118,29 +119,36 @@ function patchLibraryApp() {
                     const topCapsule = findInReactTree(
                         headerContainer,
                         (x: React.ReactElement) =>
-                            x?.props?.className?.includes(
-                                appDetailsHeaderClasses.TopCapsule,
-                            ),
+                            x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule) ||
+                            x?.props?.className?.includes("TopCapsule")
                     );
 
-                    if (typeof topCapsule === "object" && Array.isArray(topCapsule.props?.children)) {
+                    if (typeof topCapsule === "object" && topCapsule.props) {
+                        // Ensure children is an array
+                        if (!Array.isArray(topCapsule.props.children)) {
+                            topCapsule.props.children = [topCapsule.props.children].filter(Boolean);
+                        }
+
                         // Check if ProtonDB exists - if so, place icon on the left side instead
                         const protonDBExists = hasProtonDBBadge();
 
-                        // Create a small icon component for the header (like ProtonDB does)
+                        // Create a small icon component for the header
                         const headerIcon = (
                             <div
                                 key="ukr-badge-header-icon"
                                 style={{
-                                    position: "absolute",
-                                    [protonDBExists ? "left" : "right"]: "20px",
-                                    top: "50%",
-                                    transform: "translateY(-50%)",
+                                    position: "relative", // Changed from absolute to flow with other header items if possible, or stay absolute if needed
+                                    marginLeft: protonDBExists ? "0" : "auto",
+                                    marginRight: protonDBExists ? "auto" : "0",
+                                    paddingRight: protonDBExists ? "10px" : "20px",
+                                    paddingLeft: protonDBExists ? "20px" : "10px",
                                     zIndex: 1000,
                                     fontSize: "24px",
                                     cursor: "pointer",
-                                    opacity: 0.8,
+                                    opacity: 0.9,
                                     pointerEvents: "auto",
+                                    display: "flex",
+                                    alignItems: "center"
                                 }}
                                 title="Ukrainian Language Support"
                                 onClick={() => Navigation.NavigateToExternalWeb("https://kuli.com.ua/")}

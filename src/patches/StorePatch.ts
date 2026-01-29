@@ -109,14 +109,22 @@ async function injectBadgeIntoStore(appId: string) {
         }
 
         const config = BADGE_COLORS[status as keyof typeof BADGE_COLORS];
-        if (status === "NONE") return; // Don't show NONE on store to be less intrusive? Or show red?
-        // User asked for "like ProtonDB", ProtonDB shows tiers. We show status.
 
-        const label = status === "OFFICIAL" ? "Official" : "OS Community";
+        // Use localized labels (simplified: "Official", "Community", "None")
+        const lang = (navigator.language || "en").startsWith("uk") ? "uk" : "en";
+        const labels = {
+            OFFICIAL: lang === "uk" ? "Офіційна" : "Official",
+            COMMUNITY: lang === "uk" ? "Спільнота" : "Community",
+            NONE: lang === "uk" ? "Відсутня" : "None"
+        };
+
+        const label = labels[status as keyof typeof labels] || "Official";
         const icon = "🇺🇦";
 
         const { storeOffsetX, storeOffsetY } = SettingsContext.value;
 
+        // Position adjustment to avoid ProtonDB (usually center-ish or bottom-right)
+        // We default to bottom-left area for less interference
         const injectScript = `
         (function() {
           const existing = document.getElementById('ukr-store-badge');
@@ -124,8 +132,13 @@ async function injectBadgeIntoStore(appId: string) {
     
           const badge = document.createElement('div');
           badge.id = 'ukr-store-badge';
-          badge.title = 'Ukrainian Localization Status: ${status}';
-          badge.style.cssText = 'position: fixed; bottom: calc(20px + ${storeOffsetY}px); left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: "Motiva Sans", sans-serif; font-weight: bold;';
+          badge.title = 'Ukrainian Localization Status: ${label}';
+          
+          // Detect ProtonDB to avoid overlap
+          const hasProtonDB = !!document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protondb"]');
+          const finalY = hasProtonDB ? (40 + ${storeOffsetY}) : (20 + ${storeOffsetY});
+          
+          badge.style.cssText = 'position: fixed; bottom: ' + finalY + 'px; left: ' + (20 + ${storeOffsetX}) + 'px; z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
           badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${icon}</span><span style="margin-left: 8px; font-size: 14px;">${label}</span>';
           badge.onclick = function() { window.open('https://kuli.com.ua/${gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}', '_blank'); };
           document.body.appendChild(badge);
