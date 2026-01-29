@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { FaCheckCircle, FaInfoCircle, FaTimesCircle } from "react-icons/fa";
 import {
     Navigation,
     appDetailsClasses,
@@ -12,9 +13,9 @@ import { t, getSupportedLanguage } from "../translations";
 import { urlifyGameName } from "../utils";
 
 const BADGE_CONFIG = {
-    OFFICIAL: { color: "#28a745" },
-    COMMUNITY: { color: "#ffc107" },
-    NONE: { color: "#dc3545" },
+    OFFICIAL: { icon: FaCheckCircle, color: "#28a745", shadow: "rgba(40, 167, 69, 0.4)" },
+    COMMUNITY: { icon: FaInfoCircle, color: "#ffc107", shadow: "rgba(255, 193, 7, 0.4)" },
+    NONE: { icon: FaTimesCircle, color: "#dc3545", shadow: "rgba(220, 53, 69, 0.4)" },
 } as const;
 
 function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
@@ -106,6 +107,8 @@ export default function Badge({
     const label = status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang);
     const isClickable = status !== "NONE" && !!appName;
 
+    const BadgeIcon = config.icon;
+
     return (
         <div ref={ref} style={style}>
             <button
@@ -122,7 +125,7 @@ export default function Badge({
                     borderRadius: "8px",
                     fontWeight: "bold",
                     fontSize: "14px",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                    boxShadow: `0 4px 12px ${config.shadow}`,
                     cursor: isClickable ? "pointer" : "default",
                     opacity: status === "NONE" ? 0.8 : 1,
                     fontFamily: '"Motiva Sans", sans-serif',
@@ -130,6 +133,7 @@ export default function Badge({
                 }}
             >
                 <span style={{ fontSize: "20px", lineHeight: 1 }}>🇺🇦</span>
+                <BadgeIcon size={16} />
                 <span>{label}</span>
             </button>
         </div>
