@@ -13,7 +13,6 @@ import { FaFlag } from "react-icons/fa";
 import { Settings } from "./settings";
 
 import Badge from "./components/Badge";
-import HeaderBadge from "./components/HeaderBadge";
 import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
 import { initStorePatch } from "./patches/StorePatch";
@@ -67,12 +66,6 @@ function patchLibraryApp() {
 
                     if (typeof container !== "object") return ret;
 
-                    const topCapsule = findInReactTree(ret, (x: any) => x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule));
-                    if (topCapsule && !findInReactTree(topCapsule, (x: any) => x?.key === "ukr-header-badge")) {
-                        topCapsule.props.children.unshift(
-                            <HeaderBadge key="ukr-header-badge" />
-                        );
-                    }
 
                     const protonDBExists = hasProtonDBBadge();
                     if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {

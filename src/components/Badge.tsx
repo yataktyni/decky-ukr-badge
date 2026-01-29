@@ -1,6 +1,4 @@
-// decky-ukr-badge/src/components/Badge.tsx
 import React, { useEffect, useState, useRef } from "react";
-import { FaCheckCircle, FaInfoCircle, FaTimesCircle } from "react-icons/fa";
 import {
     Navigation,
     appDetailsClasses,
@@ -14,9 +12,9 @@ import { t, getSupportedLanguage } from "../translations";
 import { urlifyGameName } from "../utils";
 
 const BADGE_CONFIG = {
-    OFFICIAL: { icon: FaCheckCircle, color: "#28a745", shadow: "rgba(40, 167, 69, 0.4)" },
-    COMMUNITY: { icon: FaInfoCircle, color: "#ffc107", shadow: "rgba(255, 193, 7, 0.4)" },
-    NONE: { icon: FaTimesCircle, color: "#dc3545", shadow: "rgba(220, 53, 69, 0.4)" },
+    OFFICIAL: { color: "#28a745" },
+    COMMUNITY: { color: "#ffc107" },
+    NONE: { color: "#dc3545" },
 } as const;
 
 function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
@@ -85,8 +83,6 @@ export default function Badge({
     if (hLoading || sLoading || bLoading || !status || !isVisible) return null;
 
     const config = BADGE_CONFIG[status as keyof typeof BADGE_CONFIG] || BADGE_CONFIG.NONE;
-    const BadgeIcon = config.icon;
-    const displayText = settings.badgeType === "full" ? (status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang)) : "";
 
     const style: React.CSSProperties = {
         position: "absolute",
@@ -94,7 +90,7 @@ export default function Badge({
         transition: "all 0.3s ease",
     };
 
-    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "40px", right: "20px" };
+    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "60px", right: "20px" };
 
     // Adjust for ProtonDB if it exists (standard Decky practice)
     let top = parseInt(base.top);
@@ -106,6 +102,8 @@ export default function Badge({
     if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
     if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
 
+    // Match Store logic/look: Flag + Title always shown
+    const label = status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang);
     const isClickable = status !== "NONE" && !!appName;
 
     return (
@@ -117,21 +115,22 @@ export default function Badge({
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
-                    padding: "8px 16px",
+                    padding: "6px 12px",
                     backgroundColor: config.color,
                     color: status === "COMMUNITY" ? "#000" : "#fff",
                     border: "none",
-                    borderRadius: "12px",
-                    fontWeight: 800,
+                    borderRadius: "8px",
+                    fontWeight: "bold",
                     fontSize: "14px",
-                    boxShadow: `0 4px 12px ${config.shadow}`,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
                     cursor: isClickable ? "pointer" : "default",
                     opacity: status === "NONE" ? 0.8 : 1,
+                    fontFamily: '"Motiva Sans", sans-serif',
+                    transition: "all 0.3s ease",
                 }}
             >
-                <span style={{ fontSize: "1.2em" }}>🇺🇦</span>
-                <BadgeIcon size={18} />
-                {displayText && <span>{displayText}</span>}
+                <span style={{ fontSize: "20px", lineHeight: 1 }}>🇺🇦</span>
+                <span>{label}</span>
             </button>
         </div>
     );
