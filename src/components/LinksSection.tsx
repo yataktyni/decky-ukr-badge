@@ -25,7 +25,7 @@ const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string
 );
 
 export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
-    const kofiUrl = "https://ko-fi.com/yataktyni";
+    const kofiUrl = "https://ko-fi.com/yataktyni/tip";
     const usdtAddress = "TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL";
 
     const [showKofiQR, setShowKofiQR] = useState(false);

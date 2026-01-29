@@ -1,56 +1,56 @@
 {
-    "name": "decky-ukr-badge",
-    "version": "0.6.6",
-    "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
-    "type": "module",
-    "author": "yataktyni",
-    "license": "LGPL-3.0",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/yataktyni/decky-ukr-badge.git"
-    },
-    "bugs": {
-        "url": "https://github.com/yataktyni/decky-ukr-badge/issues"
-    },
-    "homepage": "https://github.com/yataktyni/decky-ukr-badge#readme",
-    "keywords": [
-        "decky",
-        "decky-plugin",
-        "steam-deck",
-        "steamdeck",
-        "localization",
-        "ukrainian",
-        "badge"
-    ],
-    "scripts": {
-        "build": "shx rm -rf dist && rollup -c",
-        "watch": "rollup -c -w",
-        "sync-version": "./scripts/update-version.sh",
-        "zip": "./scripts/update-version.sh && mkdir -p release/decky-ukr-badge && cp -r dist release/decky-ukr-badge/ && cp main.py plugin.json package.json LICENSE README.md release/decky-ukr-badge/ && cd release && zip -r ../release.zip decky-ukr-badge && cd .. && rm -rf release && echo '✅ Created release.zip'"
-    },
-    "devDependencies": {
-        "@decky/rollup": "^1.0.1",
-        "@decky/ui": "^4.7.2",
-        "@rollup/plugin-commonjs": "^28.0.3",
-        "@types/react": "18.3.3",
-        "@types/react-dom": "18.3.0",
-        "@types/webpack": "^5.28.5",
-        "rollup": "^4.22.5",
-        "shx": "^0.3.4",
-        "typescript": "^5.6.2"
-    },
-    "dependencies": {
-        "@decky/api": "^1.1.2",
-        "react-icons": "^5.3.0",
-        "rxjs": "^7.8.1",
-        "tslib": "^2.7.0"
-    },
-    "pnpm": {
-        "peerDependencyRules": {
-            "ignoreMissing": [
-                "react",
-                "react-dom"
-            ]
-        }
+  "name": "decky-ukr-badge",
+  "version": "0.7.8",
+  "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
+  "type": "module",
+  "author": "yataktyni",
+  "license": "LGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yataktyni/decky-ukr-badge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yataktyni/decky-ukr-badge/issues"
+  },
+  "homepage": "https://github.com/yataktyni/decky-ukr-badge#readme",
+  "keywords": [
+    "decky",
+    "decky-plugin",
+    "steam-deck",
+    "steamdeck",
+    "localization",
+    "ukrainian",
+    "badge"
+  ],
+  "scripts": {
+    "build": "shx rm -rf dist && rollup -c",
+    "watch": "rollup -c -w",
+    "sync-version": "./scripts/update-version.sh",
+    "zip": "./scripts/update-version.sh && mkdir -p release/decky-ukr-badge && cp -r dist release/decky-ukr-badge/ && cp main.py plugin.json package.json LICENSE README.md release/decky-ukr-badge/ && cd release && zip -r ../release.zip decky-ukr-badge && cd .. && rm -rf release && echo '✅ Created release.zip'"
+  },
+  "devDependencies": {
+    "@decky/rollup": "^1.0.1",
+    "@decky/ui": "^4.7.2",
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@types/webpack": "^5.28.5",
+    "rollup": "^4.22.5",
+    "shx": "^0.3.4",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "@decky/api": "^1.1.2",
+    "react-icons": "^5.3.0",
+    "rxjs": "^7.8.1",
+    "tslib": "^2.7.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
     }
+  }
 }
