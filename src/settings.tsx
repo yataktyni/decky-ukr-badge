@@ -146,9 +146,12 @@ export const Settings: FC = () => {
                     </ButtonItem>
                 </PanelSectionRow>
 
+            </PanelSection>
+
+            <PanelSection title="VERSION INFO">
                 <PanelSectionRow>
                     {versionInfo && (
-                        <div style={{ padding: "10px 0", marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.1)", width: "100%" }}>
+                        <div style={{ padding: "4px 0", width: "100%" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
                                 <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
                                 <span>{versionInfo.plugin_version}</span>

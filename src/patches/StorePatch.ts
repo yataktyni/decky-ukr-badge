@@ -140,7 +140,7 @@ async function injectBadgeIntoStore(appId: string) {
             // If slider is zero, use smart default (20 or 60).
             let finalY = ${storeOffsetY};
             if (finalY === 0) {
-              finalY = hasProtonDB ? 60 : 20;
+              finalY = hasProtonDB ? 80 : 20;
             }
             
             badge.style.bottom = finalY + 'px';

@@ -115,19 +115,7 @@ function patchLibraryApp() {
                     );
 
                     if (typeof topCapsule === "object" && topCapsule?.props) {
-                        // Ensure children is an array
-                        if (!Array.isArray(topCapsule.props.children)) {
-                            topCapsule.props.children = [topCapsule.props.children].filter(Boolean);
-                        }
-
-                        // Check if icon already added
-                        if (topCapsule.props.children.some((c: any) => c?.key === "ukr-badge-header-icon")) {
-                            return ret;
-                        }
-
                         const protonDBExists = hasProtonDBBadge();
-
-                        // Icon positions itself relative to others
                         const headerIcon = (
                             <div
                                 key="ukr-badge-header-icon"
@@ -141,13 +129,21 @@ function patchLibraryApp() {
                                     zIndex: 100
                                 }}
                                 title="Ukrainian Language Support"
-                                onClick={() => Navigation.NavigateToExternalWeb("https://kuli.com.ua/")}
+                                onClick={() => Navigation.NavigateToExternalWeb("https://store.steampowered.com/search/?supportedlang=ukrainian")}
                             >
                                 🇺🇦
                             </div>
                         );
 
-                        topCapsule.props.children.unshift(headerIcon);
+                        // Ensure children is an array and add icon if not already present
+                        const children = topCapsule.props.children;
+                        if (Array.isArray(children)) {
+                            if (!children.some((c: any) => c?.key === "ukr-badge-header-icon")) {
+                                children.unshift(headerIcon);
+                            }
+                        } else {
+                            topCapsule.props.children = [headerIcon, children].filter(Boolean);
+                        }
                     }
 
                     return ret;

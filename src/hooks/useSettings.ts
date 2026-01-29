@@ -27,11 +27,11 @@ export type Settings = {
 const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
     badgePosition: "top-left",
-    offsetX: 10,
-    offsetY: 10,
-    showOnStore: false,
+    offsetX: 16,
+    offsetY: 16,
+    showOnStore: true,
     storeOffsetX: 0,
-    storeOffsetY: 0,
+    storeOffsetY: 20,
 };
 
 const SettingsContext = new BehaviorSubject<Settings>(DEFAULT_SETTINGS);
@@ -123,7 +123,7 @@ export function useVersionInfo() {
     const [versionInfo, setVersionInfo] = useState<{ plugin_version: string, steamos_version: string, decky_version: string } | null>(null);
 
     useEffect(() => {
-        callBackend<any>("get_version_info").then(setVersionInfo).catch(console.error);
+        callBackend<any>("get_system_info").then(setVersionInfo).catch(console.error);
     }, []);
 
     return versionInfo;

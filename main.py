@@ -27,11 +27,11 @@ SETTINGS_FILE = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
 DEFAULT_SETTINGS: Settings = {
     "badgeType": "full",
     "badgePosition": "top-left",
-    "offsetX": 10,
-    "offsetY": 10,
+    "offsetX": 16,
+    "offsetY": 16,
     "showOnStore": False,
     "storeOffsetX": 0,
-    "storeOffsetY": 0,
+    "storeOffsetY": 20,
 }
 
 SETTINGS: Settings = DEFAULT_SETTINGS.copy()
@@ -78,8 +78,8 @@ async def set_settings(key: str, value: Any) -> bool:
         return save_settings()
     return False
 
-async def get_version_info() -> Dict[str, str]:
-    """Get version details for settings page from plugin.json."""
+async def get_system_info() -> Dict[str, str]:
+    """Get system details including plugin, OS, and Decky versions."""
     steamos_version = "Unknown"
     plugin_version = "Unknown"
     
@@ -101,11 +101,8 @@ async def get_version_info() -> Dict[str, str]:
             with open(plugin_json_path, "r") as f:
                 data = json.load(f)
                 plugin_version = data.get("version", "Unknown")
-        else:
-            plugin_version = getattr(decky, "DECKY_PLUGIN_VERSION", "Unknown")
-    except Exception as e:
-        decky.logger.error(f"Failed to read plugin.json: {e}")
-        plugin_version = getattr(decky, "DECKY_PLUGIN_VERSION", "Unknown")
+    except Exception:
+        pass
 
     return {
         "plugin_version": plugin_version,
