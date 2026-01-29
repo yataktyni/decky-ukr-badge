@@ -1,6 +1,6 @@
 {
   "name": "decky-ukr-badge",
-  "version": "0.7.11",
+  "version": "0.7.12",
   "description": "A Decky Loader plugin for Steam Deck that displays a badge indicating Ukrainian language support in games.",
   "type": "module",
   "author": "yataktyni",
