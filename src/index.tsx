@@ -1,17 +1,11 @@
 // decky-ukr-badge/src/index.tsx
-import React, { useState } from "react";
 import { definePlugin, routerHook } from "@decky/api";
 import {
     afterPatch,
     findInReactTree,
     appDetailsClasses,
-    appDetailsHeaderClasses,
     createReactTreePatcher,
-    PanelSection,
-    PanelSectionRow,
-    ToggleField,
     staticClasses,
-    Navigation,
 } from "@decky/ui";
 import { FaFlag } from "react-icons/fa";
 
