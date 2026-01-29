@@ -20,12 +20,18 @@ async function fetchWithTimeout(
 // Store app ID observable - components can subscribe to this
 export const storeAppId$ = new BehaviorSubject<string>('')
 
-// Tier colors matching the library badge (for fallback if needed)
+// Tier colors and shadows matching the library badge
 const BADGE_COLORS = {
-    OFFICIAL: { bg: '#28a745', text: '#ffffff' },
-    COMMUNITY: { bg: '#ffc107', text: '#000000' },
-    NONE: { bg: '#dc3545', text: '#ffffff' },
-    PENDING: { bg: '#666666', text: '#ffffff' }
+    OFFICIAL: { bg: '#28a745', text: '#ffffff', shadow: 'rgba(40, 167, 69, 0.4)' },
+    COMMUNITY: { bg: '#ffc107', text: '#000000', shadow: 'rgba(255, 193, 7, 0.4)' },
+    NONE: { bg: '#dc3545', text: '#ffffff', shadow: 'rgba(220, 53, 69, 0.4)' },
+    PENDING: { bg: '#666666', text: '#ffffff', shadow: 'rgba(102, 102, 102, 0.4)' }
+}
+
+const ICONS = {
+    OFFICIAL: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.248-16.379-6.248-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.248 16.379 6.248 22.628 0z"/></svg>',
+    COMMUNITY: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/></svg>',
+    NONE: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M256 8C119.033 8 8 119.033 8 256s111.033 248 248 248 248-111.033 248-248S392.967 8 256 8zm84.426 312.441c4.7 4.7 4.7 12.312 0 17.012l-10.118 10.119c-4.7 4.7-12.312 4.7-17.012 0L256 289.426l-57.296 57.297c-4.7 4.7-12.312 4.7-17.012 0l-10.118-10.119c-4.7-4.7-4.7-12.312 0-17.012L228.872 256l-57.297-57.296c-4.7-4.7-4.7-12.312 0-17.012l10.118-10.119c4.7-4.7 12.312-4.7 17.012 0L256 222.574l57.296-57.297c4.7-4.7 12.312-4.7 17.012 0l10.118 10.119c4.7 4.7 4.7 12.312 0 17.012L283.128 256l57.298 57.441z"/></svg>'
 }
 
 // Track if we're currently in the store
@@ -119,7 +125,8 @@ async function injectBadgeIntoStore(appId: string) {
         };
 
         const label = labels[status as keyof typeof labels] || labels.NONE;
-        const icon = "🇺🇦";
+        const iconSvg = ICONS[status as keyof typeof ICONS] || ICONS.NONE;
+        const flag = "🇺🇦";
 
         const { storeOffsetX, storeOffsetY } = SettingsContext.value;
 
@@ -136,8 +143,6 @@ async function injectBadgeIntoStore(appId: string) {
           function updatePosition() {
             const hasProtonDB = !!document.querySelector('[id*="protondb-store-badge"]');
             
-            // Logic: If slider is not zero, use slider directly.
-            // If slider is zero, use smart default (20 or 60).
             let finalY = ${storeOffsetY};
             if (finalY === 20 || finalY === 0) {
               finalY = hasProtonDB ? 80 : 20;
@@ -146,10 +151,8 @@ async function injectBadgeIntoStore(appId: string) {
             badge.style.bottom = finalY + 'px';
           }
 
-          // Initial position
           updatePosition();
           
-          // Monitoring loop for 2 seconds to catch late-loading ProtonDB badge
           let checks = 0;
           const posInterval = setInterval(() => {
             updatePosition();
@@ -157,8 +160,8 @@ async function injectBadgeIntoStore(appId: string) {
             if (checks > 20) clearInterval(posInterval);
           }, 100);
           
-          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
-          badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${icon}</span><span style="margin-left: 8px; font-size: 14px;">${label}</span>';
+          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
+          badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${flag}</span>${iconSvg}<span style="font-size: 14px;">${label}</span>';
           badge.onclick = function() { window.open('https://kuli.com.ua/${gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}', '_blank'); };
           document.body.appendChild(badge);
         })();

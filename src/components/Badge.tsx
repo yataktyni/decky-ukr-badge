@@ -1,3 +1,4 @@
+// decky-ukr-badge/src/components/Badge.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { FaCheckCircle, FaInfoCircle, FaTimesCircle } from "react-icons/fa";
 import {
