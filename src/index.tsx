@@ -4,6 +4,7 @@ import {
     afterPatch,
     findInReactTree,
     appDetailsClasses,
+    appDetailsHeaderClasses,
     createReactTreePatcher,
     staticClasses,
 } from "@decky/ui";
