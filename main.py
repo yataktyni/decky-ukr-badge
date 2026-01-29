@@ -30,8 +30,8 @@ DEFAULT_SETTINGS: Settings = {
     "offsetX": 16,
     "offsetY": 16,
     "showOnStore": True,
-    "storeOffsetX": 16,
-    "storeOffsetY": 16,
+    "storeOffsetX": 0,
+    "storeOffsetY": 0,
 }
 
 SETTINGS: Settings = DEFAULT_SETTINGS.copy()
