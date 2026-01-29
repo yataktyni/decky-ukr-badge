@@ -53,25 +53,33 @@ const LoadingContext = new BehaviorSubject<boolean>(true);
 /**
  * Update a single setting and persist to backend
  */
-function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
+async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const oldSettings = SettingsContext.value;
     const newSettings = { ...oldSettings, [key]: value };
+
+    // Optimistic update
     SettingsContext.next(newSettings);
 
-    // Persist to backend with timeout
+    // Persist to backend with extended timeout
     const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("Settings save timeout after 2000ms")), 2000);
+        setTimeout(() => reject(new Error("Settings save timeout after 5000ms")), 5000);
     });
 
-    Promise.race([
-        call("set_settings", key, value),
-        timeoutPromise,
-    ])
-        .catch((error) => {
-            console.error("[decky-ukr-badge] Failed to save setting:", error);
-            // Revert to previous value on save failure
+    try {
+        const result = (await Promise.race([
+            call("set_settings", key, value),
+            timeoutPromise,
+        ])) as any;
+
+        if (result === false) {
+            console.warn(`[decky-ukr-badge] Backend failed to save setting ${key}`);
             SettingsContext.next(oldSettings);
-        });
+        }
+    } catch (error) {
+        console.error("[decky-ukr-badge] Failed to save setting:", error);
+        // Revert to previous value on save failure
+        SettingsContext.next(oldSettings);
+    }
 }
 
 /**

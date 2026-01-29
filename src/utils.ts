@@ -1,5 +1,6 @@
 // decky-ukr-badge/utils.ts
 import { Router } from "@decky/ui";
+import { callBackend } from "./hooks/useSettings";
 
 /**
  * Gets the current game's App ID from Steam Deck's navigation.
@@ -52,10 +53,11 @@ export function getGameName(): string | null {
 export function urlifyGameName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
+    .replace(/[':’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
-    .trim();
+    .trim()
+    .replace(/^-+|-+$/g, "");
 }
 
 /**
@@ -66,46 +68,7 @@ export async function fetchSteamGameLanguages(
   appId: string,
 ): Promise<string[] | null> {
   try {
-    const res = await fetch(
-      `https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
-
-    if (!res.ok) {
-      console.warn(`[decky-ukr-badge] Steam API returned ${res.status}`);
-      return null;
-    }
-
-    const data = await res.json();
-    const appData = data[appId];
-
-    if (!appData?.success || !appData?.data) {
-      return null;
-    }
-
-    const htmlLangs = appData.data.supported_languages || "";
-
-    // Parse the HTML string to extract language names
-    // Steam format: "<strong>*</strong>Ukrainian<br>..." or just language names separated by <br>
-    // Languages with full audio support are marked with <strong>*</strong>
-
-    // Create a temporary element to parse HTML (safe approach)
-    const langText = htmlLangs
-      .replace(/<strong>\*<\/strong>/g, "")
-      .replace(/<br\s*\/?>/gi, ",")
-      .replace(/<[^>]*>/g, "");
-
-    const langs = langText
-      .split(",")
-      .map((lang: string) => lang.trim().toLowerCase())
-      .filter((lang: string) => lang.length > 0);
-
-    return langs.length > 0 ? langs : null;
+    return await callBackend<string[]>("get_steam_languages", appId);
   } catch (e) {
     console.error("[decky-ukr-badge] Error fetching Steam languages:", e);
     return null;
@@ -132,100 +95,14 @@ export async function fetchKuliTranslationStatus(
     return null;
   }
 
-  const urlName = urlifyGameName(gameName);
-
   try {
-    const res = await fetch(`https://kuli.com.ua/${urlName}`, {
-      method: "GET",
-      headers: {
-        Accept: "text/html",
-      },
-    });
-
-    if (!res.ok) {
-      // 404 means the game isn't on kuli.com.ua at this URL
-      if (res.status === 404) {
-        console.log(`[decky-ukr-badge] Direct URL failed for ${gameName}, trying search...`);
-        return await searchKuliForGame(gameName);
-      }
-      console.warn(`[decky-ukr-badge] Kuli returned ${res.status}`);
-      return null;
+    const status = await callBackend<string>("get_kuli_status", gameName);
+    if (status === "OFFICIAL" || status === "COMMUNITY") {
+      return status as "OFFICIAL" | "COMMUNITY";
     }
-
-    const html = await res.text();
-
-    // Check if the page exists and has translation info
-    // The presence of .item__instruction-main indicates a community translation with instructions
-    const hasInstruction = html.includes("item__instruction-main");
-
-    if (hasInstruction) {
-      // Community translation (has installation instructions)
-      return "COMMUNITY";
-    }
-
-    // If the page exists but has no instruction, it's officially supported
-    // Check if it's actually a game page (not a 404 page or error)
-    // "html-product-details-page" is the class on the html tag for product pages
-    const isGamePage =
-      html.includes("html-product-details-page") ||
-      html.includes("game-page") ||
-      html.includes("item__title");
-
-    if (isGamePage) {
-      return "OFFICIAL";
-    }
-
     return null;
   } catch (e) {
     console.error(`[decky-ukr-badge] Error fetching Kuli status for ${gameName}:`, e);
-
-    // Fallback to search if direct access failed (except for network errors which usually throw)
-    // We only want to search if we didn't get a definitive result
-    if (e) {
-      // If it was a network error, maybe don't search? But let's try search as a last resort in a separate try-catch
-    }
-    return null;
-  }
-}
-
-/**
- * Helper to search Kuli if direct URL fails
- */
-async function searchKuliForGame(gameName: string): Promise<"OFFICIAL" | "COMMUNITY" | null> {
-  try {
-    const res = await fetch(`https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`);
-    if (!res.ok) return null;
-
-    const html = await res.text();
-
-    // Simple regex to find the first product item link
-    // Looking for <div class="product-item... <a href="/something"
-    // This is a rough approximation since we don't have a DOM parser
-    const match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
-    if (!match || !match[1]) return null;
-
-    let href = match[1];
-    if (!href.startsWith("http")) {
-      href = `https://kuli.com.ua${href.startsWith("/") ? "" : "/"}${href}`;
-    }
-
-    // Fetch the found page
-    const gameRes = await fetch(href);
-    if (!gameRes.ok) return null;
-
-    const gameHtml = await gameRes.text();
-
-    if (gameHtml.includes("item__instruction-main")) {
-      return "COMMUNITY";
-    }
-
-    if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title")) {
-      return "OFFICIAL";
-    }
-
-    return null;
-  } catch (e) {
-    console.error("[decky-ukr-badge] Search fallback failed:", e);
     return null;
   }
 }

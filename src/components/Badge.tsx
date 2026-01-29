@@ -9,46 +9,30 @@ import {
 
 import { useAppId } from "../hooks/useAppId";
 import { useSettings } from "../hooks/useSettings";
-import { useDebugSettings } from "../hooks/useDebugSettings";
-import {
-    fetchSteamGameLanguages,
-    fetchKuliTranslationStatus,
-    hasUkrainianSupport,
-    urlifyGameName,
-} from "../utils";
+import { useBadgeStatus, BadgeStatus } from "../hooks/useBadgeStatus";
 import { t, getSupportedLanguage } from "../translations";
+import { urlifyGameName } from "../utils";
 
-// Badge status types
-type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
-
-// Badge configuration
-// Badge configuration
+// Badge configuration with depth & accessibility
 const BADGE_CONFIG = {
     OFFICIAL: {
         icon: FaCheckCircle,
-        text: "🇺🇦",
         color: "#28a745",
-        textColor: "#fff",
+        textColor: "#ffffff",
+        shadow: "rgba(40, 167, 69, 0.4)",
     },
     COMMUNITY: {
         icon: FaInfoCircle,
-        text: "🇺🇦",
         color: "#ffc107",
-        textColor: "#000",
+        textColor: "#000000",
+        shadow: "rgba(255, 193, 7, 0.4)",
     },
     NONE: {
         icon: FaTimesCircle,
-        text: "🇺🇦",
         color: "#dc3545",
-        textColor: "#fff",
+        textColor: "#ffffff",
+        shadow: "rgba(220, 53, 69, 0.4)",
     },
-} as const;
-
-// Position settings matching ProtonDB style
-// Adjusted to avoid overlap when ProtonDB badge exists
-const POSITION_SETTINGS_WITH_PROTONDB = {
-    "top-left": { top: "90px", left: "20px" }, // Below ProtonDB (which is usually at ~40px)
-    "top-right": { top: "100px", right: "20px" },
 } as const;
 
 const POSITION_SETTINGS = {
@@ -56,69 +40,12 @@ const POSITION_SETTINGS = {
     "top-right": { top: "40px", right: "20px" },
 } as const;
 
-const STORE_BASE_POSITION = {
-    bottom: "60px",
-    left: "50%",
-    transform: "translateX(-50%)",
+const POSITION_WITH_PROTONDB = {
+    "top-left": { top: "90px", left: "20px" },
+    "top-right": { top: "100px", right: "20px" },
 } as const;
 
-// Cache configuration
-const CACHE_KEY = "decky-ukr-badge-cache";
-const CACHE_DURATION = 86400000; // 1 day in ms
-
-interface CacheEntry {
-    timestamp: number;
-    status: BadgeStatus;
-}
-
-interface CacheData {
-    [appId: string]: CacheEntry;
-}
-
-function getCache(): CacheData {
-    try {
-        const cache = localStorage.getItem(CACHE_KEY);
-        return cache ? JSON.parse(cache) : {};
-    } catch {
-        return {};
-    }
-}
-
-function setCache(newCache: CacheData): void {
-    try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(newCache));
-    } catch (e) {
-        console.error("[decky-ukr-badge] Failed to save cache:", e);
-    }
-}
-
-/**
- * Finds the TopCapsule parent element for visibility tracking
- */
-function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
-    const children = ref?.parentElement?.children;
-    if (!children) return null;
-
-    let headerContainer: Element | undefined;
-    for (const child of children) {
-        if (child.className.includes(appDetailsClasses.Header)) {
-            headerContainer = child;
-            break;
-        }
-    }
-
-    if (!headerContainer) return null;
-
-    let topCapsule: Element | null = null;
-    for (const child of headerContainer.children) {
-        if (child.className.includes(appDetailsHeaderClasses.TopCapsule)) {
-            topCapsule = child;
-            break;
-        }
-    }
-
-    return topCapsule;
-}
+const STORE_BASE = { bottom: "60px", left: "50%", transform: "translateX(-50%)" };
 
 interface BadgeProps {
     protonDBExists?: boolean;
@@ -128,275 +55,119 @@ interface BadgeProps {
 }
 
 /**
- * Badge component that displays Ukrainian localization status
+ * Finds the TopCapsule parent element for visibility tracking
+ */
+function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
+    const parent = ref?.parentElement;
+    if (!parent) return null;
+
+    const header = Array.from(parent.children).find(c => c.className.includes(appDetailsClasses.Header));
+    if (!header) return null;
+
+    return Array.from(header.children).find(c => c.className.includes(appDetailsHeaderClasses.TopCapsule)) || null;
+}
+
+/**
+ * Premium Badge Component: Displays Ukrainian Localization Status
  */
 export default function Badge({
     protonDBExists = false,
     isStore = false,
-    appId: propAppId,
-    appName: propAppName
+    appId: pAppId,
+    appName: pAppName
 }: BadgeProps): React.ReactElement | null {
-    const { appId: hookAppId, appName: hookAppName, isLoading: hookLoading } = useAppId();
+    const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
+    const appId = pAppId || hAppId;
+    const appName = pAppName || hAppName;
 
-    const appId = propAppId || hookAppId;
-    // If we have a prop name, use it. Otherwise use hook name.
-    const appName = propAppName || hookAppName;
-    // If props are provided, we are not loading from hook (or parent handles loading)
-    const appLoading = propAppId ? false : hookLoading;
-
-    const { settings, loading: settingsLoading } = useSettings();
-    const { debugSettings } = useDebugSettings();
+    const { settings, loading: sLoading } = useSettings();
+    const { status, loading: bLoading } = useBadgeStatus(appId, appName);
     const lang = getSupportedLanguage();
 
-    const [status, setStatus] = useState<BadgeStatus | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [show, setShow] = useState(true);
-    const ref = useRef<HTMLDivElement | null>(null);
+    const [isVisible, setIsVisible] = useState(true);
+    const ref = useRef<HTMLDivElement>(null);
 
-    // Fetch badge status
+    // Visibility tracking (Standard Decky/ProtonDB pattern)
     useEffect(() => {
-        let cancelled = false;
+        const topCapsule = findTopCapsuleParent(ref.current);
+        if (!topCapsule) return undefined;
 
-        async function fetchStatus() {
-            if (!appId) {
-                setLoading(false);
-                return;
-            }
-
-            // Check Mock Mode
-            if (debugSettings.mockMode) {
-                setStatus(debugSettings.mockStatus);
-                setLoading(false);
-                return;
-            }
-
-            // Check cache first
-            const cache = getCache();
-            const cached = cache[appId];
-            if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-                setStatus(cached.status);
-                setLoading(false);
-                return;
-            }
-
-            try {
-                // Step 1: Check Steam API for official Ukrainian support
-                const steamLanguages = await fetchSteamGameLanguages(appId);
-                if (
-                    !cancelled &&
-                    steamLanguages &&
-                    hasUkrainianSupport(steamLanguages)
-                ) {
-                    setStatus("OFFICIAL");
-                    cache[appId] = {
-                        timestamp: Date.now(),
-                        status: "OFFICIAL",
-                    };
-                    setCache(cache);
-                    setLoading(false);
-                    return;
+        const observer = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.type === "attributes" && m.attributeName === "class") {
+                    const cl = (m.target as Element).className;
+                    const isFs = cl.includes("FullscreenEnter") || (cl.includes("FullscreenExit") && !cl.includes("ExitDone"));
+                    setIsVisible(!isFs);
                 }
-
-                // Step 2: Check kuli.com.ua for community translations
-                if (appName) {
-                    const kuliStatus =
-                        await fetchKuliTranslationStatus(appName);
-                    if (!cancelled && kuliStatus) {
-                        setStatus(kuliStatus);
-                        cache[appId] = {
-                            timestamp: Date.now(),
-                            status: kuliStatus,
-                        };
-                        setCache(cache);
-                        setLoading(false);
-                        return;
-                    }
-                }
-
-                // No Ukrainian support found
-                if (!cancelled) {
-                    setStatus("NONE");
-                    cache[appId] = { timestamp: Date.now(), status: "NONE" };
-                    setCache(cache);
-                }
-            } catch (e) {
-                console.error("[decky-ukr-badge] Error fetching status:", e);
-                if (!cancelled) {
-                    setStatus("NONE");
-                }
-            }
-
-            if (!cancelled) {
-                setLoading(false);
-            }
-        }
-
-        setLoading(true);
-        fetchStatus();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [appId, appName, debugSettings.mockMode, debugSettings.mockStatus]);
-
-    // Handle fullscreen visibility (like ProtonDB)
-    useEffect(() => {
-        const topCapsule = findTopCapsuleParent(ref?.current);
-        if (!topCapsule) {
-            return undefined;
-        }
-
-        const mutationObserver = new MutationObserver((entries) => {
-            for (const entry of entries) {
-                if (
-                    entry.type !== "attributes" ||
-                    entry.attributeName !== "class"
-                ) {
-                    continue;
-                }
-
-                const className = (entry.target as Element).className;
-                const fullscreenMode =
-                    className.includes(
-                        appDetailsHeaderClasses.FullscreenEnterStart,
-                    ) ||
-                    className.includes(
-                        appDetailsHeaderClasses.FullscreenEnterActive,
-                    ) ||
-                    className.includes(
-                        appDetailsHeaderClasses.FullscreenEnterDone,
-                    ) ||
-                    className.includes(
-                        appDetailsHeaderClasses.FullscreenExitStart,
-                    ) ||
-                    className.includes(
-                        appDetailsHeaderClasses.FullscreenExitActive,
-                    );
-                const fullscreenAborted = className.includes(
-                    appDetailsHeaderClasses.FullscreenExitDone,
-                );
-
-                setShow(!fullscreenMode || fullscreenAborted);
             }
         });
 
-        mutationObserver.observe(topCapsule, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
+        observer.observe(topCapsule, { attributes: true, attributeFilter: ["class"] });
+        return () => observer.disconnect();
+    }, [status]);
 
-        return () => {
-            mutationObserver.disconnect();
-        };
-    }, []);
+    if (hLoading || sLoading || bLoading || !status || !isVisible) return null;
+    if (isStore && !settings.showOnStore) return null;
 
-    // Don't render if loading or no status
-    if (appLoading || settingsLoading || loading || !status || !show) {
-        return null;
-    }
+    const config = BADGE_CONFIG[status];
+    const BadgeIcon = config.icon;
+    const posBase = protonDBExists ? POSITION_WITH_PROTONDB : POSITION_SETTINGS;
 
-    // Don't render on store if setting is disabled
-    if (isStore && !settings.showOnStore) {
-        return null;
-    }
-
-    const badge = BADGE_CONFIG[status];
-    const BadgeIcon = badge.icon;
-
-    // Adjust position if ProtonDB badge exists to avoid overlap
-    const positionSettings = protonDBExists ? POSITION_SETTINGS_WITH_PROTONDB : POSITION_SETTINGS;
-
-    let position: any = {};
-
+    // Dynamic Position Calculation
+    let style: React.CSSProperties = { position: "absolute", zIndex: 9999 };
     if (isStore) {
-        position = { ...STORE_BASE_POSITION };
-        // Apply store offsets
-        // For bottom/left base:
-        if (settings.storeOffsetY) position.bottom = `calc(${position.bottom} - ${settings.storeOffsetY}px)`;
-        if (settings.storeOffsetX) position.left = `calc(${position.left} + ${settings.storeOffsetX}px)`;
+        style = { ...style, ...STORE_BASE };
+        if (settings.storeOffsetY) style.bottom = `calc(${style.bottom} - ${settings.storeOffsetY}px)`;
+        if (settings.storeOffsetX) style.left = `calc(${style.left} + ${settings.storeOffsetX}px)`;
     } else {
-        const basePosition =
-            positionSettings[settings.badgePosition] ||
-            positionSettings["top-right"];
-
-        position = { ...basePosition };
-        if (position.top) position.top = `calc(${position.top} + ${settings.offsetY}px)`;
-        if (position.left) position.left = `calc(${position.left} + ${settings.offsetX}px)`;
-        if (position.right) position.right = `calc(${position.right} + ${settings.offsetX}px)`;
+        const base = posBase[settings.badgePosition as keyof typeof posBase] || posBase["top-right"];
+        style = { ...style, ...base };
+        if (style.top) style.top = `calc(${style.top} + ${settings.offsetY}px)`;
+        if (style.left) style.left = `calc(${style.left} + ${settings.offsetX}px)`;
+        if (style.right) style.right = `calc(${style.right} + ${settings.offsetX}px)`;
     }
 
-    let statusText = "";
-    if (settings.badgeType === "full") {
-        statusText =
-            status === "OFFICIAL" ? t("official", lang) :
-                status === "COMMUNITY" ? t("community", lang) :
-                    t("none", lang);
-    }
+    const displayText = settings.badgeType === "full" ?
+        (status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang)) : "";
 
-    // Click handler - open kuli.com.ua page
-    const handleClick = () => {
-        console.log(`[decky-ukr-badge] Clicked badge. Status: ${status}, AppName: ${appName}`);
-        if (status !== "NONE" && appName) {
-            Navigation.NavigateToExternalWeb(
-                `https://kuli.com.ua/${urlifyGameName(appName)}`,
-            );
-        }
-    };
-
-    // Tooltip text
-    const tooltipText =
-        status === "OFFICIAL"
-            ? `${t("ukrainian", lang)} (${t("official", lang)})`
-            : status === "COMMUNITY"
-                ? `${t("ukrainian", lang)} (${t("community", lang)})`
-                : `${t("ukrainian", lang)} (${t("none", lang)})`;
+    const tooltip = `${t("ukrainian", lang)} (${displayText || status.toLowerCase()})`;
 
     return (
-        <div
-            ref={ref}
-            className="decky-ukr-badge-container"
-            style={{
-                position: "absolute",
-                zIndex: 9999,
-                ...position,
-            }}
-        >
+        <div ref={ref} className="ua-badge-wrapper" style={style}>
             <button
-                className="decky-ukr-badge"
-                onClick={status !== "NONE" ? handleClick : undefined}
-                title={tooltipText}
+                aria-label={tooltip}
+                title={tooltip}
+                onClick={() => status !== "NONE" && appName && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName)}`)}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "6px",
-                    padding: "6px 12px", // Fixed padding
-                    backgroundColor: badge.color,
-                    color: badge.textColor,
+                    gap: "8px",
+                    padding: "8px 16px",
+                    backgroundColor: config.color,
+                    color: config.textColor,
                     border: "none",
-                    borderRadius: "8px",
-                    fontWeight: "bold",
+                    borderRadius: "12px",
+                    fontWeight: 800,
                     fontSize: "14px",
                     cursor: status !== "NONE" ? "pointer" : "default",
-                    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.4)",
-                    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                    boxShadow: `0 4px 12px ${config.shadow}`,
+                    transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
                     userSelect: "none",
                 }}
                 onMouseEnter={(e) => {
                     if (status !== "NONE") {
-                        e.currentTarget.style.transform = "scale(1.05)";
-                        e.currentTarget.style.boxShadow =
-                            "0 4px 12px rgba(0, 0, 0, 0.5)";
+                        e.currentTarget.style.transform = "scale(1.08) translateY(-2px)";
+                        e.currentTarget.style.boxShadow = `0 8px 20px ${config.shadow}`;
                     }
                 }}
                 onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)";
-                    e.currentTarget.style.boxShadow =
-                        "0 2px 8px rgba(0, 0, 0, 0.4)";
+                    e.currentTarget.style.transform = "scale(1) translateY(0)";
+                    e.currentTarget.style.boxShadow = `0 4px 12px ${config.shadow}`;
                 }}
             >
-                <span style={{ fontSize: "1.2em", lineHeight: "1" }}>{badge.text}</span>
-                <BadgeIcon size={16} />
-                {settings.badgeType === "full" && <span>{statusText}</span>}
+                <span style={{ fontSize: "1.4em", marginBottom: "2px" }}>🇺🇦</span>
+                <BadgeIcon size={18} />
+                {displayText && <span style={{ textTransform: "uppercase", letterSpacing: "0.5px" }}>{displayText}</span>}
             </button>
         </div>
     );

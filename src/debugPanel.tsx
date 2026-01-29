@@ -113,15 +113,10 @@ export const DebugPanel: FC = () => {
     // Generic command handler
     const executeCommand = async (
         command: string,
-        confirmMessage?: string,
     ): Promise<void> => {
-        if (confirmMessage && !confirm(confirmMessage)) {
-            return;
-        }
-
         try {
-            const result = await callBackend<CommandResult>(command);
-            if (result.message) {
+            const result = (await callBackend<CommandResult>(command)) as any;
+            if (result && result.message) {
                 // Add to local logs immediately for feedback
                 setLogs((prev) => [...prev, `[CMD] ${result.message}`]);
             }
@@ -291,24 +286,28 @@ export const DebugPanel: FC = () => {
                         )}
                     </div>
                 </PanelSectionRow>
-                <div style={{ display: "flex", gap: "10px", padding: "0 10px 10px 10px" }}>
-                    <button
-                        className="DialogButton"
-                        onClick={fetchLogs}
-                        disabled={loading}
-                        style={{ flex: 1, minWidth: "0" }}
-                    >
-                        🔄 Refresh
-                    </button>
-                    <button
-                        className="DialogButton"
-                        onClick={handleClearLogs}
-                        disabled={loading}
-                        style={{ flex: 1, minWidth: "0" }}
-                    >
-                        🗑️ Clear
-                    </button>
-                </div>
+                <PanelSectionRow>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                        <div style={{ flex: 1 }}>
+                            <ButtonItem
+                                layout="below"
+                                onClick={fetchLogs}
+                                disabled={loading}
+                            >
+                                🔄 Refresh
+                            </ButtonItem>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <ButtonItem
+                                layout="below"
+                                onClick={handleClearLogs}
+                                disabled={loading}
+                            >
+                                🗑️ Clear
+                            </ButtonItem>
+                        </div>
+                    </div>
+                </PanelSectionRow>
             </PanelSection>
 
             {/* Network & System */}
@@ -363,29 +362,27 @@ export const DebugPanel: FC = () => {
                     </ButtonItem>
                 </PanelSectionRow>
 
-                <div style={{
-                    marginTop: "10px",
-                    padding: "10px",
-                    borderTop: "1px solid rgba(255,255,255,0.1)"
-                }}>
-                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px" }}>Dangerous Zone</div>
+                <PanelSectionRow>
+                    <div style={{ fontSize: "12px", color: "#888", marginBottom: "8px", marginTop: "12px" }}>⚠️ Dangerous Zone</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        <button
-                            className="DialogButton"
-                            style={{ flex: 1, minWidth: "120px", fontSize: "12px" }}
-                            onClick={() => executeCommand("restart_steam", "Restart Steam?")}
-                        >
-                            Restart Steam
-                        </button>
-                        <button
-                            className="DialogButton"
-                            style={{ flex: 1, minWidth: "120px", fontSize: "12px" }}
-                            onClick={() => executeCommand("restart_deck", "Restart Deck?")}
-                        >
-                            Reboot Deck
-                        </button>
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                            <ButtonItem
+                                layout="below"
+                                onClick={() => executeCommand("restart_steam")}
+                            >
+                                Restart Steam
+                            </ButtonItem>
+                        </div>
+                        <div style={{ flex: 1, minWidth: "120px" }}>
+                            <ButtonItem
+                                layout="below"
+                                onClick={() => executeCommand("restart_deck")}
+                            >
+                                Reboot Deck
+                            </ButtonItem>
+                        </div>
                     </div>
-                </div>
+                </PanelSectionRow>
             </PanelSection>
         </>
     );
