@@ -31,7 +31,7 @@ DEFAULT_SETTINGS: Settings = {
     "offsetY": 16,
     "showOnStore": True,
     "storeOffsetX": 0,
-    "storeOffsetY": 0,
+    "storeOffsetY": 20,
 }
 
 SETTINGS: Settings = DEFAULT_SETTINGS.copy()
