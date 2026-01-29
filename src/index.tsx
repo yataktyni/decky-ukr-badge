@@ -36,14 +36,15 @@ function hasProtonDBBadge(): boolean {
 
 /**
  * Patches the library app page to inject the Ukrainian badge.
- * Based on ProtonDB Badges implementation, with compatibility for ProtonDB badge.
+ * Restored implementation from commit 01983b2293ba09c3a7a9cfc10a477e5507b61a7a
  */
 function patchLibraryApp() {
-    const libraryPatch = routerHook.addPatch("/library/app/:appid", (tree: any) => {
+    return routerHook.addPatch("/library/app/:appid", (tree: any) => {
         const routeProps = findInReactTree(tree, (x: any) => x?.renderFunc);
 
         if (routeProps) {
-            const patchHandler = createReactTreePatcher(
+            // Patch 1: Add Badge component to InnerContainer
+            const patchHandlerInner = createReactTreePatcher(
                 [
                     (tree: any) =>
                         findInReactTree(
@@ -51,84 +52,109 @@ function patchLibraryApp() {
                             (x: any) => x?.props?.children?.props?.overview,
                         )?.props?.children,
                 ],
-                (_, ret) => {
-                    try {
-                        // Find the overview object which contains appid and display_name
-                        const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
-                        const appId = overview?.appid ? String(overview.appid) : undefined;
-                        const appName = overview?.display_name || "";
+                (
+                    _: Array<Record<string, unknown>>,
+                    ret?: React.ReactElement,
+                ) => {
+                    const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
+                    const appId = overview?.appid ? String(overview.appid) : undefined;
+                    const appName = overview?.display_name || "";
 
-                        // Injection 1: InnerContainer (for the small badge)
-                        const container = findInReactTree(
-                            ret,
-                            (x: React.ReactElement) =>
-                                Array.isArray(x?.props?.children) &&
-                                x?.props?.className?.includes(
-                                    appDetailsClasses.InnerContainer,
-                                ),
-                        );
+                    const container = findInReactTree(
+                        ret,
+                        (x: React.ReactElement) =>
+                            Array.isArray(x?.props?.children) &&
+                            x?.props?.className?.includes(
+                                appDetailsClasses.InnerContainer,
+                            ),
+                    );
 
-                        if (container) {
-                            const protonDBExists = hasProtonDBBadge();
-                            if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
-                                container.props.children.splice(
-                                    1,
-                                    0,
-                                    <Badge
-                                        key="ukr-badge"
-                                        protonDBExists={protonDBExists}
-                                        pAppId={appId}
-                                        pAppName={appName}
-                                    />,
-                                );
-                            }
-                        }
-
-                        // Injection 2: TopCapsule (The main banner area)
-                        const topCapsule = findInReactTree(
-                            ret,
-                            (x: any) =>
-                                x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule),
-                        );
-
-                        if (topCapsule && Array.isArray(topCapsule.props.children)) {
-                            if (!findInReactTree(topCapsule, (x: any) => x?.key === "ukr-badge-banner")) {
-                                // Add a simplified banner indicator
-                                topCapsule.props.children.unshift(
-                                    <div
-                                        key="ukr-badge-banner"
-                                        style={{
-                                            position: "absolute",
-                                            right: "20px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            zIndex: 1000,
-                                            fontSize: "24px",
-                                            pointerEvents: "auto",
-                                        }}
-                                        title="Ukrainian Language Support"
-                                    >
-                                        🇺🇦
-                                    </div>
-                                );
-                            }
-                        }
-                    } catch (e) {
-                        console.error("[decky-ua-localization-badge] Patch error:", e);
+                    if (typeof container !== "object" || !container) {
+                        return ret;
                     }
+
+                    const protonDBExists = hasProtonDBBadge();
+
+                    if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
+                        container.props.children.splice(
+                            1,
+                            0,
+                            <Badge
+                                key="ukr-badge"
+                                protonDBExists={protonDBExists}
+                                pAppId={appId}
+                                pAppName={appName}
+                            />,
+                        );
+                    }
+
                     return ret;
                 },
             );
 
-            afterPatch(routeProps, "renderFunc", patchHandler);
+            // Patch 2: Add icon to TopCapsule header
+            const patchHandlerHeader = createReactTreePatcher(
+                [
+                    (tree: any) =>
+                        findInReactTree(
+                            tree,
+                            (x: any) => x?.props?.children?.props?.overview,
+                        )?.props?.children,
+                ],
+                (
+                    _: Array<Record<string, unknown>>,
+                    ret?: React.ReactElement,
+                ) => {
+                    const topCapsule = findInReactTree(
+                        ret,
+                        (x: React.ReactElement) =>
+                            Array.isArray(x?.props?.children) &&
+                            x?.props?.className?.includes(
+                                appDetailsHeaderClasses.TopCapsule,
+                            ),
+                    );
+
+                    if (typeof topCapsule !== "object" || !topCapsule) {
+                        return ret;
+                    }
+
+                    if (!findInReactTree(topCapsule, (x: any) => x?.key === "ukr-badge-header")) {
+                        const protonDBExists = hasProtonDBBadge();
+
+                        const headerIcon = (
+                            <div
+                                key="ukr-badge-header"
+                                style={{
+                                    position: "absolute",
+                                    [protonDBExists ? "left" : "right"]: "20px",
+                                    top: "50%",
+                                    transform: "translateY(-50%)",
+                                    zIndex: 1000,
+                                    fontSize: "24px",
+                                    cursor: "pointer",
+                                    opacity: 0.8,
+                                    pointerEvents: "auto",
+                                }}
+                                title="Ukrainian Language Support"
+                            >
+                                🇺🇦
+                            </div>
+                        );
+
+                        topCapsule.props.children.unshift(headerIcon);
+                    }
+
+                    return ret;
+                },
+            );
+
+            afterPatch(routeProps, "renderFunc", patchHandlerInner);
+            afterPatch(routeProps, "renderFunc", patchHandlerHeader);
         }
 
         return tree;
     });
-    return libraryPatch;
 }
-
-
 
 /**
  * Settings Panel Component for the Quick Access Menu
@@ -151,7 +177,7 @@ export default definePlugin(() => {
     // Initialize store patch (WebSocket injection)
     const stopStorePatch = initStorePatch();
 
-    // Register store overlay placeholder (required for global component but does nothing visually)
+    // Register store overlay placeholder
     routerHook.addGlobalComponent("UKRStoreOverlay", StoreOverlay);
 
     return {

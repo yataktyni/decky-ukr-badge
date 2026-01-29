@@ -55,22 +55,22 @@ export const Settings: FC = () => {
 
     const lang = getSupportedLanguage();
 
-    const handleResetSettings = () => {
-        // Clear all pending debounced updates before resetting
+    const handleResetSettings = async () => {
+        // Clear all pending debounced updates
         Object.values(timeouts).forEach(t => {
             if (t) clearTimeout(t);
         });
         setTimeouts({});
 
-        // Force immediate UI update to defaults
+        // Reset to exact hardcoded defaults immediately for UI snappiness
         setOffsets({
-            x: DEFAULT_SETTINGS.offsetX,
-            y: DEFAULT_SETTINGS.offsetY,
-            sx: DEFAULT_SETTINGS.storeOffsetX,
-            sy: DEFAULT_SETTINGS.storeOffsetY,
+            x: 16,
+            y: 16,
+            sx: 0,
+            sy: 20,
         });
 
-        resetSettings();
+        await resetSettings();
     };
 
     const openUrl = (url: string) => {
@@ -144,40 +144,7 @@ export const Settings: FC = () => {
                 )}
             </PanelSection>
 
-            {!loading && (
-                <>
-                    <LinksSection lang={lang} openUrl={openUrl} />
-
-                    <PanelSection title="VERSION INFO">
-                        <PanelSectionRow>
-                            {versionInfo ? (
-                                <div style={{ padding: "4px 0", width: "100%" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                                        <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
-                                        <span>{versionInfo.plugin_version}</span>
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                                        <span style={{ fontWeight: "bold" }}>{t("steamos_version", lang)}</span>
-                                        <span>{versionInfo.steamos_version}</span>
-                                    </div>
-                                    <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                                        <span style={{ fontWeight: "bold" }}>{t("decky_version", lang)}</span>
-                                        <span>{versionInfo.decky_version}</span>
-                                    </div>
-                                </div>
-                            ) : versionError ? (
-                                <div style={{ padding: "10px", textAlign: "center", color: "#ff5e5b" }}>
-                                    Error loading system info
-                                </div>
-                            ) : (
-                                <div style={{ padding: "10px", textAlign: "center", color: "#888" }}>
-                                    Loading system info...
-                                </div>
-                            )}
-                        </PanelSectionRow>
-                    </PanelSection>
-                </>
-            )}
+            {!loading && <LinksSection lang={lang} openUrl={openUrl} />}
         </div>
     );
 };
