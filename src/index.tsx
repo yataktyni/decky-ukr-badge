@@ -53,10 +53,12 @@ function patchLibraryApp() {
                 ],
                 (_, ret) => {
                     try {
+                        // Find the overview object which contains appid and display_name
                         const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
                         const appId = overview?.appid ? String(overview.appid) : undefined;
                         const appName = overview?.display_name || "";
 
+                        // Injection 1: InnerContainer (for the small badge)
                         const container = findInReactTree(
                             ret,
                             (x: React.ReactElement) =>
@@ -78,6 +80,36 @@ function patchLibraryApp() {
                                         pAppId={appId}
                                         pAppName={appName}
                                     />,
+                                );
+                            }
+                        }
+
+                        // Injection 2: TopCapsule (The main banner area)
+                        const topCapsule = findInReactTree(
+                            ret,
+                            (x: any) =>
+                                x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule),
+                        );
+
+                        if (topCapsule && Array.isArray(topCapsule.props.children)) {
+                            if (!findInReactTree(topCapsule, (x: any) => x?.key === "ukr-badge-banner")) {
+                                // Add a simplified banner indicator
+                                topCapsule.props.children.unshift(
+                                    <div
+                                        key="ukr-badge-banner"
+                                        style={{
+                                            position: "absolute",
+                                            right: "20px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            zIndex: 1000,
+                                            fontSize: "24px",
+                                            pointerEvents: "auto",
+                                        }}
+                                        title="Ukrainian Language Support"
+                                    >
+                                        🇺🇦
+                                    </div>
                                 );
                             }
                         }

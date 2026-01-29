@@ -10,7 +10,7 @@ import {
     Navigation,
 } from "@decky/ui";
 import { t, getSupportedLanguage } from "./translations";
-import { useSettings, useVersionInfo } from "./hooks/useSettings";
+import { DEFAULT_SETTINGS, useSettings, useVersionInfo } from "./hooks/useSettings";
 import Spinner from "./components/Spinner";
 import { LinksSection } from "./components/LinksSection";
 
@@ -34,13 +34,15 @@ export const Settings: FC = () => {
 
     // Sync local state with settings only when not actively dragging/debouncing
     useEffect(() => {
-        setOffsets({
-            x: settings.offsetX,
-            y: settings.offsetY,
-            sx: settings.storeOffsetX,
-            sy: settings.storeOffsetY,
-        });
-    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY]);
+        if (Object.keys(timeouts).length === 0) {
+            setOffsets({
+                x: settings.offsetX,
+                y: settings.offsetY,
+                sx: settings.storeOffsetX,
+                sy: settings.storeOffsetY,
+            });
+        }
+    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY, timeouts]);
 
     // Cleanup timeouts on unmount
     useEffect(() => {
@@ -49,7 +51,7 @@ export const Settings: FC = () => {
                 if (t) clearTimeout(t);
             });
         };
-    }, [timeouts]);
+    }, []);
 
     const lang = getSupportedLanguage();
 
@@ -59,6 +61,15 @@ export const Settings: FC = () => {
             if (t) clearTimeout(t);
         });
         setTimeouts({});
+
+        // Force immediate UI update to defaults
+        setOffsets({
+            x: DEFAULT_SETTINGS.offsetX,
+            y: DEFAULT_SETTINGS.offsetY,
+            sx: DEFAULT_SETTINGS.storeOffsetX,
+            sy: DEFAULT_SETTINGS.storeOffsetY,
+        });
+
         resetSettings();
     };
 

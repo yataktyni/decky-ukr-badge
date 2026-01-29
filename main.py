@@ -84,20 +84,23 @@ async def get_system_info() -> Dict[str, str]:
     plugin_version = "Unknown"
     decky_version = "Unknown"
     
+    # Robust path resolution
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    
     # Get SteamOS version
     try:
-        if os.path.exists("/etc/os-release"):
-            with open("/etc/os-release", "r") as f:
+        os_release_path = "/etc/os-release"
+        if os.path.exists(os_release_path):
+            with open(os_release_path, "r") as f:
                 for line in f:
                     if line.startswith("VERSION_ID="):
                         steamos_version = line.split("=")[1].strip().strip('"')
                         break
     except Exception as e:
-        decky.logger.error(f"UA Badge: SteamOS version error: {e}")
+        decky.logger.error(f"UA Badge: OS-release error: {e}")
 
     # Get Plugin version from plugin.json
     try:
-        current_dir = os.path.dirname(os.path.realpath(__file__))
         plugin_json_path = os.path.join(current_dir, "plugin.json")
         if os.path.exists(plugin_json_path):
             with open(plugin_json_path, "r") as f:
@@ -106,8 +109,9 @@ async def get_system_info() -> Dict[str, str]:
     except Exception as e:
         decky.logger.error(f"UA Badge: Plugin version error: {e}")
 
-    # Get Decky version
+    # Get Decky version (Standard Decky Loader attribute)
     try:
+        # Check current decky module first
         decky_version = getattr(decky, "DECKY_VERSION", "Unknown")
     except:
         pass
@@ -115,9 +119,9 @@ async def get_system_info() -> Dict[str, str]:
     info = {
         "plugin_version": plugin_version,
         "steamos_version": steamos_version,
-        "decky_version": decky_version
+        "decky_version": str(decky_version)
     }
-    decky.logger.info(f"UA Badge: System info: {info}")
+    decky.logger.info(f"UA Badge: System info retrieved: {info}")
     return info
 
 async def reset_settings() -> Settings:
