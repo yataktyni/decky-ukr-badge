@@ -2,11 +2,10 @@
 
 import json
 import os
-import datetime
 import requests
 import re
 import urllib.parse
-from typing import List, Dict, Any, TypedDict, Optional, Tuple
+from typing import List, Dict, Any, TypedDict
 
 import decky
 
@@ -35,17 +34,7 @@ DEFAULT_SETTINGS: Settings = {
     "storeOffsetY": 0,
 }
 
-# In-memory state
 SETTINGS: Settings = DEFAULT_SETTINGS.copy()
-
-# ============================================
-# Core Utilities
-# ============================================
-
-def add_log(message: str, level: str = "INFO"):
-    """Log via decky logger."""
-    log_method = getattr(decky.logger, level.lower() if level != "WARN" else "warning", decky.logger.info)
-    log_method(message)
 
 # ============================================
 # Settings Management
@@ -60,7 +49,7 @@ def load_settings() -> Settings:
                 SETTINGS = {**DEFAULT_SETTINGS, **data}
                 return SETTINGS
         except Exception as e:
-            add_log(f"Settings load failed: {e}", "ERROR")
+            decky.logger.error(f"Settings load failed: {e}")
     return SETTINGS
 
 def save_settings() -> bool:
@@ -70,12 +59,24 @@ def save_settings() -> bool:
             json.dump(SETTINGS, f, indent=2)
         return True
     except Exception as e:
-        add_log(f"Settings save failed: {e}", "ERROR")
+        decky.logger.error(f"Settings save failed: {e}")
         return False
 
 # ============================================
-# External Data Services
+# Backend Methods (Top-level for Decky)
 # ============================================
+
+async def get_settings() -> Settings:
+    decky.logger.info("UA Badge: get_settings called")
+    return load_settings()
+
+async def set_settings(key: str, value: Any) -> bool:
+    global SETTINGS
+    decky.logger.info(f"UA Badge: set_settings {key}={value}")
+    if key in DEFAULT_SETTINGS:
+        SETTINGS[key] = value # type: ignore
+        return save_settings()
+    return False
 
 async def get_steam_languages(app_id: str) -> List[str]:
     """Fetch official language support via Steam API (using requests)."""
@@ -97,7 +98,7 @@ async def get_steam_languages(app_id: str) -> List[str]:
         
         return [l.strip().lower() for l in clean.split(",") if l.strip()]
     except Exception as e:
-        add_log(f"Steam API error: {e}", "ERROR")
+        decky.logger.error(f"Steam API error: {e}")
         return []
 
 async def get_kuli_status(game_name: str) -> str:
@@ -122,7 +123,7 @@ async def get_kuli_status(game_name: str) -> str:
         if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
             return "OFFICIAL"
     except Exception as e:
-        add_log(f"Kuli error: {e}", "ERROR")
+        decky.logger.error(f"Kuli error: {e}")
     return "NONE"
 
 async def search_kuli(game_name: str) -> str:
@@ -147,34 +148,17 @@ async def search_kuli(game_name: str) -> str:
                 return "COMMUNITY"
             if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
                 return "OFFICIAL"
-    except Exception as e:
-        add_log(f"Kuli search error: {e}", "ERROR")
-    return "NONE"
+        except Exception as e:
+            decky.logger.error(f"Kuli search error: {e}")
+        return "NONE"
 
-# ============================================
-# API Implementation
-# ============================================
-
-async def get_settings() -> Settings:
-    return load_settings()
-
-async def set_settings(key: str, value: Any) -> bool:
-    global SETTINGS
-    if key in DEFAULT_SETTINGS:
-        SETTINGS[key] = value # type: ignore
-        return save_settings()
-    return False
-
-# ============================================
 # Lifecycle
-# ============================================
-
 async def _main():
-    add_log("UA Badge Backend Initialized", "INFO")
+    decky.logger.info("UA Badge: _main called")
     load_settings()
 
 async def _unload():
-    add_log("UA Badge Backend Unloaded", "INFO")
+    decky.logger.info("UA Badge: _unload called")
 
-# Init
+# Initialize settings immediately
 load_settings()

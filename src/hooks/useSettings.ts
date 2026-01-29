@@ -3,16 +3,13 @@ import { call } from "@decky/api";
 import { useEffect, useState } from "react";
 import { BehaviorSubject } from "rxjs";
 
-// Helper function to call backend
-export async function callBackend<T>(
-    method: string,
-    ...args: unknown[]
-): Promise<T> {
+export async function callBackend<T>(method: string, ...args: unknown[]): Promise<T> {
+    console.log(`[decky-ukr-badge] callBackend: ${method}`, args);
     try {
         const result = await call(method, ...args);
         return result as T;
     } catch (error) {
-        console.error(`[decky-ukr-badge] Backend call ${method} failed:`, error);
+        console.error(`[decky-ukr-badge] callBackend error: ${method}`, error);
         throw error;
     }
 }
@@ -27,7 +24,6 @@ export type Settings = {
     storeOffsetY: number;
 };
 
-// Default settings
 const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
     badgePosition: "top-left",
@@ -41,39 +37,41 @@ const DEFAULT_SETTINGS: Settings = {
 const SettingsContext = new BehaviorSubject<Settings>(DEFAULT_SETTINGS);
 const LoadingContext = new BehaviorSubject<boolean>(true);
 
-/**
- * Update a single setting and persist to backend
- */
 async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const oldSettings = SettingsContext.value;
     const newSettings = { ...oldSettings, [key]: value };
-
-    // Optimistic update
     SettingsContext.next(newSettings);
 
     try {
-        await call("set_settings", key, value);
+        await Promise.race([
+            call("set_settings", key, value),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
+        ]);
     } catch (error) {
         console.error("[decky-ukr-badge] Failed to save setting:", error);
-        // We only rollback on catastrophic error to avoid "jumping"
-        // But for better UX on Steam Deck, sometimes keeping the optimistic state is preferred
     }
 }
 
-/**
- * Load settings from backend
- */
 export function loadSettings() {
+    if (!LoadingContext.value && SettingsContext.value !== DEFAULT_SETTINGS) return;
+
     LoadingContext.next(true);
-    call<[], Settings>("get_settings")
+    console.log("[decky-ukr-badge] Loading settings via call...");
+
+    Promise.race([
+        call<[], Settings>("get_settings"),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
+    ])
         .then((settings) => {
+            console.log("[decky-ukr-badge] Settings received:", settings);
             if (settings && typeof settings === "object") {
                 SettingsContext.next({ ...DEFAULT_SETTINGS, ...settings });
             } else {
                 SettingsContext.next(DEFAULT_SETTINGS);
             }
         })
-        .catch(() => {
+        .catch((error) => {
+            console.error("[decky-ukr-badge] Settings load failed, using defaults:", error);
             SettingsContext.next(DEFAULT_SETTINGS);
         })
         .finally(() => {
@@ -81,25 +79,18 @@ export function loadSettings() {
         });
 }
 
-/**
- * Hook to access and update settings
- */
 export function useSettings() {
     const [settings, setSettings] = useState(SettingsContext.value);
     const [loading, setLoading] = useState(LoadingContext.value);
 
     useEffect(() => {
-        const settingsSub = SettingsContext.asObservable().subscribe(v => setSettings(v));
-        const loadingSub = LoadingContext.asObservable().subscribe(v => setLoading(v));
-        return () => {
-            settingsSub.unsubscribe();
-            loadingSub.unsubscribe();
-        };
+        const sSub = SettingsContext.subscribe(setSettings);
+        const lSub = LoadingContext.subscribe(setLoading);
+        return () => { sSub.unsubscribe(); lSub.unsubscribe(); };
     }, []);
 
     return {
-        settings,
-        loading,
+        settings, loading,
         setBadgeType: (v: Settings["badgeType"]) => updateSetting("badgeType", v),
         setBadgePosition: (v: Settings["badgePosition"]) => updateSetting("badgePosition", v),
         setOffsetX: (v: Settings["offsetX"]) => updateSetting("offsetX", v),
