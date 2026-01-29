@@ -27,58 +27,19 @@ jobs:
               with:
                   node-version: 20
 
-            - name: Calculate and Update Version
+            - name: Get Version
               id: version
               run: |
-                  # Extract current version from package.json
-                  CURRENT_VERSION=$(jq -r .version package.json)
-                  echo "📄 Current version: $CURRENT_VERSION"
-
-                  # Split version into components
-                  IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-                  # Increment patch version with rollover at 10
-                  NEW_PATCH=$((PATCH + 1))
-                  NEW_MINOR=$MINOR
-                  NEW_MAJOR=$MAJOR
-
-                  if [ $NEW_PATCH -ge 10 ]; then
-                    NEW_PATCH=0
-                    NEW_MINOR=$((MINOR + 1))
-                  fi
-
-                  if [ $NEW_MINOR -ge 10 ]; then
-                    NEW_MINOR=0
-                    NEW_MAJOR=$((MAJOR + 1))
-                  fi
-
-                  NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
-                  
-                  echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-                  echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
-                  echo "📦 New Version: $NEW_VERSION"
-
-                  # Update package.json and plugin.json
-                  jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
-                  jq --arg v "$NEW_VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+                  VERSION=$(jq -r .version package.json)
+                  echo "version=$VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+                  echo "📦 Release Version: $VERSION"
 
             - name: Install dependencies
               run: pnpm install --no-frozen-lockfile
 
             - name: Build plugin
               run: pnpm build
-
-            - name: Commit version update
-              run: |
-                  git config --global user.name "github-actions[bot]"
-                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
-                  # Pull and rebase with autostash to avoid conflicts if main moved during build
-                  git pull origin main --rebase --autostash
-                  git add package.json plugin.json
-                  git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]" || echo "No changes to commit"
-                  git push origin main
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Create release zip
               run: |
