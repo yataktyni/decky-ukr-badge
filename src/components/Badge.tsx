@@ -11,7 +11,7 @@ import { useAppId } from "../hooks/useAppId";
 import { useSettings } from "../hooks/useSettings";
 import { useBadgeStatus } from "../hooks/useBadgeStatus";
 import { t, getSupportedLanguage } from "../translations";
-import { urlifyGameName } from "../utils";
+import { urlifyGameName, openInSteamBrowser } from "../utils";
 
 const BADGE_CONFIG = {
     OFFICIAL: { icon: FaCheckCircle, color: "#28a745", shadow: "rgba(40, 167, 69, 0.4)" },
@@ -44,28 +44,41 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
     return topCapsule;
 }
 
-export default function Badge({
-    appId: pAppId,
-    appName: pAppName,
-    protonDBExists = false
-}: { appId?: string; appName?: string; protonDBExists?: boolean }) {
+interface BadgeProps {
+    pAppId?: string;
+    pAppName?: string;
+    protonDBExists?: boolean;
+}
+
+function hasProtonDBBadge(): boolean {
+    try {
+        if (typeof window !== "undefined") {
+            const protonBadgeExists = document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protondb"]');
+            if (protonBadgeExists) return true;
+        }
+    } catch (e) { }
+    return false;
+}
+
+const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProtonDBExists }) => {
+    const { settings, loading: settingsLoading } = useSettings();
     const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
+
+    // Prioritize passed props over hook values
     const appId = pAppId || hAppId;
     const appName = pAppName || hAppName;
 
-    const { settings, loading: sLoading } = useSettings();
-    const { status, loading: bLoading } = useBadgeStatus(appId, appName);
+    const { status, loading: statusLoading } = useBadgeStatus(appId, appName);
+    const { badgeType } = settings;
     const lang = getSupportedLanguage();
 
     const [isVisible, setIsVisible] = useState(true);
+    const [protonDBExists, setProtonDBExists] = useState(pProtonDBExists || false);
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const topCapsule = findTopCapsuleParent(ref.current);
         if (!topCapsule) return undefined;
-
-        // Start visible by default
-        setIsVisible(true);
 
         const observer = new MutationObserver((mutations) => {
             for (const m of mutations) {
@@ -79,42 +92,53 @@ export default function Badge({
 
         observer.observe(topCapsule, { attributes: true, attributeFilter: ["class"] });
         return () => observer.disconnect();
-    }, [status]); // Re-run if status changes, though mainly dependent on DOM
+    }, [status]);
 
-    // Safety check for status
-    if (hLoading || sLoading || bLoading || !status || !isVisible) return null;
+    useEffect(() => {
+        const checkProtonDB = () => {
+            const exists = hasProtonDBBadge();
+            setProtonDBExists(exists);
+        };
+
+        checkProtonDB();
+        const interval = setInterval(checkProtonDB, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (hLoading || statusLoading || settingsLoading || !status || !isVisible) return null;
 
     const config = BADGE_CONFIG[status as keyof typeof BADGE_CONFIG] || BADGE_CONFIG.NONE;
+    const label = badgeType === "full" ? t(status.toLowerCase(), lang) : "";
+    const isClickable = status !== "NONE";
+    const gameName = appName ? urlifyGameName(appName) : "";
+    const clickUrl = `https://kuli.com.ua/${gameName}`;
 
     const style: React.CSSProperties = {
         position: "absolute",
-        zIndex: 999,
+        zIndex: 1000,
         transition: "all 0.3s ease",
     };
 
     const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "60px", right: "20px" };
-
-    // Adjust for ProtonDB if it exists (standard Decky practice)
     let top = parseInt(base.top);
+
     if (protonDBExists) {
-        top += 50; // Shift down to avoid overlapping ProtonDB badge
+        top += 50; // Shift down to avoid overlap
     }
 
     style.top = `calc(${top}px + ${settings.offsetY}px)`;
     if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
     if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
 
-    // Match Store logic/look: Flag + Title always shown
-    const label = status === "OFFICIAL" ? t("official", lang) : status === "COMMUNITY" ? t("community", lang) : t("none", lang);
-    const isClickable = status !== "NONE" && !!appName;
-
     const BadgeIcon = config.icon;
 
     return (
-        <div ref={ref} style={style}>
+        <div
+            ref={ref}
+            style={style}
+            onClick={() => isClickable && openInSteamBrowser(clickUrl)}
+        >
             <button
-                onClick={() => isClickable && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName!)}`)}
-                disabled={!isClickable}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -135,8 +159,10 @@ export default function Badge({
             >
                 <span style={{ fontSize: "20px", lineHeight: 1 }}>🇺🇦</span>
                 <BadgeIcon size={16} />
-                <span>{label}</span>
+                {label && <span>{label}</span>}
             </button>
         </div>
     );
-}
+};
+
+export default Badge;

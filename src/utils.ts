@@ -96,7 +96,8 @@ export async function fetchKuliTranslationStatus(
   }
 
   try {
-    const status = await callBackend<string>("get_kuli_status", gameName);
+    const response = await callBackend<{ status: string; url: string }>("get_kuli_status", gameName);
+    const status = response?.status;
     if (status === "OFFICIAL" || status === "COMMUNITY") {
       return status as "OFFICIAL" | "COMMUNITY";
     }

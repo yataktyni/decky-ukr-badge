@@ -51,31 +51,39 @@ function patchLibraryApp() {
                             (x: any) => x?.props?.children?.props?.overview,
                         )?.props?.children,
                 ],
-                (
-                    _: Array<Record<string, unknown>>,
-                    ret?: React.ReactElement,
-                ) => {
-                    const container = findInReactTree(
-                        ret,
-                        (x: React.ReactElement) =>
-                            Array.isArray(x?.props?.children) &&
-                            x?.props?.className?.includes(
-                                appDetailsClasses.InnerContainer,
-                            ),
-                    );
+                (_, ret) => {
+                    try {
+                        const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
+                        const appId = overview?.appid ? String(overview.appid) : undefined;
+                        const appName = overview?.display_name || "";
 
-                    if (typeof container !== "object") return ret;
-
-
-                    const protonDBExists = hasProtonDBBadge();
-                    if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
-                        container.props.children.splice(
-                            1,
-                            0,
-                            <Badge key="ukr-badge" protonDBExists={protonDBExists} />,
+                        const container = findInReactTree(
+                            ret,
+                            (x: React.ReactElement) =>
+                                Array.isArray(x?.props?.children) &&
+                                x?.props?.className?.includes(
+                                    appDetailsClasses.InnerContainer,
+                                ),
                         );
-                    }
 
+                        if (container) {
+                            const protonDBExists = hasProtonDBBadge();
+                            if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
+                                container.props.children.splice(
+                                    1,
+                                    0,
+                                    <Badge
+                                        key="ukr-badge"
+                                        protonDBExists={protonDBExists}
+                                        pAppId={appId}
+                                        pAppName={appName}
+                                    />,
+                                );
+                            }
+                        }
+                    } catch (e) {
+                        console.error("[decky-ua-localization-badge] Patch error:", e);
+                    }
                     return ret;
                 },
             );
