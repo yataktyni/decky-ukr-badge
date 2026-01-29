@@ -14,6 +14,8 @@ jobs:
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
             - name: Setup pnpm
               uses: pnpm/action-setup@v4
@@ -43,13 +45,9 @@ jobs:
                   echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
                   echo "📦 New Version: $NEW_VERSION"
 
-                  # Update package.json
+                  # Update package.json and plugin.json
                   jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
-                  
-                  # Update plugin.json
                   jq --arg v "$NEW_VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
-                  
-                  echo "✅ Updated version files to $NEW_VERSION"
 
             - name: Install dependencies
               run: pnpm install --no-frozen-lockfile
@@ -62,7 +60,9 @@ jobs:
                   git config --global user.name "github-actions[bot]"
                   git config --global user.email "github-actions[bot]@users.noreply.github.com"
                   git add package.json plugin.json
-                  git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+                  # Pull and rebase to avoid conflicts if main moved during build
+                  git pull origin main --rebase
+                  git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]" || echo "No changes to commit"
                   git push origin main
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
