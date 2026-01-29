@@ -44,6 +44,14 @@ export const Settings: FC = () => {
             if (!timeouts.sx && prev.sx !== settings.storeOffsetX) { next.sx = settings.storeOffsetX; changed = true; }
             if (!timeouts.sy && prev.sy !== settings.storeOffsetY) { next.sy = settings.storeOffsetY; changed = true; }
 
+            // Forced sync for resets (when loading just finished or settings changed and no timeouts exist)
+            if (Object.keys(timeouts).length === 0) {
+                if (prev.x !== settings.offsetX) { next.x = settings.offsetX; changed = true; }
+                if (prev.y !== settings.offsetY) { next.y = settings.offsetY; changed = true; }
+                if (prev.sx !== settings.storeOffsetX) { next.sx = settings.storeOffsetX; changed = true; }
+                if (prev.sy !== settings.storeOffsetY) { next.sy = settings.storeOffsetY; changed = true; }
+            }
+
             return changed ? next : prev;
         });
     }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY, timeouts]);
@@ -153,9 +161,11 @@ export const Settings: FC = () => {
 
             {!loading && (
                 <>
+                    <LinksSection lang={lang} openUrl={openUrl} />
+
                     <PanelSection title="VERSION INFO">
                         <PanelSectionRow>
-                            {versionInfo && (
+                            {versionInfo ? (
                                 <div style={{ padding: "4px 0", width: "100%" }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
                                         <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
@@ -170,11 +180,13 @@ export const Settings: FC = () => {
                                         <span>{versionInfo.decky_version}</span>
                                     </div>
                                 </div>
+                            ) : (
+                                <div style={{ padding: "10px", textAlign: "center", color: "#888" }}>
+                                    Loading system info...
+                                </div>
                             )}
                         </PanelSectionRow>
                     </PanelSection>
-
-                    <LinksSection lang={lang} openUrl={openUrl} />
                 </>
             )}
         </div>

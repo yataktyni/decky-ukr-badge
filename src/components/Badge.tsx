@@ -106,10 +106,13 @@ export default function Badge({
     if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
     if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
 
+    const isClickable = status !== "NONE" && !!appName;
+
     return (
         <div ref={ref} style={style}>
             <button
-                onClick={() => appName && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName)}`)}
+                onClick={() => isClickable && Navigation.NavigateToExternalWeb(`https://kuli.com.ua/${urlifyGameName(appName!)}`)}
+                disabled={!isClickable}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -122,7 +125,8 @@ export default function Badge({
                     fontWeight: 800,
                     fontSize: "14px",
                     boxShadow: `0 4px 12px ${config.shadow}`,
-                    cursor: "pointer",
+                    cursor: isClickable ? "pointer" : "default",
+                    opacity: status === "NONE" ? 0.8 : 1,
                 }}
             >
                 <span style={{ fontSize: "1.2em" }}>🇺🇦</span>

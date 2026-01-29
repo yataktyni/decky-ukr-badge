@@ -38,7 +38,7 @@ function hasProtonDBBadge(): boolean {
  * Based on ProtonDB Badges implementation, with compatibility for ProtonDB badge.
  */
 function patchLibraryApp() {
-    return routerHook.addPatch("/library/app/:appid", (tree: any) => {
+    const libraryPatch = routerHook.addPatch("/library/app/:appid", (tree: any) => {
         const routeProps = findInReactTree(tree, (x: any) => x?.renderFunc);
 
         if (routeProps) {
@@ -63,19 +63,23 @@ function patchLibraryApp() {
                             ),
                     );
 
-                    if (typeof container !== "object") {
-                        return ret;
+                    if (typeof container !== "object") return ret;
+
+                    const topCapsule = findInReactTree(ret, (x: any) => x?.props?.className?.includes(appDetailsHeaderClasses.TopCapsule));
+                    if (topCapsule && !findInReactTree(topCapsule, (x: any) => x?.key === "ukr-flag-header")) {
+                        topCapsule.props.children.unshift(
+                            <span key="ukr-flag-header" style={{ marginRight: "10px", fontSize: "1.2em", verticalAlign: "middle" }}>🇺🇦</span>
+                        );
                     }
 
-                    // Check if ProtonDB badge exists and adjust position
                     const protonDBExists = hasProtonDBBadge();
-
-                    // Inject the badge at position 1 (after the header)
-                    container.props.children.splice(
-                        1,
-                        0,
-                        <Badge key="ukr-badge" protonDBExists={protonDBExists} />,
-                    );
+                    if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
+                        container.props.children.splice(
+                            1,
+                            0,
+                            <Badge key="ukr-badge" protonDBExists={protonDBExists} />,
+                        );
+                    }
 
                     return ret;
                 },
@@ -86,6 +90,7 @@ function patchLibraryApp() {
 
         return tree;
     });
+    return libraryPatch;
 }
 
 

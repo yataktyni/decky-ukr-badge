@@ -91,8 +91,9 @@ async def get_system_info() -> Dict[str, str]:
                     if line.startswith("VERSION_ID="):
                         steamos_version = line.split("=")[1].strip().strip('"')
                         break
-    except Exception:
-        pass
+        decky.logger.info(f"UA Badge: SteamOS Version: {steamos_version}")
+    except Exception as e:
+        decky.logger.error(f"UA Badge: SteamOS version error: {e}")
 
     # Get Plugin version from plugin.json
     try:
@@ -101,14 +102,17 @@ async def get_system_info() -> Dict[str, str]:
             with open(plugin_json_path, "r") as f:
                 data = json.load(f)
                 plugin_version = data.get("version", "Unknown")
-    except Exception:
-        pass
+        decky.logger.info(f"UA Badge: Plugin Version: {plugin_version}")
+    except Exception as e:
+        decky.logger.error(f"UA Badge: Plugin version error: {e}")
 
-    return {
+    info = {
         "plugin_version": plugin_version,
         "steamos_version": steamos_version,
         "decky_version": getattr(decky, "DECKY_VERSION", "Unknown")
     }
+    decky.logger.info(f"UA Badge: System info: {info}")
+    return info
 
 async def reset_settings() -> Settings:
     """Reset all settings to defaults."""
