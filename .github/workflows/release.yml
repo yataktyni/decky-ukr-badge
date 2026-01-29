@@ -25,37 +25,47 @@ jobs:
               with:
                   node-version: 20
 
-            - name: Calculate version
+            - name: Calculate and Update Version
               id: version
               run: |
-                  RUN_NUMBER=${{ github.run_number }}
-                  MAJOR=$(( RUN_NUMBER / 100 ))
-                  MINOR=$(( (RUN_NUMBER % 100) / 10 ))
-                  PATCH=$(( RUN_NUMBER % 10 ))
-                  VERSION="${MAJOR}.${MINOR}.${PATCH}"
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
-                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
-                  echo "📦 Version: $VERSION"
+                  # Extract current version from package.json
+                  CURRENT_VERSION=$(jq -r .version package.json)
+                  echo "📄 Current version: $CURRENT_VERSION"
 
-            - name: Update version in build files
-              run: |
-                  VERSION="${{ steps.version.outputs.version }}"
+                  # Split version into components
+                  IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
-                  # Update package.json (for the release zip only, not committed)
-                  jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp
-                  mv package.json.tmp package.json
+                  # Increment patch version
+                  NEW_PATCH=$((PATCH + 1))
+                  NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+                  
+                  echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+                  echo "📦 New Version: $NEW_VERSION"
 
-                  # Update plugin.json (for the release zip only, not committed)
-                  jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp
-                  mv plugin.json.tmp plugin.json
-
-                  echo "✅ Updated versions to $VERSION (build only, not committed)"
+                  # Update package.json
+                  jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
+                  
+                  # Update plugin.json
+                  jq --arg v "$NEW_VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+                  
+                  echo "✅ Updated version files to $NEW_VERSION"
 
             - name: Install dependencies
               run: pnpm install --no-frozen-lockfile
 
             - name: Build plugin
               run: pnpm build
+
+            - name: Commit version update
+              run: |
+                  git config --global user.name "github-actions[bot]"
+                  git config --global user.email "github-actions[bot]@users.noreply.github.com"
+                  git add package.json plugin.json
+                  git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+                  git push origin main
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Create release zip
               run: |
