@@ -38,8 +38,14 @@ export const Settings: FC = () => {
         setOffsets({ x: settings.offsetX, y: settings.offsetY, sx: settings.storeOffsetX, sy: settings.storeOffsetY });
     }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY]);
 
-    // Cleanup timeouts on unmount
-    useEffect(() => () => Object.values(timeouts).forEach(t => t && clearTimeout(t)), [timeouts]);
+    // Cleanup timeouts on unmount and during resets
+    useEffect(() => {
+        return () => {
+            Object.values(timeouts).forEach(t => {
+                if (t) clearTimeout(t);
+            });
+        };
+    }, [timeouts]);
 
     const lang = getSupportedLanguage();
 
@@ -50,6 +56,11 @@ export const Settings: FC = () => {
     };
 
     const handleResetSettings = () => {
+        // Clear all pending debounced updates before resetting
+        Object.values(timeouts).forEach(t => {
+            if (t) clearTimeout(t);
+        });
+        setTimeouts({});
         resetSettings();
     };
 
@@ -125,22 +136,24 @@ export const Settings: FC = () => {
                     </ButtonItem>
                 </PanelSectionRow>
 
-                {versionInfo && (
-                    <div style={{ padding: "10px 0", marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                            <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
-                            <span>{versionInfo.plugin_version}</span>
+                <PanelSectionRow>
+                    {versionInfo && (
+                        <div style={{ padding: "10px 0", marginTop: "10px", borderTop: "1px solid rgba(255,255,255,0.1)", width: "100%" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                                <span style={{ fontWeight: "bold" }}>{t("plugin_version", lang)}</span>
+                                <span>{versionInfo.plugin_version}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                                <span style={{ fontWeight: "bold" }}>{t("steamos_version", lang)}</span>
+                                <span>{versionInfo.steamos_version}</span>
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
+                                <span style={{ fontWeight: "bold" }}>{t("decky_version", lang)}</span>
+                                <span>{versionInfo.decky_version}</span>
+                            </div>
                         </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                            <span style={{ fontWeight: "bold" }}>{t("steamos_version", lang)}</span>
-                            <span>{versionInfo.steamos_version}</span>
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 10px" }}>
-                            <span style={{ fontWeight: "bold" }}>{t("decky_version", lang)}</span>
-                            <span>{versionInfo.decky_version}</span>
-                        </div>
-                    </div>
-                )}
+                    )}
+                </PanelSectionRow>
             </PanelSection>
 
             <LinksSection lang={lang} openUrl={openUrl} />

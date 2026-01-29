@@ -55,10 +55,12 @@ async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K
 async function resetSettings() {
     LoadingContext.next(true);
     try {
+        console.log("[decky-ukr-badge] Resetting settings via backend...");
         const settings = await Promise.race([
             callBackend<Settings>("reset_settings"),
             new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Reset Timeout")), 3000))
         ]);
+        console.log("[decky-ukr-badge] Reset settings received:", settings);
         SettingsContext.next(settings);
     } catch (error) {
         console.error("[decky-ukr-badge] Failed to reset settings:", error);
