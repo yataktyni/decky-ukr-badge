@@ -35,7 +35,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         <PanelSection title={`🔗 ${t("links", lang)}`}>
             {/* Ko-fi Support */}
             <PanelSectionRow>
-                <div style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", width: "100%" }}>
+                <div style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", width: "100%", margin: "16px 0" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <svg height="20" width="20" viewBox="0 0 24 24" fill="#FF5E5B">
@@ -60,7 +60,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
             {/* USDT Support */}
             <PanelSectionRow>
-                <div style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", width: "100%" }}>
+                <div style={{ padding: "8px 16px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", width: "100%", margin: "16px 0" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <div style={{ background: "#26A17B", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -81,17 +81,6 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                             <div style={{ marginTop: "10px", color: "#333", fontSize: "10px", wordBreak: "break-all", textAlign: "center", fontWeight: "bold" }}>
                                 {usdtAddress}
                             </div>
-                            <button
-                                onClick={() => {
-                                    if (navigator.clipboard) {
-                                        navigator.clipboard.writeText(usdtAddress);
-                                        alert(lang === "uk" ? "Адресу скопійовано!" : "Address copied!");
-                                    }
-                                }}
-                                style={{ marginTop: "8px", background: "#26A17B", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 12px", fontSize: "12px" }}
-                            >
-                                {lang === "uk" ? "Копіювати адресу" : "Copy Address"}
-                            </button>
                         </div>
                     )}
                 </div>

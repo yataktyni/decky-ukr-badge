@@ -33,10 +33,20 @@ export const Settings: FC = () => {
     const [offsets, setOffsets] = useState({ x: 10, y: 10, sx: 0, sy: 0 });
     const [timeouts, setTimeouts] = useState<Record<string, ReturnType<typeof setTimeout> | null>>({});
 
-    // Sync local state with settings
+    // Sync local state with settings only when not actively dragging/debouncing
     useEffect(() => {
-        setOffsets({ x: settings.offsetX, y: settings.offsetY, sx: settings.storeOffsetX, sy: settings.storeOffsetY });
-    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY]);
+        setOffsets(prev => {
+            const next = { ...prev };
+            let changed = false;
+
+            if (!timeouts.x && prev.x !== settings.offsetX) { next.x = settings.offsetX; changed = true; }
+            if (!timeouts.y && prev.y !== settings.offsetY) { next.y = settings.offsetY; changed = true; }
+            if (!timeouts.sx && prev.sx !== settings.storeOffsetX) { next.sx = settings.storeOffsetX; changed = true; }
+            if (!timeouts.sy && prev.sy !== settings.storeOffsetY) { next.sy = settings.storeOffsetY; changed = true; }
+
+            return changed ? next : prev;
+        });
+    }, [settings.offsetX, settings.offsetY, settings.storeOffsetX, settings.storeOffsetY, timeouts]);
 
     // Cleanup timeouts on unmount and during resets
     useEffect(() => {
