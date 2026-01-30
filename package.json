@@ -23,7 +23,7 @@
     "badge"
   ],
   "scripts": {
-    "build": "shx rm -rf dist && rollup -c && shx rm dist/*.map",
+    "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
     "release": "bash ./scripts/release.sh"
   },
