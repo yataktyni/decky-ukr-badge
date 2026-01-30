@@ -66,7 +66,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
     return (
         <div
             ref={ref}
-            style={{ ...style, pointerEvents: "none" }}
+            style={{ ...style }}
         >
             <Focusable
                 onActivate={() => isClickable && openInSteamBrowser(clickUrl)}

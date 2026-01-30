@@ -108,24 +108,36 @@ async function injectBadgeIntoStore(appId: string) {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             };
 
-            let kuliResp = await fetchWithTimeout(fetchNoCors(`https://kuli.com.ua/${kuliSlug}`, { headers }));
+            // Helper: detect if response is a valid game page (not 404/redirect)
+            const isValidGamePage = (html: string): boolean => {
+                if (html.includes('page-not-found') ||
+                    html.includes('Сторінку не знайдено') ||
+                    html.includes('404')) {
+                    return false;
+                }
+                return html.includes('html-product-details-page') ||
+                    html.includes('product-essential') ||
+                    html.includes('item__instruction-main');
+            };
 
-            if (kuliResp.ok) {
+            let kuliResp = await fetchWithTimeout(fetchNoCors(`https://kuli.com.ua/${kuliSlug}`, { headers }));
+            const kuliHtml = await kuliResp.text();
+
+            if (isValidGamePage(kuliHtml)) {
                 confirmedOnKuli = true;
-                const kuliHtml = await kuliResp.text();
-                // Extract status regardless (will only use if Steam didn't confirm)
+                console.log(`[decky-ukr-badge] Store: Direct slug HIT for ${gameName} -> ${kuliSlug}`);
+                // Extract status
                 if (kuliHtml.includes("item__instruction-main")) kuliStatusFromHtml = "COMMUNITY";
-                else if (kuliHtml.includes("html-product-details-page")) kuliStatusFromHtml = "OFFICIAL";
-            } else if (kuliResp.status === 404) {
+                else kuliStatusFromHtml = "OFFICIAL";
+            } else {
                 // Fallback to Search
-                console.log(`[decky-ukr-badge] Store: Direct slug failed for ${gameName}, searching...`);
-                // Use imported searchKuli, assuming it's available in scope or we fixed the import?
-                // Wait, searchKuli is defined in this file. Good.
+                console.log(`[decky-ukr-badge] Store: Direct slug MISS for ${gameName}, searching...`);
                 const searchResult = await searchKuli(gameName);
                 if (searchResult) {
                     kuliStatusFromHtml = searchResult.status;
                     kuliSlug = searchResult.slug;
                     confirmedOnKuli = true;
+                    console.log(`[decky-ukr-badge] Store: Search found ${gameName} -> ${kuliSlug}`);
                 }
             }
         } catch (e) {

@@ -162,112 +162,161 @@ function levenshtein(a: string, b: string): number {
 }
 
 export async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
+  if (!gameName) return null;
   try {
     const headers = {
       "Accept": "text/html",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     };
 
-    // 1. Try DIRECT LINK first (propose from user)
+    // Helper: detect if response is a valid game page (not 404/redirect)
+    const isValidGamePage = (html: string): boolean => {
+      // Kuli 404 pages redirect to /page-not-found or contain specific error markers
+      if (html.includes('page-not-found') ||
+        html.includes('Сторінку не знайдено') ||
+        html.includes('404')) {
+        return false;
+      }
+      // Valid game pages have product details
+      return html.includes('html-product-details-page') ||
+        html.includes('product-essential') ||
+        html.includes('item__instruction-main');
+    };
+
+    // Helper: determine status from page HTML
+    const getStatusFromHtml = (html: string): string => {
+      if (html.includes("item__instruction-main")) return "COMMUNITY";
+      return "OFFICIAL";
+    };
+
+    // 1. Try DIRECT LINK first (Parity with StorePatch logic)
     const directSlug = urlifyGameName(gameName);
     const directUrl = `https://kuli.com.ua/${directSlug}`;
     console.log(`[decky-ukr-badge] Trying direct Kuli link: ${directUrl}`);
 
     try {
-      const directRes = await fetchWithTimeout(fetchNoCors(directUrl, { headers }));
-      if (directRes.status === 200) {
-        const directHtml = await directRes.text();
-        // Expand markers to include more reliable ones like html-product-details-page
-        const markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"];
-        if (markers.some(m => directHtml.includes(m))) {
-          console.log(`[decky-ukr-badge] Direct Kuli link HIT: ${directSlug}`);
-          const statusResult = directHtml.includes("item__instruction-main") ? "COMMUNITY" : "OFFICIAL";
-          return { status: statusResult, slug: directSlug };
-        }
+      const directRes = await fetchWithTimeout(fetchNoCors(directUrl, { headers }), 10000);
+      const directHtml = await directRes.text();
+
+      if (isValidGamePage(directHtml)) {
+        console.log(`[decky-ukr-badge] Direct link HIT for ${gameName} -> ${directSlug}`);
+        return { status: getStatusFromHtml(directHtml), slug: directSlug };
+      } else {
+        console.log(`[decky-ukr-badge] Direct link MISS for ${directSlug} (404 or redirect)`);
       }
     } catch (e) {
-      console.warn(`[decky-ukr-badge] Direct link check failed for ${directSlug}:`, e);
+      console.warn(`[decky-ukr-badge] Direct check failed for ${directSlug}:`, e);
     }
 
-    // 2. Fallback to SEARCH if direct fails
+    // 2. Fallback to SEARCH
+    console.log(`[decky-ukr-badge] Searching Kuli for: ${gameName}`);
     const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
-    const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }));
-    if (res.status !== 200) return null;
+    const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }), 10000);
 
     const html = await res.text();
+    const results: { slug: string; title: string; score: number }[] = [];
 
-    // Regex Strategies to capture HREF and TITLE
-    const results: { href: string; title: string; score: number }[] = [];
+    // Parse product items - Kuli uses <a href="/slug"> with nested product-title
+    // Match pattern: href="/slug" followed by product-title class with title text
+    const productItemRegex = /<a[^>]+href="\/([a-z0-9-]+)"[^>]*class="[^"]*product-item[^"]*"[^>]*>[\s\S]*?<(?:h2|div)[^>]*class="[^"]*product-title[^"]*"[^>]*>[\s\S]*?<div[^>]*class="[^"]*product-title-wrapper[^"]*"[^>]*>\s*([^<]+)/gi;
 
-    // Helper to process regex matches
-    const processMatch = (regex: RegExp) => {
-      let match;
-      while ((match = regex.exec(html)) !== null) {
-        const href = match[1];
+    let match;
+    while ((match = productItemRegex.exec(html)) !== null) {
+      const slug = match[1];
+      const title = match[2].trim();
+
+      if (!title || !slug || results.some(r => r.slug === slug)) continue;
+
+      const gLow = gameName.toLowerCase().trim();
+      const tLow = title.toLowerCase().trim();
+      const sLow = slug.toLowerCase();
+
+      // Calculate match score (lower is better)
+      let score = levenshtein(gLow, tLow);
+
+      // Exact match bonuses
+      if (tLow === gLow) score = 0;
+      else if (sLow === directSlug) score = 0; // Slug exact match
+
+      // Penalize extended names (e.g., "House Flipper 2" when searching "House Flipper")
+      // If game title STARTS with search term but has more (sequel/DLC), penalize
+      if (tLow.startsWith(gLow) && tLow.length > gLow.length) {
+        const extra = tLow.substring(gLow.length).trim();
+        // If the extra part looks like a sequel/version (number, colon, etc.)
+        if (/^[\s:0-9-]+/.test(extra)) {
+          score += 50; // Heavy penalty for sequels
+        }
+      }
+
+      // Boost if search term contains the title exactly
+      if (gLow.includes(tLow) || tLow.includes(gLow)) {
+        score = Math.min(score, 5);
+      }
+
+      results.push({ slug, title, score });
+      console.log(`[decky-ukr-badge] Search result: "${title}" (${slug}) score=${score}`);
+    }
+
+    // Fallback regex for simpler HTML structure
+    if (results.length === 0) {
+      const simpleRegex = /href="\/([a-z0-9-]+)"[^>]*>[\s\S]*?class="product-title[^"]*"[^>]*>[\s\S]*?([^<]+)</gi;
+      while ((match = simpleRegex.exec(html)) !== null) {
+        const slug = match[1];
         const title = match[2].trim();
 
-        // Check if already added
-        if (results.some(r => r.href === href)) continue;
+        if (!title || !slug || slug === 'games' || slug === '' || results.some(r => r.slug === slug)) continue;
 
-        const dist = levenshtein(gameName.toLowerCase(), title.toLowerCase());
+        const gLow = gameName.toLowerCase().trim();
+        const tLow = title.toLowerCase().trim();
 
-        let score = dist;
-        // Exact match bonus
-        if (title.toLowerCase() === gameName.toLowerCase()) {
-          score = 0;
-        } else {
-          if (!title.toLowerCase().startsWith(gameName.toLowerCase())) score += 5;
-          if (Math.abs(title.length - gameName.length) > 5) score += 2;
+        let score = levenshtein(gLow, tLow);
+        if (tLow === gLow) score = 0;
+
+        // Penalize sequels
+        if (tLow.startsWith(gLow) && tLow.length > gLow.length) {
+          score += 50;
         }
 
-        results.push({ href, title, score });
-      }
-    };
-
-    // 1. Standard list items
-    processMatch(/class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?class="(?:item__title|product-title)">([^<]+)</gs);
-
-    // 2. Fallback if strict title class failed (try to catch title in nested div)
-    processMatch(/class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?<h2 class="product-title">.*?<a[^>]*>([^<]+)</gs);
-
-    // 3. Grid items
-    processMatch(/class="item-grid[^"]*".*?href="([^"]+)".*?class="item__title">([^<]+)</gs);
-
-    // Fallback if strict parsing failed
-    if (results.length === 0) {
-      const fallbackMatch = html.match(/class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)"/s);
-      if (fallbackMatch) {
-        results.push({ href: fallbackMatch[1], title: "Unknown", score: 999 });
+        results.push({ slug, title, score });
+        console.log(`[decky-ukr-badge] Fallback result: "${title}" (${slug}) score=${score}`);
       }
     }
 
-    if (results.length === 0) return null;
+    if (results.length === 0) {
+      console.log(`[decky-ukr-badge] No search results for: ${gameName}`);
+      return null;
+    }
 
-    // Pick top result
+    // Sort by score (best first)
     results.sort((a, b) => a.score - b.score);
-    let href = results[0].href;
-    console.log(`[decky-ukr-badge] Search Best Match for "${gameName}": "${results[0].title}" (Score: ${results[0].score}) from ${results.length} candidates`);
+    console.log(`[decky-ukr-badge] Best match: "${results[0].title}" (${results[0].slug}) score=${results[0].score}`);
 
-    if (href.startsWith("/")) href = href.substring(1);
-    href = href.replace(/^https:\/\/kuli\.com\.ua\//, "");
+    // Safety check for bad matches - only reject if score is very high AND no substring match
+    if (results[0].score > 20) {
+      const gLow = gameName.toLowerCase();
+      if (!results[0].title.toLowerCase().includes(gLow) && !gLow.includes(results[0].title.toLowerCase())) {
+        console.log(`[decky-ukr-badge] Rejecting bad match: score ${results[0].score} too high`);
+        return null;
+      }
+    }
 
-    const slug = href;
-    const fullUrl = `https://kuli.com.ua/${slug}`;
+    const bestSlug = results[0].slug;
+    const fullUrl = `https://kuli.com.ua/${bestSlug}`;
 
-    // Verify page content for status
-    const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }));
-    if (gameRes.status !== 200) return null;
-
+    // Verify the selected result page
+    console.log(`[decky-ukr-badge] Verifying best match: ${fullUrl}`);
+    const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }), 8000);
     const gameHtml = await gameRes.text();
-    if (gameHtml.includes("item__instruction-main")) return { status: "COMMUNITY", slug };
 
-    const markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"];
-    if (markers.some(m => gameHtml.includes(m)))
-      return { status: "OFFICIAL", slug };
+    if (isValidGamePage(gameHtml)) {
+      console.log(`[decky-ukr-badge] Verified: ${bestSlug}`);
+      return { status: getStatusFromHtml(gameHtml), slug: bestSlug };
+    }
 
+    console.log(`[decky-ukr-badge] Verification failed for ${bestSlug}`);
     return null;
   } catch (e) {
-    console.error("[decky-ukr-badge] searchKuli failed:", e);
+    console.error(`[decky-ukr-badge] searchKuli failed for ${gameName}:`, e);
     return null;
   }
 }

@@ -209,47 +209,46 @@ async def search_kuli(game_name: str) -> Dict[str, str]:
             return {"status": "NONE", "url": ""}
         
         html = resp.text
-        # Find all product items: (href, title)
-        # Try both item__title and product-title
-        pattern = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?class="(?:item__title|product-title)">([^<]+)'
+        # Robust regex to capture links and titles even with nested tags
+        pattern = r'href="([^"]+)".*?class="(?:item__title|product-title|product-title-wrapper)"[^>]*>(?:[\s\n]*<[^>]*>)*[\s\n]*([^<]+)'
         matches = re.findall(pattern, html, re.DOTALL)
         
         if not matches:
-            # Fallback for nested product titles (like House Flipper)
-            pattern_nested = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?<h2 class="product-title">.*?<a[^>]*>([^<]+)'
-            matches = re.findall(pattern_nested, html, re.DOTALL)
-
-        if not matches:
-            # Absolute fallback for very basic grid items
-            pattern_simple = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)"'
-            match = re.search(pattern_simple, html, re.DOTALL)
-            if match:
-                 matches = [(match.group(1), "Unknown")]
+             # Absolute fallback for very basic grid items
+             pattern_simple = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)"'
+             match = re.search(pattern_simple, html, re.DOTALL)
+             if match:
+                  matches = [(match.group(1), "Unknown")]
 
         if not matches:
             return {"status": "NONE", "url": ""}
 
-        # Simple scoring: look for exact title match or best starts-with
+        # Strict scoring logic matching frontend
         best_match = None
-        min_dist = 999
+        min_score = 999
         
         gn_low = game_name.lower()
         for href, title in matches:
             t_low = title.strip().lower()
-            if t_low == gn_low:
-                best_match = href
-                break
             
-            # Use starts-with as a secondary indicator
-            if t_low.startswith(gn_low) or gn_low.startswith(t_low):
-                dist = abs(len(t_low) - len(gn_low))
-                if dist < min_dist:
-                    min_dist = dist
-                    best_match = href
-
-        # If no good heuristic match, just take the first result
-        if not best_match:
-            best_match = matches[0][0]
+            score = 999
+            if t_low == gn_low:
+                score = 0
+            elif t_low.startswith(gn_low):
+                score = 1
+            else:
+                # Basic distance heuristic for others
+                score = abs(len(t_low) - len(gn_low)) + 5
+            
+            if score < min_score:
+                min_score = score
+                best_match = href
+            
+            if min_score == 0:
+                break
+        
+        if not best_match or min_score > 15:
+            return {"status": "NONE", "url": ""}
         
         full_url = best_match if best_match.startswith("http") else urllib.parse.urljoin("https://kuli.com.ua", best_match)
         
