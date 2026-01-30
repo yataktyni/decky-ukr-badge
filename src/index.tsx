@@ -45,7 +45,6 @@ function hasProtonDBBadge(): boolean {
 
 /**
  * Patches the library app page to inject the Ukrainian badge.
- * Restored implementation from commit 01983b2293ba09c3a7a9cfc10a477e5507b61a7a
  */
 function patchLibraryApp() {
     return routerHook.addPatch("/library/app/:appid", (tree: any) => {

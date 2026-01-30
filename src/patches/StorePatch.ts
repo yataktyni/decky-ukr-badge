@@ -1,97 +1,77 @@
 // decky-ukr-badge/src/patches/StorePatch.ts
-import { fetchNoCors } from '@decky/api'
-import { findModuleExport } from '@decky/ui'
-import { BehaviorSubject } from 'rxjs'
-import { SettingsContext } from '../hooks/useSettings'
-import { urlifyGameName, searchKuli, fetchWithTimeout } from '../utils'
+import { fetchNoCors } from "@decky/api";
+import { findModuleExport } from "@decky/ui";
+import { BehaviorSubject } from "rxjs";
+import { SettingsContext } from "../hooks/useSettings";
+import { urlifyGameName, searchKuli, fetchWithTimeout } from "../utils";
+import { logger } from "../logger";
 
-
+const log = logger.component("StorePatch");
 
 // Store app ID observable - components can subscribe to this
-export const storeAppId$ = new BehaviorSubject<string>('')
+export const storeAppId$ = new BehaviorSubject<string>("");
 
 // Tier colors and shadows matching the library badge
 const BADGE_COLORS = {
-    OFFICIAL: { bg: '#28a745', text: '#ffffff', shadow: 'rgba(40, 167, 69, 0.4)' },
-    COMMUNITY: { bg: '#ffc107', text: '#000000', shadow: 'rgba(255, 193, 7, 0.4)' },
-    NONE: { bg: '#dc3545', text: '#ffffff', shadow: 'rgba(220, 53, 69, 0.4)' },
-    PENDING: { bg: '#666666', text: '#ffffff', shadow: 'rgba(102, 102, 102, 0.4)' }
-}
+    OFFICIAL: { bg: "#28a745", text: "#ffffff", shadow: "rgba(40, 167, 69, 0.4)" },
+    COMMUNITY: { bg: "#ffc107", text: "#000000", shadow: "rgba(255, 193, 7, 0.4)" },
+    NONE: { bg: "#dc3545", text: "#ffffff", shadow: "rgba(220, 53, 69, 0.4)" },
+    PENDING: { bg: "#666666", text: "#ffffff", shadow: "rgba(102, 102, 102, 0.4)" }
+};
 
 const ICONS = {
     OFFICIAL: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.248-16.379-6.248-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.248 16.379 6.248 22.628 0z"/></svg>',
     COMMUNITY: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z"/></svg>',
     NONE: '<svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" style="display:inline-block;vertical-align:middle;"><path d="M256 8C119.033 8 8 119.033 8 256s111.033 248 248 248 248-111.033 248-248S392.967 8 256 8zm84.426 312.441c4.7 4.7 4.7 12.312 0 17.012l-10.118 10.119c-4.7 4.7-12.312 4.7-17.012 0L256 289.426l-57.296 57.297c-4.7 4.7-12.312 4.7-17.012 0l-10.118-10.119c-4.7-4.7-4.7-12.312 0-17.012L228.872 256l-57.297-57.296c-4.7-4.7-4.7-12.312 0-17.012l10.118-10.119c4.7-4.7 12.312-4.7 17.012 0L256 222.574l57.296-57.297c4.7-4.7 12.312-4.7 17.012 0l10.118 10.119c4.7 4.7 4.7 12.312 0 17.012L283.128 256l57.298 57.441z"/></svg>'
-}
+};
 
 // Track if we're currently in the store
-let isStoreMounted = false
-let storeWebSocket: WebSocket | null = null
-let historyUnlisten: (() => void) | null = null
-let messageId = 1
+let isStoreMounted = false;
+let storeWebSocket: WebSocket | null = null;
+let historyUnlisten: (() => void) | null = null;
+let messageId = 1;
 
 interface Tab {
-    id: string
-    url: string
-    webSocketDebuggerUrl: string
+    id: string;
+    url: string;
+    webSocketDebuggerUrl: string;
 }
 
 // Find Steam's internal history object
-const HistoryModule = findModuleExport((exp: any) => exp?.m_history !== undefined)
-const History = HistoryModule?.m_history
+const HistoryModule = findModuleExport((exp: any) => exp?.m_history !== undefined);
+const History = HistoryModule?.m_history;
 
 // Track if WebSocket is ready for injection
-let wsReady = false
+let wsReady = false;
 
 // Inject badge into store page via WebSocket debugger
 async function injectBadgeIntoStore(appId: string) {
     // Check if store badge is enabled in settings
     if (!SettingsContext.value.showOnStore) {
-        return
+        return;
     }
 
     if (!storeWebSocket || storeWebSocket.readyState !== WebSocket.OPEN || !wsReady) {
-        return
+        return;
     }
 
-    // NOTE: We need to get the status from our own logic, but we can't easily import utils here due to context
-    // So we'll inject a script that fetches the status from Kuli directly inside the store page context
-    // OR we fetch here and inject the result.
-    // Given we are in the Decker plugin context, we can use our backend.
+    // Fetch game metadata from Steam API, check Kuli for localization status,
+    // then inject badge HTML into the store page via Chrome DevTools Protocol
+    log.info(`Injecting badge for AppID: ${appId}`);
 
-    // However, simpler approach first: Inject a script that adds the container, 
-    // and we'll handle the logic in the script or pass data.
-
-    // For now, let's use the Kuli API directly from the injected script to avoid complex bridging
-    // Or fetch here since we have fetchNoCors ?
-    // Actually, we can just use our utils if we import them? 
-    // But wait, this runs in React context, utils run in React context too.
-
-    // We need to fetch the status for THIS appId/GameName.
-    // Getting Game Name from AppID is hard without backend.
-    // Let's rely on backend call being available via decky-api in the store? No, store is isolated.
-
-    // Strategy:
-    // 1. Fetch game name/status here in Plugin context using Decky Backend.
-    // 2. Inject the resulting badge HTML into the Store Page.
-
-    // Problem: We need the Game Name for Kuli. AppID isn't enough for Kuli URL.
-    // We can fetch Steam Store API to get the name?
-
-    console.log(`[UA Badge] Injecting badge for AppID: ${appId}`);
     try {
         // 1. Get Game Name from Steam API
-        console.log(`[UA Badge] Fetching Steam API for ${appId}`);
+        log.info(`Fetching Steam API for ${appId}`);
         const steamResp = await fetchWithTimeout(fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`));
         const steamData = await steamResp.json();
 
         if (!steamData[appId]?.success) {
-            console.warn(`[UA Badge] Steam API failed for ${appId}`, steamData);
+            log.warn(`Steam API failed for ${appId}`, steamData);
             return;
         }
 
         const gameName = steamData[appId].data.name;
-        console.log(`[UA Badge] Game Name: ${gameName}`);
+        log.info(`Game Name: ${gameName}`);
         const languages = steamData[appId].data.supported_languages || "";
 
         const hasUkr = languages.toLowerCase().includes("ukrainian");
@@ -125,23 +105,23 @@ async function injectBadgeIntoStore(appId: string) {
 
             if (isValidGamePage(kuliHtml)) {
                 confirmedOnKuli = true;
-                console.log(`[decky-ukr-badge] Store: Direct slug HIT for ${gameName} -> ${kuliSlug}`);
+                log.info(`Store: Direct slug HIT for ${gameName} -> ${kuliSlug}`);
                 // Extract status
                 if (kuliHtml.includes("item__instruction-main")) kuliStatusFromHtml = "COMMUNITY";
                 else kuliStatusFromHtml = "OFFICIAL";
             } else {
                 // Fallback to Search
-                console.log(`[decky-ukr-badge] Store: Direct slug MISS for ${gameName}, searching...`);
+                log.info(`Store: Direct slug MISS for ${gameName}, searching...`);
                 const searchResult = await searchKuli(gameName);
                 if (searchResult) {
                     kuliStatusFromHtml = searchResult.status;
                     kuliSlug = searchResult.slug;
                     confirmedOnKuli = true;
-                    console.log(`[decky-ukr-badge] Store: Search found ${gameName} -> ${kuliSlug}`);
+                    log.info(`Store: Search found ${gameName} -> ${kuliSlug}`);
                 }
             }
         } catch (e) {
-            console.warn("[decky-ukr-badge] Store Patch Kuli Check Failed:", e);
+            log.warn("Store Patch Kuli Check Failed:", e);
         }
 
         // 2. Determine Final Status (Steam overrides Kuli for 'Official' status)
@@ -200,31 +180,31 @@ async function injectBadgeIntoStore(appId: string) {
             if (checks > 20) clearInterval(posInterval);
           }, 100);
           
-          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: ${isClickable ? 'pointer' : 'default'}; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
+          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: ${isClickable ? "pointer" : "default"}; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
           badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${flag}</span>${iconSvg}<span style="font-size: 14px;">${label}</span>';
           
           ${isClickable ? `
-          badge.onclick = function() { window.open('https://kuli.com.ua/${kuliSlug}', '_blank'); };
-          ` : ''}
+          badge.onclick = function() { window.open("https://kuli.com.ua/${kuliSlug}", "_blank"); };
+          ` : ""}
           document.body.appendChild(badge);
         })();
       `;
 
         storeWebSocket.send(JSON.stringify({
             id: messageId++,
-            method: 'Runtime.evaluate',
+            method: "Runtime.evaluate",
             params: { expression: injectScript }
-        }))
+        }));
 
     } catch (e) {
-        console.error("[UA Badge] Store Injection Error", e);
+        log.error("Store Injection Error", e);
     }
 }
 
 // Remove badge from store page
 function removeBadgeFromStore() {
     if (!storeWebSocket || storeWebSocket.readyState !== WebSocket.OPEN) {
-        return
+        return;
     }
 
     const removeScript = `
@@ -236,32 +216,32 @@ function removeBadgeFromStore() {
 
     storeWebSocket.send(JSON.stringify({
         id: messageId++,
-        method: 'Runtime.evaluate',
+        method: "Runtime.evaluate",
         params: { expression: removeScript }
-    }))
+    }));
 }
 
 // Extract app ID from Steam store URL - only from app pages
 function extractAppIdFromUrl(url: string): string {
     // Only match URLs that are specifically app pages
-    if (!url.includes('https://store.steampowered.com/app/')) {
-        return ''
+    if (!url.includes("https://store.steampowered.com/app/")) {
+        return "";
     }
-    const match = url.match(/\/app\/([\d]+)\/?/)
-    return match?.[1] ?? ''
+    const match = url.match(/\/app\/([\d]+)\/?/);
+    return match?.[1] ?? "";
 }
 
 // Update the app ID from URL
 function updateAppIdFromUrl(url: string) {
-    const appId = extractAppIdFromUrl(url)
+    const appId = extractAppIdFromUrl(url);
     if (storeAppId$.value !== appId) {
-        storeAppId$.next(appId)
+        storeAppId$.next(appId);
 
         // Inject or remove badge based on app ID
         if (appId) {
-            injectBadgeIntoStore(appId)
+            injectBadgeIntoStore(appId);
         } else {
-            removeBadgeFromStore()
+            removeBadgeFromStore();
         }
     }
 }
@@ -269,81 +249,81 @@ function updateAppIdFromUrl(url: string) {
 // Connect to Chrome WebSocket debugger to listen for store navigation
 async function connectToStoreDebugger(retries = 3): Promise<void> {
     if (retries <= 0 || !isStoreMounted) {
-        return
+        return;
     }
 
     try {
         // Fetch available browser tabs from debugger port
-        const response = await fetchNoCors('http://localhost:8080/json')
-        const tabs: Tab[] = await response.json()
+        const response = await fetchNoCors("http://localhost:8080/json");
+        const tabs: Tab[] = await response.json();
 
         // Find the Steam store tab
-        const storeTab = tabs.find((tab) => tab.url.includes('store.steampowered.com'))
+        const storeTab = tabs.find((tab) => tab.url.includes("store.steampowered.com"));
 
         if (!storeTab) {
             // Store tab not found, retry after delay
-            setTimeout(() => connectToStoreDebugger(retries - 1), 1000)
-            return
+            setTimeout(() => connectToStoreDebugger(retries - 1), 1000);
+            return;
         }
 
         // Initial app ID from current URL
-        updateAppIdFromUrl(storeTab.url)
+        updateAppIdFromUrl(storeTab.url);
 
         // Connect to WebSocket debugger
-        storeWebSocket = new WebSocket(storeTab.webSocketDebuggerUrl)
+        storeWebSocket = new WebSocket(storeTab.webSocketDebuggerUrl);
 
         storeWebSocket.onopen = (event) => {
-            const ws = event.target as WebSocket
+            const ws = event.target as WebSocket;
             // Enable page events to receive navigation notifications
-            ws.send(JSON.stringify({ id: messageId++, method: 'Page.enable' }))
+            ws.send(JSON.stringify({ id: messageId++, method: "Page.enable" }));
             // Enable runtime for script injection
-            ws.send(JSON.stringify({ id: messageId++, method: 'Runtime.enable' }))
+            ws.send(JSON.stringify({ id: messageId++, method: "Runtime.enable" }));
 
             // Mark WebSocket as ready after a short delay for Runtime to initialize
             setTimeout(() => {
-                wsReady = true
+                wsReady = true;
                 // Inject badge for initial URL if we have an app ID
-                const currentAppId = storeAppId$.value
+                const currentAppId = storeAppId$.value;
                 if (currentAppId) {
-                    injectBadgeIntoStore(currentAppId)
+                    injectBadgeIntoStore(currentAppId);
                 }
-            }, 300)
-        }
+            }, 300);
+        };
 
         storeWebSocket.onmessage = (event) => {
-            if (!isStoreMounted) return
+            if (!isStoreMounted) return;
 
             try {
-                const data = JSON.parse(event.data)
+                const data = JSON.parse(event.data);
                 // Listen for frame navigation events
-                if (data.method === 'Page.frameNavigated' && data.params?.frame?.url) {
+                if (data.method === "Page.frameNavigated" && data.params?.frame?.url) {
                     // Delay injection to let the page load
                     setTimeout(() => {
-                        updateAppIdFromUrl(data.params.frame.url)
-                    }, 500)
+                        updateAppIdFromUrl(data.params.frame.url);
+                    }, 500);
                 }
             } catch (e) {
                 // Silently ignore parse errors
             }
-        }
+        };
 
         storeWebSocket.onerror = () => {
             if (isStoreMounted) {
-                setTimeout(() => connectToStoreDebugger(retries - 1), 1000)
+                setTimeout(() => connectToStoreDebugger(retries - 1), 1000);
             }
-        }
+        };
 
         storeWebSocket.onclose = () => {
-            storeWebSocket = null
-            wsReady = false
+            storeWebSocket = null;
+            wsReady = false;
             // Reconnect if still mounted
             if (isStoreMounted) {
-                setTimeout(() => connectToStoreDebugger(retries), 1000)
+                setTimeout(() => connectToStoreDebugger(retries), 1000);
             }
-        }
+        };
     } catch (e) {
         if (isStoreMounted) {
-            setTimeout(() => connectToStoreDebugger(retries - 1), 1000)
+            setTimeout(() => connectToStoreDebugger(retries - 1), 1000);
         }
     }
 }
@@ -351,50 +331,50 @@ async function connectToStoreDebugger(retries = 3): Promise<void> {
 // Disconnect from WebSocket debugger
 function disconnectStoreDebugger() {
     // Remove badge before disconnecting
-    removeBadgeFromStore()
+    removeBadgeFromStore();
 
-    isStoreMounted = false
-    wsReady = false
-    storeAppId$.next('')
+    isStoreMounted = false;
+    wsReady = false;
+    storeAppId$.next("");
 
     if (storeWebSocket) {
-        storeWebSocket.close()
-        storeWebSocket = null
+        storeWebSocket.close();
+        storeWebSocket = null;
     }
 }
 
 // Handle location changes in Steam's router
 function handleLocationChange(pathname: string) {
-    if (pathname === '/steamweb') {
+    if (pathname === "/steamweb") {
         // User entered the store view
-        isStoreMounted = true
-        connectToStoreDebugger()
+        isStoreMounted = true;
+        connectToStoreDebugger();
     } else if (isStoreMounted) {
         // User left the store view
-        disconnectStoreDebugger()
+        disconnectStoreDebugger();
     }
 }
 
 // Initialize store patching
 export function initStorePatch(): () => void {
     if (!History) {
-        return () => { }
+        return () => { };
     }
 
     // Check initial location
-    handleLocationChange(History.location?.pathname || '')
+    handleLocationChange(History.location?.pathname || "");
 
     // Listen for route changes
     historyUnlisten = History.listen((info: { pathname: string }) => {
-        handleLocationChange(info.pathname)
-    })
+        handleLocationChange(info.pathname);
+    });
 
     // Return cleanup function
     return () => {
         if (historyUnlisten) {
-            historyUnlisten()
-            historyUnlisten = null
+            historyUnlisten();
+            historyUnlisten = null;
         }
-        disconnectStoreDebugger()
-    }
+        disconnectStoreDebugger();
+    };
 }

@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { useParams } from "./useParams";
 import { fetchNoCors } from "@decky/api";
 import { cleanNonSteamName } from "../utils";
+import { logger } from "../logger";
+
+const log = logger.component("useAppId");
 
 // Declare appStore for TypeScript
 declare const appStore: {
@@ -66,30 +69,27 @@ export function useAppId(): {
                 if (ignore) return;
 
                 if (!appDetails) {
-                    console.warn(
-                        "[decky-ukr-badge] Could not get app details for:",
-                        pathId
-                    );
+                    log.warn("Could not get app details for:", pathId);
                     setAppId(pathId);
 
                     // Fallback strategies for Name
-                    let resolvedName = "";
+                    // 1. Try to extract from document title
+                    let resolvedName: string | null = null;
+                    const titleMatch = document.title.match(/^(.+?)\s*(?:on Steam|·|–|-)/);
+                    if (titleMatch) {
+                        resolvedName = titleMatch[1].trim();
+                    }
 
-                    // 1. Try React Router / Navigation props (if accessible via global scope or utils)
-                    // (Skipped as we don't have easy access here without hacking internals)
-
-                    // 2. Document Title (Works well for Non-Steam shortcuts in detailed view)
-                    if (typeof document !== "undefined" && document.title) {
-                        const title = document.title;
-                        // Format is usually "Game Name" or "Game Name - Steam"
-                        const cleanTitle = title.replace(" - Steam", "").trim();
-                        if (cleanTitle && cleanTitle !== "Steam" && cleanTitle !== "Library" && cleanTitle !== "Home") {
-                            resolvedName = cleanTitle;
+                    // 2. Try to extract from meta tags
+                    if (!resolvedName) {
+                        const metaTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
+                        if (metaTitle) {
+                            resolvedName = metaTitle.replace(/\s*on Steam$/, '').trim();
                         }
                     }
 
                     if (resolvedName) {
-                        console.log(`[decky-ukr-badge] Extracted name from title for ${pathId}: ${resolvedName}`);
+                        log.info(`Extracted name from title for ${pathId}: ${resolvedName}`);
                         setAppName(resolvedName);
                     }
 
@@ -97,22 +97,18 @@ export function useAppId(): {
                     return;
                 }
 
-                const isSteamGame = Boolean(
-                    STEAM_GAME_TYPES[appDetails.app_type]
-                );
+                const appName = appDetails.display_name || "";
+                setAppId(pathId);
+                setAppName(appName);
 
-                if (isSteamGame) {
-                    setAppId(pathId);
-                    setAppName(appDetails.display_name || "");
-                } else {
-                    // Non-Steam game: try to resolve to official Steam AppID/Name
-                    const rawName = appDetails.display_name || "";
-                    setAppId(pathId);
-                    setAppName(rawName); // temporary
+                // If this is a non-Steam game (appId starts with a specific prefix or is very large),
+                // try to resolve it to a real Steam game via search
+                if (appName) {
+                    const rawName = appName;
 
                     const cleanedName = cleanNonSteamName(rawName);
                     if (cleanedName && cleanedName.length > 2) {
-                        console.log(`[decky-ukr-badge] Resolving non-Steam game: ${cleanedName}`);
+                        log.info(`Resolving non-Steam game: ${cleanedName}`);
                         try {
                             const searchRes = await fetchNoCors(
                                 `https://steamcommunity.com/actions/SearchApps/${encodeURIComponent(cleanedName)}`,
@@ -126,21 +122,18 @@ export function useAppId(): {
                                 );
 
                                 if (match) {
-                                    console.log(`[decky-ukr-badge] Resolved ${cleanedName} -> ${match.name} (AppID: ${match.appid})`);
+                                    log.info(`Resolved ${cleanedName} -> ${match.name} (AppID: ${match.appid})`);
                                     setAppId(match.appid); // Treat as this Steam game!
                                     setAppName(match.name);
                                 }
                             }
                         } catch (err) {
-                            console.warn("[decky-ukr-badge] Failed to resolve non-Steam game name:", err);
+                            log.warn("Failed to resolve non-Steam game name:", err);
                         }
                     }
                 }
             } catch (error) {
-                console.error(
-                    "[decky-ukr-badge] Error getting app details:",
-                    error
-                );
+                log.error("Error getting app details:", error);
                 setAppId(pathId);
             }
 

@@ -7,6 +7,9 @@ import {
     searchKuli,
     fetchWithTimeout,
 } from "../utils";
+import { logger } from "../logger";
+
+const log = logger.component("useBadgeStatus");
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
 
@@ -35,7 +38,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 let storeName: string | null = null;
 
                 if (!isSteamId) {
-                    console.log(`[decky-ukr-badge] Non-Steam game detected: ${currentAppName} (${appId})`);
+                    log.info(`Non-Steam game detected: ${currentAppName} (${appId})`);
                 }
 
                 // 1. Aggressive Store Metadata Check (Primary for Steam games)
@@ -54,7 +57,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                             }
                         }
                     } catch (e) {
-                        console.warn(`[decky-ukr-badge] Store metadata fetch failed for ${appId}:`, e);
+                        log.warn(`Store metadata fetch failed for ${appId}:`, e);
                     }
                 }
 
@@ -66,7 +69,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 const searchName = storeName || currentAppName;
 
                 if (!cancelled && searchName) {
-                    console.log(`[decky-ukr-badge] Resolving Kuli for: ${searchName} (AppID: ${appId})`);
+                    log.info(`Resolving Kuli for: ${searchName} (AppID: ${appId})`);
                     try {
                         const response = await searchKuli(searchName);
                         if (!cancelled && response) {
@@ -74,7 +77,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                             kuliUrl = `https://kuli.com.ua/${response.slug}`;
                         }
                     } catch (e) {
-                        console.error(`[decky-ukr-badge] Kuli resolution failed for ${searchName}:`, e);
+                        log.error(`Kuli resolution failed for ${searchName}:`, e);
                     }
                 }
 
@@ -97,7 +100,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 }
 
             } catch (e) {
-                console.error("[decky-ukr-badge] Status fetch failed:", e);
+                log.error("Status fetch failed:", e);
                 if (!cancelled) setStatus("NONE");
             } finally {
                 if (!cancelled) setLoading(false);

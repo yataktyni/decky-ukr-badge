@@ -2,14 +2,17 @@
 import { call } from "@decky/api";
 import { useEffect, useState } from "react";
 import { BehaviorSubject } from "rxjs";
+import { logger } from "../logger";
+
+const log = logger.component("useSettings");
 
 export async function callBackend<T>(method: string, ...args: unknown[]): Promise<T> {
-    console.log(`[decky-ukr-badge] callBackend: ${method}`, args);
+    log.info(`callBackend: ${method}`, args);
     try {
         const result = await call(method, ...args);
         return result as T;
     } catch (error) {
-        console.error(`[decky-ukr-badge] callBackend error: ${method}`, error);
+        log.error(`callBackend error: ${method}`, error);
         throw error;
     }
 }
@@ -48,7 +51,7 @@ async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K
             new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2000))
         ]);
     } catch (error) {
-        console.error("[decky-ukr-badge] Failed to save setting:", error);
+        log.error("Failed to save setting:", error);
     }
 }
 
@@ -56,14 +59,14 @@ export function loadSettings() {
     if (!LoadingContext.value && SettingsContext.value !== DEFAULT_SETTINGS) return;
 
     LoadingContext.next(true);
-    console.log("[decky-ukr-badge] Loading settings via call...");
+    log.info("Loading settings via call...");
 
     Promise.race([
         call<[], Settings>("get_settings"),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
     ])
         .then((settings) => {
-            console.log("[decky-ukr-badge] Settings received:", settings);
+            log.info("Settings received:", settings);
             if (settings && typeof settings === "object") {
                 SettingsContext.next({ ...DEFAULT_SETTINGS, ...settings });
             } else {
@@ -71,7 +74,7 @@ export function loadSettings() {
             }
         })
         .catch((error) => {
-            console.error("[decky-ukr-badge] Settings load failed, using defaults:", error);
+            log.error("Settings load failed, using defaults:", error);
             SettingsContext.next(DEFAULT_SETTINGS);
         })
         .finally(() => {
