@@ -1,8 +1,8 @@
 // decky-ukr-badge/src/hooks/useBadgeStatus.ts
 import { useState, useEffect } from "react";
+import { callBackend } from "./useSettings";
 import {
     fetchSteamGameLanguages,
-    fetchKuliTranslationStatus,
     hasUkrainianSupport,
 } from "../utils";
 
@@ -11,6 +11,7 @@ export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
 interface CacheEntry {
     timestamp: number;
     status: BadgeStatus;
+    url?: string;
 }
 
 interface CacheData {
@@ -42,6 +43,7 @@ function setCache(newCache: CacheData): void {
  */
 export function useBadgeStatus(appId: string | undefined, appName: string | undefined) {
     const [status, setStatus] = useState<BadgeStatus | null>(null);
+    const [url, setUrl] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -58,6 +60,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
             const cached = cache[appId];
             if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
                 setStatus(cached.status);
+                setUrl(cached.url || null);
                 setLoading(false);
                 return;
             }
@@ -68,6 +71,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 if (!cancelled && steamLanguages && hasUkrainianSupport(steamLanguages)) {
                     const result: BadgeStatus = "OFFICIAL";
                     setStatus(result);
+                    setUrl(null);
                     cache[appId] = { timestamp: Date.now(), status: result };
                     setCache(cache);
                     setLoading(false);
@@ -76,19 +80,27 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
 
                 // 2. Kuli Community Support
                 if (appName) {
-                    const kuliStatus = await fetchKuliTranslationStatus(appName);
-                    if (!cancelled && kuliStatus) {
-                        setStatus(kuliStatus);
-                        cache[appId] = { timestamp: Date.now(), status: kuliStatus };
-                        setCache(cache);
-                        setLoading(false);
-                        return;
+                    try {
+                        const response = await callBackend<{ status: string; url: string }>("get_kuli_status", appName);
+                        if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
+                            const bStatus = response.status as BadgeStatus;
+                            const bUrl = response.url;
+                            setStatus(bStatus);
+                            setUrl(bUrl);
+                            cache[appId] = { timestamp: Date.now(), status: bStatus, url: bUrl };
+                            setCache(cache);
+                            setLoading(false);
+                            return;
+                        }
+                    } catch (e) {
+                        console.error(`[decky-ukr-badge] Backend status fetch failed for ${appName}:`, e);
                     }
                 }
 
                 // 3. Fallback to NONE
                 if (!cancelled) {
                     setStatus("NONE");
+                    setUrl(null);
                     cache[appId] = { timestamp: Date.now(), status: "NONE" };
                     setCache(cache);
                 }
@@ -106,5 +118,5 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
         return () => { cancelled = true; };
     }, [appId, appName]);
 
-    return { status, loading };
+    return { status, url, loading };
 }

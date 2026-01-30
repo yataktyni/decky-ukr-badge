@@ -189,14 +189,20 @@ async def search_kuli(game_name: str) -> Dict[str, str]:
         if resp.status_code != 200:
             return {"status": "NONE", "url": ""}
         
-        # Improved regex to find product link
-        match = re.search(r'class="product-item[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
+        # Improved regex to find product link from the grid
+        # Targeting .category-page .product-grid .product-item-full equivalent links
+        match = re.search(r'class="product-item-full[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
+        if not match:
+            # Fallback to the previous regex if the specific one fails
+            match = re.search(r'class="product-item[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
+        
         if not match:
             return {"status": "NONE", "url": ""}
         
         href = match.group(1)
         full_url = href if href.startswith("http") else f"https://kuli.com.ua{'' if href.startswith('/') else '/'}{href.lstrip('/')}"
         
+        # Verify the game page exists and has the correct markers
         game_resp = requests.get(full_url, timeout=10.0)
         if game_resp.status_code == 200:
             html = game_resp.text

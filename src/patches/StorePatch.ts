@@ -162,7 +162,9 @@ async function injectBadgeIntoStore(appId: string) {
           
           badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
           badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${flag}</span>${iconSvg}<span style="font-size: 14px;">${label}</span>';
-          badge.onclick = function() { window.open('https://kuli.com.ua/${gameName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}', '_blank'); };
+          
+          const slug = "${gameName}".toLowerCase().replace(/[':’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").trim().replace(/^-+|-+$/g, "");
+          badge.onclick = function() { window.open('https://kuli.com.ua/' + slug, '_blank'); };
           document.body.appendChild(badge);
         })();
       `;

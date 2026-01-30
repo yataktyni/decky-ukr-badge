@@ -55,24 +55,6 @@ export const Settings: FC = () => {
 
     const lang = getSupportedLanguage();
 
-    const handleResetSettings = async () => {
-        // Clear all pending debounced updates
-        Object.values(timeouts).forEach(t => {
-            if (t) clearTimeout(t);
-        });
-        setTimeouts({});
-
-        // Reset to exact hardcoded defaults immediately for UI snappiness
-        setOffsets({
-            x: 16,
-            y: 16,
-            sx: 0,
-            sy: 20,
-        });
-
-        await resetSettings();
-    };
-
     const openUrl = (url: string) => {
         if (typeof SteamClient !== "undefined" && SteamClient.System?.OpenInSystemBrowser) {
             SteamClient.System.OpenInSystemBrowser(url);
@@ -134,12 +116,6 @@ export const Settings: FC = () => {
 
                         <PanelSectionRow><SliderField label={t("x_offset", lang)} value={offsets.x} min={0} max={300} onChange={v => debouncedSet("x", v, setOffsetX)} showValue /></PanelSectionRow>
                         <PanelSectionRow><SliderField label={t("y_offset", lang)} value={offsets.y} min={0} max={300} onChange={v => debouncedSet("y", v, setOffsetY)} showValue /></PanelSectionRow>
-
-                        <PanelSectionRow>
-                            <ButtonItem layout="below" onClick={handleResetSettings}>
-                                {t("default", lang)}
-                            </ButtonItem>
-                        </PanelSectionRow>
                     </>
                 )}
             </PanelSection>

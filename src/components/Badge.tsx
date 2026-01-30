@@ -68,7 +68,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
     const appId = pAppId || hAppId;
     const appName = pAppName || hAppName;
 
-    const { status, loading: statusLoading } = useBadgeStatus(appId, appName);
+    const { status, url: kuliUrl, loading: statusLoading } = useBadgeStatus(appId, appName);
     const { badgeType } = settings;
     const lang = getSupportedLanguage();
 
@@ -111,7 +111,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
     const label = badgeType === "full" ? t(status.toLowerCase(), lang) : "";
     const isClickable = status !== "NONE";
     const gameName = appName ? urlifyGameName(appName) : "";
-    const clickUrl = `https://kuli.com.ua/${gameName}`;
+    const clickUrl = kuliUrl || `https://kuli.com.ua/${gameName}`;
 
     const style: React.CSSProperties = {
         position: "absolute",
