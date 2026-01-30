@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
     push:
-        branches:
-            - main
+        tags:
+            - 'v*'
 
 jobs:
     build-and-release:
@@ -27,13 +27,26 @@ jobs:
               with:
                   node-version: 20
 
-            - name: Get Version
+            - name: Extract Version from Tag
               id: version
               run: |
-                  VERSION=$(jq -r .version package.json)
+                  # Extract version from tag (v1.2.3 -> 1.2.3)
+                  VERSION=${GITHUB_REF_NAME#v}
                   echo "version=$VERSION" >> $GITHUB_OUTPUT
-                  echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
                   echo "📦 Release Version: $VERSION"
+
+            - name: Inject Version into Files
+              run: |
+                  VERSION=${{ steps.version.outputs.version }}
+                  
+                  # Update package.json
+                  jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
+                  
+                  # Update plugin.json
+                  jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
+                  
+                  echo "✅ Injected version $VERSION into package.json and plugin.json"
 
             - name: Install dependencies
               run: pnpm install --no-frozen-lockfile
