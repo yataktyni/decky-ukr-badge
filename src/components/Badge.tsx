@@ -86,9 +86,8 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
 
     const config = BADGE_CONFIG[status as keyof typeof BADGE_CONFIG] || BADGE_CONFIG.NONE;
     const label = badgeType === "full" ? t(status.toLowerCase(), lang) : "";
-    const isClickable = status !== "NONE";
-    const gameName = appName ? urlifyGameName(appName) : "";
-    const clickUrl = kuliUrl || `https://kuli.com.ua/${gameName}`;
+    const isClickable = !!kuliUrl;
+    const clickUrl = kuliUrl || "";
 
     const style: React.CSSProperties = {
         position: "absolute",

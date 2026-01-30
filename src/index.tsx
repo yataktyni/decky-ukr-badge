@@ -67,7 +67,7 @@ function patchLibraryApp() {
                 ) => {
                     const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
                     let appId = overview?.appid ? String(overview.appid) : undefined;
-                    let appName = overview?.display_name || "";
+                    let appName = overview?.display_name || overview?.name || "";
 
                     // Fallback AppID and Name extraction from route/appStore if overview fails
                     if (!appId || !appName) {

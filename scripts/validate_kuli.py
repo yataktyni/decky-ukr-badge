@@ -37,11 +37,22 @@ GAMES = [
     "Horizon Zero Dawn",
 ]
 
+def clean_non_steam_name(name):
+    """Matches plugin logic: cleanNonSteamName function"""
+    if not name: return ""
+    # Remove (Shortcut), (Non-Steam), etc.
+    name = re.sub(r"\s*\((Shortcut|Non-Steam|App|Game)\)$", "", name, flags=re.IGNORECASE)
+    # Remove version numbers like v1.0
+    name = re.sub(r"\s*v\d+(\.\d+)*", "", name, flags=re.IGNORECASE)
+    return name.strip()
+
 def urlify_game_name(name):
     """Matches plugin logic: urlifyGameName function"""
+    name = clean_non_steam_name(name)
     name = name.lower()
-    name = re.sub(r"[':']", "", name)
+    name = re.sub(r"[':’]", "", name)
     name = re.sub(r"[^a-z0-9]+", "-", name)
+    name = re.sub(r"-+", "-", name)
     name = name.strip("-")
     return name
 
@@ -49,20 +60,41 @@ def search_kuli_for_game(game_name):
     """Search kuli.com.ua and return (status, url) tuple"""
     try:
         search_url = f"https://kuli.com.ua/games?query={urllib.parse.quote(game_name)}"
-        res = requests.get(search_url, timeout=10)
+        # Add headers to mimic browser/check_kuli behavior
+        headers = {
+            "Accept": "text/html",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
+        res = requests.get(search_url, timeout=10, headers=headers)
+        
         if res.status_code != 200:
+            print(f"    {RED}Search HTTP {res.status_code}{RESET}")
             return None, None
         
         html = res.text
+        # Regex to match product-item link. Uses DOTALL to handle newlines between attributes.
         match = re.search(r'class="product-item[^"]*".*?href="([^"]+)"', html, re.DOTALL)
+        
         if not match:
+            # Try finding ANY product link if the strict class match fails
+            match = re.search(r'class="product-item-full[^"]*".*?href="([^"]+)"', html, re.DOTALL)
+            
+        if not match:
+             # Last resort: just find the first link inside a product-grid item
+            match = re.search(r'class="item-grid".*?href="([^"]+)"', html, re.DOTALL)
+
+        if not match:
+            # Debug: check if we actually got the search page
+            if "Horizon" in game_name and "Horizon" not in html:
+                 print(f"    {RED}Search page seem empty/blocked{RESET}")
             return None, None
         
         href = match.group(1)
         if not href.startswith("http"):
-            href = f"https://kuli.com.ua{'' if href.startswith('/') else '/'}{href.lstrip('/')}"
+            href = urllib.parse.urljoin("https://kuli.com.ua", href)
         
-        game_res = requests.get(href, timeout=10)
+        # Now verify the found game page
+        game_res = requests.get(href, timeout=10, headers=headers)
         if game_res.status_code != 200:
             return None, None
         

@@ -5,6 +5,7 @@ import { callBackend } from "./useSettings";
 import {
     fetchSteamGameLanguages,
     hasUkrainianSupport,
+    cleanNonSteamName,
 } from "../utils";
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
@@ -67,8 +68,12 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
             }
 
             try {
-                let currentAppName = appName;
+                let currentAppName = cleanNonSteamName(appName || "");
                 const isSteamId = appId && (parseInt(appId) < 1000000000);
+
+                if (!isSteamId) {
+                    console.log(`[decky-ukr-badge] Non-Steam game detected: ${currentAppName} (${appId})`);
+                }
 
                 // 1. Aggressive Store Metadata Check (Primary for Steam games)
                 // We check this FIRST to get 'Official' status and correct name for Kuli
@@ -95,8 +100,9 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 }
 
                 // 2. Kuli Community Support (via Backend)
-                // Used for non-Steam games OR Steam games that don't have official support
+                // We strictly use currentAppName which was updated to Official Store Name above (if it was a Steam game)
                 if (!cancelled && currentAppName) {
+                    console.log(`[decky-ukr-badge] Resolving Kuli for: ${currentAppName} (ID: ${appId})`);
                     try {
                         const response = await callBackend<{ status: string; url: string }>("get_kuli_status", currentAppName);
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {

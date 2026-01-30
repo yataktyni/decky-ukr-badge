@@ -3,6 +3,7 @@ import { fetchNoCors } from '@decky/api'
 import { findModuleExport } from '@decky/ui'
 import { BehaviorSubject } from 'rxjs'
 import { SettingsContext } from '../hooks/useSettings'
+import { urlifyGameName } from '../utils'
 
 const FETCH_TIMEOUT_MS = 2000
 
@@ -15,6 +16,60 @@ async function fetchWithTimeout(
         setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
     })
     return Promise.race([fetchPromise, timeoutPromise])
+}
+
+async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
+    try {
+        const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
+        const headers = {
+            "Accept": "text/html",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        };
+
+        const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }));
+        if (res.status !== 200) return null;
+
+        const html = await res.text();
+
+        // Regex strategies (matching Python logic)
+        // 1. Standard product item
+        let match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
+
+        // 2. Full product item
+        if (!match) match = html.match(/class="product-item-full[^"]*".*?href="([^"]+)"/s);
+
+        // 3. Grid item
+        if (!match) match = html.match(/class="item-grid".*?href="([^"]+)"/s);
+
+        if (!match) return null;
+
+        let href = match[1];
+        // Clean up URL
+        if (href.startsWith("/")) {
+            href = href.substring(1); // remove leading slash
+        }
+        // If it starts with full url, strip domain to get slug
+        if (href.startsWith("https://kuli.com.ua/")) {
+            href = href.replace("https://kuli.com.ua/", "");
+        }
+
+        const slug = href;
+        const fullUrl = `https://kuli.com.ua/${slug}`;
+
+        // Verify
+        const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }));
+        if (gameRes.status !== 200) return null;
+
+        const gameHtml = await gameRes.text();
+        if (gameHtml.includes("item__instruction-main")) return { status: "COMMUNITY", slug };
+        if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title"))
+            return { status: "OFFICIAL", slug };
+
+        return null;
+    } catch (e) {
+        console.warn("[decky-ukr-badge] Store Patch Search Error:", e);
+        return null;
+    }
 }
 
 // Store app ID observable - components can subscribe to this
@@ -101,16 +156,35 @@ async function injectBadgeIntoStore(appId: string) {
         const hasUkr = languages.toLowerCase().includes("ukrainian");
 
         let status = "NONE";
+        let confirmedOnKuli = false;
+        let kuliSlug = "";
+
         if (hasUkr) status = "OFFICIAL";
         else {
             // Check Kuli
-            const kuliSlug = gameName.toLowerCase().replace(/[':’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").trim().replace(/^-+|-+$/g, "");
-            const kuliResp = await fetchWithTimeout(fetchNoCors(`https://kuli.com.ua/${kuliSlug}`));
+            kuliSlug = urlifyGameName(gameName);
+            // Add headers for robust check
+            const headers = {
+                "Accept": "text/html",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            };
+
+            let kuliResp = await fetchWithTimeout(fetchNoCors(`https://kuli.com.ua/${kuliSlug}`, { headers }));
 
             if (kuliResp.ok) {
+                confirmedOnKuli = true;
                 const kuliHtml = await kuliResp.text();
                 if (kuliHtml.includes("item__instruction-main")) status = "COMMUNITY";
                 else if (kuliHtml.includes("html-product-details-page")) status = "OFFICIAL";
+            } else if (kuliResp.status === 404) {
+                // Fallback to Search
+                console.log(`[decky-ukr-badge] Store: Direct slug failed for ${gameName}, searching...`);
+                const searchResult = await searchKuli(gameName);
+                if (searchResult) {
+                    status = searchResult.status;
+                    kuliSlug = searchResult.slug;
+                    confirmedOnKuli = true;
+                }
             }
         }
 
@@ -128,6 +202,7 @@ async function injectBadgeIntoStore(appId: string) {
         const iconSvg = ICONS[status as keyof typeof ICONS] || ICONS.NONE;
         const flag = "🇺🇦";
 
+        const isClickable = confirmedOnKuli;
         const { storeOffsetX, storeOffsetY } = SettingsContext.value;
 
         // Inject badge into store page
@@ -160,11 +235,12 @@ async function injectBadgeIntoStore(appId: string) {
             if (checks > 20) clearInterval(posInterval);
           }, 100);
           
-          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
+          badge.style.cssText += 'position: fixed; left: calc(50% + ${storeOffsetX}px); transform: translateX(-50%); z-index: 999999; background: ${config.bg}; padding: 6px 12px; border-radius: 8px; color: ${config.text}; cursor: ${isClickable ? 'pointer' : 'default'}; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px ${config.shadow}; font-family: "Motiva Sans", sans-serif; font-weight: bold; transition: all 0.3s ease;';
           badge.innerHTML = '<span style="font-size: 20px; line-height: 1;">${flag}</span>${iconSvg}<span style="font-size: 14px;">${label}</span>';
           
-          const slug = "${gameName}".toLowerCase().replace(/[':’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").trim().replace(/^-+|-+$/g, "");
-          badge.onclick = function() { window.open('https://kuli.com.ua/' + slug, '_blank'); };
+          ${isClickable ? `
+          badge.onclick = function() { window.open('https://kuli.com.ua/${kuliSlug}', '_blank'); };
+          ` : ''}
           document.body.appendChild(badge);
         })();
       `;

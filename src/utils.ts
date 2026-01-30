@@ -48,10 +48,22 @@ export function getGameName(): string | null {
 }
 
 /**
+ * Cleans a game name by removing common non-Steam tags and versions.
+ */
+export function cleanNonSteamName(name: string): string {
+  if (!name) return "";
+  return name
+    .replace(/\s*\((Shortcut|Non-Steam|App|Game)\)$/i, "")
+    .replace(/\s*v\d+(\.\d+)*/i, "")
+    .trim();
+}
+
+/**
  * Converts a game name to a URL-friendly format for kuli.com.ua
  */
 export function urlifyGameName(name: string): string {
-  return name
+  const cleaned = cleanNonSteamName(name);
+  return cleaned
     .toLowerCase()
     .replace(/[':’]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
