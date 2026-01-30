@@ -129,8 +129,10 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
             style={{ ...style, pointerEvents: "none" }} // Pass through clicks on wrapper
         >
             <Focusable
-                onActivate={() => isClickable && openInSteamBrowser(clickUrl)}
-                onClick={() => isClickable && openInSteamBrowser(clickUrl)}
+                onActivate={() => {
+                    console.log("[decky-ukr-badge] Badge Activated via Controller/Keyboard. URL:", clickUrl);
+                    if (isClickable) openInSteamBrowser(clickUrl);
+                }}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -150,9 +152,17 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
                     pointerEvents: "auto", // Re-enable pointer events for the button
                 }}
             >
-                <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
-                <BadgeIcon size={16} />
-                {label && <span>{label}</span>}
+                <div onClick={(e) => {
+                    console.log("[decky-ukr-badge] Inner DIV Clicked. URL:", clickUrl);
+                    if (isClickable) {
+                        e.stopPropagation();
+                        openInSteamBrowser(clickUrl);
+                    }
+                }} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'inherit' }}>
+                    <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
+                    <BadgeIcon size={16} />
+                    {label && <span>{label}</span>}
+                </div>
             </Focusable>
         </div>
     );

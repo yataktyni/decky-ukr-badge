@@ -126,6 +126,8 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                     console.log(`[decky-ukr-badge] Resolving Kuli for: ${currentAppName} (ID: ${appId})`);
                     try {
                         const response = await searchKuli(currentAppName);
+                        console.log(`[decky-ukr-badge] searchKuli response for ${currentAppName}:`, response);
+
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
                             kuliStatus = response.status as BadgeStatus;
                             kuliUrl = `https://kuli.com.ua/${response.slug}`;
