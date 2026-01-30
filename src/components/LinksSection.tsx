@@ -2,6 +2,7 @@
 import React, { FC, useState } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem } from "@decky/ui";
 import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 import { SiTether } from "react-icons/si";
 import { t } from "../translations";
 
@@ -87,6 +88,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             <LinkButton onClick={() => openUrl("https://www.youtube.com/watch?v=24gxXddKNv0")} icon={<FaYoutube />} label={t("video_guide", lang)} />
             <LinkButton onClick={() => openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=3137617136")} icon={<FaSteam />} label={t("text_guide", lang)} />
             <LinkButton onClick={() => openUrl("https://github.com/yataktyni/decky-ukr-badge")} icon={<FaGithub />} label="GitHub Source" />
+            <LinkButton onClick={() => openUrl("https://x.com/yataktyni")} icon={<FaXTwitter />} label={t("author_x", lang)} />
         </PanelSection>
     );
 };
