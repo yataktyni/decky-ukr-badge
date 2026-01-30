@@ -74,7 +74,7 @@ export const Settings: FC = () => {
     ];
 
     return (
-        <>
+        <div className="decky-plugin-settings">
             <PanelSection title={t("settings_title", lang)}>
                 {loading ? (
                     <PanelSectionRow>
@@ -120,6 +120,6 @@ export const Settings: FC = () => {
             </PanelSection>
 
             {!loading && <LinksSection lang={lang} openUrl={openUrl} />}
-        </>
+        </div>
     );
 };
