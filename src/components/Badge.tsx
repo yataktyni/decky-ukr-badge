@@ -119,7 +119,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
         transition: "all 0.3s ease",
     };
 
-    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "60px", right: "20px" };
+    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "20px", right: "20px" };
     let top = parseInt(base.top);
 
     if (protonDBExists) {

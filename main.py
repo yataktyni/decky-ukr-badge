@@ -161,6 +161,8 @@ async def get_kuli_status(game_name: str) -> Dict[str, str]:
         return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[':']", "", name.lower())).strip("-")
 
     slug = urlify(game_name)
+    if not slug:
+        return {"status": "NONE", "url": ""}
     url = f"https://kuli.com.ua/{slug}"
     
     try:

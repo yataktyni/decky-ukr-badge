@@ -17,6 +17,15 @@ import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
 import { initStorePatch } from "./patches/StorePatch";
 
+// Declare appStore for non-Steam game detection
+declare const appStore: {
+    GetAppOverviewByGameID: (id: number) => {
+        appid: number;
+        display_name: string;
+        app_type: number;
+    } | null;
+};
+
 /**
  * Check if ProtonDB badge plugin is present to avoid overlap
  */
@@ -58,12 +67,20 @@ function patchLibraryApp() {
                 ) => {
                     const overview = findInReactTree(ret, (x: any) => x?.props?.overview)?.props?.overview;
                     let appId = overview?.appid ? String(overview.appid) : undefined;
-                    const appName = overview?.display_name || "";
+                    let appName = overview?.display_name || "";
 
-                    // Fallback AppID extraction from route if overview fails
-                    if (!appId) {
+                    // Fallback AppID and Name extraction from route/appStore if overview fails
+                    if (!appId || !appName) {
                         const match = window.location.pathname.match(/\/appdetails\/(\d+)/);
-                        if (match) appId = match[1];
+                        const pathId = match ? match[1] : undefined;
+
+                        if (pathId) {
+                            if (!appId) appId = pathId;
+                            try {
+                                const details = appStore.GetAppOverviewByGameID(parseInt(pathId, 10));
+                                if (details && !appName) appName = details.display_name;
+                            } catch (e) { }
+                        }
                     }
 
                     const container = findInReactTree(

@@ -2,6 +2,7 @@
 import React, { FC, useState } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem } from "@decky/ui";
 import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad } from "react-icons/fa";
+import { SiTether } from "react-icons/si";
 import { t } from "../translations";
 
 interface LinksSectionProps {
@@ -43,7 +44,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                         <span style={{ fontSize: "14px", fontWeight: 700 }}>{lang === "uk" ? "Підтримати na Ko-fi" : "Ko-fi Support"}</span>
                     </div>
                     <div style={{ display: "flex", gap: "8px", padding: "0 10px" }}>
-                        <button onClick={() => openUrl(kofiUrl)} style={{ flex: 1, background: "#FF5E5B", color: "#fff", border: "none", borderRadius: "4px", padding: "10px 12px", fontWeight: 800, cursor: "pointer", fontSize: "13px" }}>Donate</button>
+                        <button onClick={() => openUrl(kofiUrl)} style={{ flex: 1, background: "#FF5E5B", boxShadow: "0 4px 12px rgba(255, 94, 91, 0.3)", color: "#fff", border: "none", borderRadius: "4px", padding: "10px 12px", fontWeight: 800, cursor: "pointer", fontSize: "13px" }}>Donate</button>
                         <button onClick={() => setShowKofiQR(!showKofiQR)} style={{ background: "rgba(255,255,255,0.1)", color: "#fff", border: "none", borderRadius: "4px", padding: "4px 14px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                             <FaQrcode size={18} />
                         </button>
@@ -58,10 +59,10 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
             {/* USDT Support */}
             <PanelSectionRow>
-                <div style={{ padding: "0 4px 8px 4px", background: "rgba(255,255,255,0.01)", borderRadius: "8px", marginTop: "4px", marginBottom: "14px" }}>
+                <div style={{ padding: "0 4px 4px 4px", background: "rgba(255,255,255,0.01)", borderRadius: "8px", marginTop: "4px", marginBottom: "14px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 10px" }}>
                         <div style={{ background: "#26A17B", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ color: "white", fontSize: "12px", fontWeight: "bold" }}>$</span>
+                            <SiTether size={20} color="white" />
                         </div>
                         <span style={{ fontSize: "14px", fontWeight: 700 }}>USDT (TRC20)</span>
                     </div>

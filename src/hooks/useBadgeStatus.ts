@@ -1,5 +1,6 @@
 // decky-ukr-badge/src/hooks/useBadgeStatus.ts
 import { useState, useEffect } from "react";
+import { fetchNoCors } from "@decky/api";
 import { callBackend } from "./useSettings";
 import {
     fetchSteamGameLanguages,
@@ -66,22 +67,35 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
             }
 
             try {
-                // 1. Official Steam Support
-                const steamLanguages = await fetchSteamGameLanguages(appId);
-                if (!cancelled && steamLanguages && hasUkrainianSupport(steamLanguages)) {
-                    const result: BadgeStatus = "OFFICIAL";
-                    setStatus(result);
-                    setUrl(null);
-                    cache[appId] = { timestamp: Date.now(), status: result };
-                    setCache(cache);
-                    setLoading(false);
-                    return;
+                let currentAppName = appName;
+
+                // Aggressive Metadata Fetch (Store-style) if name is missing or it's a Steam appId
+                if (appId && (!currentAppName || (parseInt(appId) < 1000000000))) {
+                    try {
+                        const steamResp = await fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);
+                        const steamData = await steamResp.json();
+                        if (steamData && steamData[appId]?.success) {
+                            currentAppName = steamData[appId].data.name;
+                            const languages = steamData[appId].data.supported_languages || "";
+                            if (languages.toLowerCase().includes("ukrainian")) {
+                                const result: BadgeStatus = "OFFICIAL";
+                                setStatus(result);
+                                setUrl(null);
+                                cache[appId] = { timestamp: Date.now(), status: result };
+                                setCache(cache);
+                                setLoading(false);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn(`[decky-ukr-badge] Store metadata fetch failed for ${appId}:`, e);
+                    }
                 }
 
-                // 2. Kuli Community Support
-                if (appName) {
+                // 2. Kuli Community Support (via Backend)
+                if (currentAppName) {
                     try {
-                        const response = await callBackend<{ status: string; url: string }>("get_kuli_status", appName);
+                        const response = await callBackend<{ status: string; url: string }>("get_kuli_status", currentAppName);
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
                             const bStatus = response.status as BadgeStatus;
                             const bUrl = response.url;
@@ -93,7 +107,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                             return;
                         }
                     } catch (e) {
-                        console.error(`[decky-ukr-badge] Backend status fetch failed for ${appName}:`, e);
+                        console.error(`[decky-ukr-badge] Backend status fetch failed for ${currentAppName}:`, e);
                     }
                 }
 

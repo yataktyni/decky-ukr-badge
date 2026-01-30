@@ -26,9 +26,9 @@ export type Settings = {
 
 const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
-    badgePosition: "top-left",
-    offsetX: 16,
-    offsetY: 16,
+    badgePosition: "top-right",
+    offsetX: 0,
+    offsetY: 20,
     showOnStore: true,
     storeOffsetX: 0,
     storeOffsetY: 20,
