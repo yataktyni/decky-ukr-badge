@@ -59,7 +59,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
             {/* USDT Support */}
             <PanelSectionRow>
-                <div style={{ padding: "0 4px 4px 4px", background: "rgba(255,255,255,0.01)", borderRadius: "8px", marginTop: "4px", marginBottom: "14px" }}>
+                <div style={{ padding: "0 4px 8px 4px", background: "rgba(255,255,255,0.01)", borderRadius: "8px", marginTop: "4px", marginBottom: "8px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 10px" }}>
                         <div style={{ background: "#26A17B", borderRadius: "50%", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             <SiTether size={20} color="white" />

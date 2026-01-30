@@ -48,6 +48,7 @@ interface BadgeProps {
     pAppId?: string;
     pAppName?: string;
     protonDBExists?: boolean;
+    context?: "library" | "store";
 }
 
 function hasProtonDBBadge(): boolean {
@@ -60,7 +61,7 @@ function hasProtonDBBadge(): boolean {
     return false;
 }
 
-const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProtonDBExists }) => {
+const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProtonDBExists, context = "library" }) => {
     const { settings, loading: settingsLoading } = useSettings();
     const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
 
@@ -95,6 +96,8 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
     }, [status]);
 
     useEffect(() => {
+        if (context !== "store") return undefined;
+
         const checkProtonDB = () => {
             const exists = hasProtonDBBadge();
             setProtonDBExists(exists);
@@ -103,7 +106,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
         checkProtonDB();
         const interval = setInterval(checkProtonDB, 2000);
         return () => clearInterval(interval);
-    }, []);
+    }, [context]);
 
     if (hLoading || statusLoading || settingsLoading || !status || !isVisible) return null;
 
@@ -119,11 +122,12 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
         transition: "all 0.3s ease",
     };
 
-    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "20px" } : { top: "20px", right: "20px" };
+    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "0px" } : { top: "60px", right: "0px" };
     let top = parseInt(base.top);
 
-    if (protonDBExists) {
-        top += 50; // Shift down to avoid overlap
+    // ProtonDB shift abolished for Library, kept for Store
+    if (protonDBExists && context === "store") {
+        top += 30;
     }
 
     style.top = `calc(${top}px + ${settings.offsetY}px)`;

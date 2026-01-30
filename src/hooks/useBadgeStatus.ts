@@ -71,6 +71,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 const isSteamId = appId && (parseInt(appId) < 1000000000);
 
                 // 1. Aggressive Store Metadata Check (Primary for Steam games)
+                // We check this FIRST to get 'Official' status and correct name for Kuli
                 if (isSteamId) {
                     try {
                         const steamResp = await fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);

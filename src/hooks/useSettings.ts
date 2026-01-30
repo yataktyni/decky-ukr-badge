@@ -28,7 +28,7 @@ const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
     badgePosition: "top-right",
     offsetX: 0,
-    offsetY: 20,
+    offsetY: 60,
     showOnStore: true,
     storeOffsetX: 0,
     storeOffsetY: 20,

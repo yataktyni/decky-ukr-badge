@@ -96,17 +96,15 @@ function patchLibraryApp() {
                         return ret;
                     }
 
-                    const protonDBExists = hasProtonDBBadge();
-
                     if (!findInReactTree(container, (x: any) => x?.key === "ukr-badge")) {
                         container.props.children.splice(
                             1,
                             0,
                             <Badge
                                 key="ukr-badge"
-                                protonDBExists={protonDBExists}
                                 pAppId={appId}
                                 pAppName={appName}
+                                context="library"
                             />,
                         );
                     }
