@@ -37,7 +37,7 @@ const translations: Record<string, TranslationDict> = {
     plugin_version: "Plugin Version",
     steamos_version: "SteamOS Version",
     decky_version: "Decky Version",
-    author_x: "X (Twitter)",
+    author_x: "Message Me",
   },
   uk: {
     plugin_description:
@@ -73,7 +73,7 @@ const translations: Record<string, TranslationDict> = {
     plugin_version: "Версія плагіна",
     steamos_version: "Версія SteamOS",
     decky_version: "Версія Decky",
-    author_x: "X (Twitter)",
+    author_x: "Написати мені",
   },
 };
 
