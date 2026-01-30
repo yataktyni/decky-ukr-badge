@@ -142,7 +142,7 @@ function patchLibraryApp() {
                         const protonDBExists = hasProtonDBBadge();
 
                         const headerIcon = (
-                            <div
+                            <span
                                 key="ukr-badge-header"
                                 style={{
                                     position: "absolute",
@@ -156,9 +156,17 @@ function patchLibraryApp() {
                                     pointerEvents: "auto",
                                 }}
                                 title="Ukrainian Language Support"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    const path = window.location.pathname;
+                                    const match = path.match(/\/app\/(\d+)/);
+                                    if (match) {
+                                        window.open(`https://store.steampowered.com/app/${match[1]}`, "_blank");
+                                    }
+                                }}
                             >
                                 🇺🇦
-                            </div>
+                            </span>
                         );
 
                         topCapsule.props.children.unshift(headerIcon);

@@ -123,18 +123,6 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 let kuliUrl: string | null = null;
                 let searchName = currentAppName;
 
-                if (isSteamId && appId) {
-                    try {
-                        const officialName = await fetchSteamStoreName(appId);
-                        if (officialName) {
-                            console.log(`[decky-ukr-badge] Upgraded search name: "${searchName}" -> "${officialName}"`);
-                            searchName = cleanNonSteamName(officialName);
-                        }
-                    } catch (e) {
-                        console.warn("[decky-ukr-badge] Failed name upgrade:", e);
-                    }
-                }
-
                 if (!cancelled && searchName) {
                     console.log(`[decky-ukr-badge] Resolving Kuli for: ${searchName} (ID: ${appId})`);
                     try {
