@@ -96,7 +96,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
         transition: "all 0.3s ease",
     };
 
-    const base = settings.badgePosition === "top-left" ? { top: "40px", left: "0px" } : { top: "60px", right: "0px" };
+    const base = settings.badgePosition === "top-left" ? { top: "0px", left: "0px" } : { top: "0px", right: "0px" };
     let top = parseInt(base.top);
 
     style.top = `calc(${top}px + ${settings.offsetY}px)`;
