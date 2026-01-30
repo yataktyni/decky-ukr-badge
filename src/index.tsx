@@ -13,7 +13,6 @@ import { FaFlag } from "react-icons/fa";
 import { Settings } from "./settings";
 
 import Badge from "./components/Badge";
-import StoreOverlay from "./components/StoreOverlay";
 import { loadSettings } from "./hooks/useSettings";
 import { initStorePatch } from "./patches/StorePatch";
 
@@ -204,8 +203,6 @@ export default definePlugin(() => {
     // Initialize store patch (WebSocket injection)
     const stopStorePatch = initStorePatch();
 
-    // Register store overlay placeholder
-    routerHook.addGlobalComponent("UKRStoreOverlay", StoreOverlay);
 
     return {
         name: "decky-ukr-badge",
@@ -214,7 +211,6 @@ export default definePlugin(() => {
         content: <SettingsPanel />,
         onDismount() {
             routerHook.removePatch("/library/app/:appid", libraryPatch);
-            routerHook.removeGlobalComponent("UKRStoreOverlay");
             stopStorePatch();
         },
     };

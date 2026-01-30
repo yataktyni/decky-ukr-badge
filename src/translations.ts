@@ -14,7 +14,6 @@ const translations: Record<string, TranslationDict> = {
     badge_position: "Badge Position",
     top_left: "Top Left",
     top_right: "Top Right",
-    clear_cache: "Clear Cache",
     official: "Official",
     community: "Community",
     none: "None",
@@ -34,9 +33,6 @@ const translations: Record<string, TranslationDict> = {
     text_guide: "Guide",
     default: "Default",
     version: "Version",
-    plugin_version: "Plugin Version",
-    steamos_version: "SteamOS Version",
-    decky_version: "Decky Version",
     author_x: "Message Me",
     update_plugin: "Update Plugin",
     updating: "Updating...",
@@ -44,6 +40,7 @@ const translations: Record<string, TranslationDict> = {
     update_error: "Update failed",
     current_version: "Current version",
     update_to: "Update to",
+    version_check_failed: "version check failed",
   },
   uk: {
     plugin_description:
@@ -56,7 +53,6 @@ const translations: Record<string, TranslationDict> = {
     badge_position: "Позиція бейджа",
     top_left: "Вгорі зліва",
     top_right: "Вгорі справа",
-    clear_cache: "Очистити кеш",
     official: "Офіційна",
     community: "Спільнота",
     none: "Відсутня",
@@ -76,9 +72,6 @@ const translations: Record<string, TranslationDict> = {
     text_guide: "Посібник",
     default: "За замовчуванням",
     version: "Версія",
-    plugin_version: "Версія плагіна",
-    steamos_version: "Версія SteamOS",
-    decky_version: "Версія Decky",
     author_x: "Написати мені",
     update_plugin: "Оновити плагін",
     updating: "Оновлюється...",
@@ -86,6 +79,7 @@ const translations: Record<string, TranslationDict> = {
     update_error: "Помилка оновлення",
     current_version: "Поточна версія",
     update_to: "Оновити до",
+    version_check_failed: "помилка перевірки версії",
   },
 };
 

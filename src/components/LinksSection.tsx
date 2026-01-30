@@ -65,6 +65,12 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 setVersionInfo(info);
             } catch (e) {
                 log.error("Failed to check version:", e);
+                // Set a fallback version info so the UI still shows something
+                setVersionInfo({
+                    current: "unknown",
+                    latest: null,
+                    update_available: false
+                });
             }
         };
         checkVersion();
@@ -74,8 +80,17 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         log.info("Starting plugin update...");
         setUpdating(true);
         setUpdateStatus(null);
+
+        // Timeout to prevent getting stuck in "updating..." state
+        const timeoutId = setTimeout(() => {
+            log.error("Update timed out after 60 seconds");
+            setUpdating(false);
+            setUpdateStatus(t("update_error", lang) + ": Timeout");
+        }, 60000);
+
         try {
             const result = await call<[], { success: boolean; message?: string; error?: string }>("update_plugin");
+            clearTimeout(timeoutId);
             log.info("Update result:", result);
             if (result.success) {
                 setUpdateStatus(t("update_success", lang));
@@ -87,8 +102,9 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 setUpdateStatus(t("update_error", lang) + (result.error ? `: ${result.error}` : ""));
             }
         } catch (e) {
+            clearTimeout(timeoutId);
             log.error("Update exception:", e);
-            setUpdateStatus(t("update_error", lang));
+            setUpdateStatus(t("update_error", lang) + (e instanceof Error ? `: ${e.message}` : ""));
         } finally {
             setUpdating(false);
         }
@@ -100,7 +116,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         if (versionInfo?.update_available && versionInfo.latest_tag) {
             return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
         }
-        return t("update_plugin", lang);
+        return `${t("update_plugin", lang)}${versionInfo?.current ? ` (v${versionInfo.current})` : ""}`;
     };
 
     return (
@@ -180,16 +196,34 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 <PanelSectionRow>
                     <div style={{
                         textAlign: "center",
-                        fontSize: "11px",
-                        color: "rgba(255,255,255,0.5)",
-                        padding: "4px 0"
+                        fontSize: "13px",
+                        color: "#fff",
+                        opacity: 0.8,
+                        padding: "8px 0",
+                        background: "rgba(255,255,255,0.05)",
+                        borderRadius: "4px",
+                        marginTop: "4px"
                     }}>
-                        {t("current_version", lang)}: v{versionInfo.current}
-                        {versionInfo.update_available && (
-                            <span style={{ color: "#4ade80", marginLeft: "8px" }}>
-                                • {t("update_to", lang)} {versionInfo.latest_tag}
-                            </span>
+                        <span style={{ fontWeight: 700 }}>{t("current_version", lang)}:</span> v{versionInfo.current}
+                        {versionInfo.update_available && versionInfo.latest_tag && (
+                            <div style={{ color: "#4ade80", marginTop: "4px", fontWeight: 700 }}>
+                                {t("update_to", lang)} {versionInfo.latest_tag}
+                            </div>
                         )}
+                    </div>
+                </PanelSectionRow>
+            )}
+
+            {/* Version fetch error indicator */}
+            {versionInfo && versionInfo.current === "unknown" && (
+                <PanelSectionRow>
+                    <div style={{
+                        textAlign: "center",
+                        fontSize: "10px",
+                        color: "rgba(255,255,255,0.3)",
+                        padding: "2px 0"
+                    }}>
+                        ({t("version_check_failed", lang)})
                     </div>
                 </PanelSectionRow>
             )}
