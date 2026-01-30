@@ -121,7 +121,16 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
     if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
     if (base.right) style.right = `calc(${base.right} + ${settings.offsetX}px)`;
 
+    const [isFocused, setIsFocused] = useState(false);
+
     const BadgeIcon = config.icon;
+
+    // Helper to lighten colors for focus state
+    const getFocusedColor = (color: string) => {
+        if (status === "OFFICIAL") return "#34ce57"; // Lighter green
+        if (status === "COMMUNITY") return "#ffcd39"; // Lighter yellow
+        return color;
+    };
 
     return (
         <div
@@ -129,40 +138,33 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
             style={{ ...style, pointerEvents: "none" }} // Pass through clicks on wrapper
         >
             <Focusable
-                onActivate={() => {
-                    console.log("[decky-ukr-badge] Badge Activated via Controller/Keyboard. URL:", clickUrl);
-                    if (isClickable) openInSteamBrowser(clickUrl);
-                }}
+                onActivate={() => isClickable && openInSteamBrowser(clickUrl)}
+                onClick={() => isClickable && openInSteamBrowser(clickUrl)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
                     padding: "6px 12px",
-                    backgroundColor: config.color,
+                    backgroundColor: isFocused ? getFocusedColor(config.color) : config.color,
                     color: status === "COMMUNITY" ? "#000" : "#fff",
                     border: "none",
                     borderRadius: "8px",
                     fontWeight: "bold",
                     fontSize: "14px",
-                    boxShadow: `0 4px 12px ${config.shadow}`,
+                    boxShadow: isFocused ? `0 0 0 3px rgba(255,255,255,0.4), 0 4px 12px ${config.shadow}` : `0 4px 12px ${config.shadow}`,
                     cursor: isClickable ? "pointer" : "default",
                     opacity: status === "NONE" ? 0.8 : 1,
                     fontFamily: '"Motiva Sans", sans-serif',
-                    transition: "all 0.3s ease",
+                    transition: "all 0.2s ease-in-out",
+                    transform: isFocused ? "scale(1.05)" : "scale(1)",
                     pointerEvents: "auto", // Re-enable pointer events for the button
                 }}
             >
-                <div onClick={(e) => {
-                    console.log("[decky-ukr-badge] Inner DIV Clicked. URL:", clickUrl);
-                    if (isClickable) {
-                        e.stopPropagation();
-                        openInSteamBrowser(clickUrl);
-                    }
-                }} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'inherit' }}>
-                    <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
-                    <BadgeIcon size={16} />
-                    {label && <span>{label}</span>}
-                </div>
+                <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
+                <BadgeIcon size={16} />
+                {label && <span>{label}</span>}
             </Focusable>
         </div>
     );

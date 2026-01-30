@@ -7,6 +7,7 @@ import {
     hasUkrainianSupport,
     cleanNonSteamName,
     searchKuli,
+    fetchSteamStoreName,
 } from "../utils";
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
@@ -118,22 +119,34 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 }
 
                 // 2. Kuli Community Support (via Frontend Shared Logic)
-                // We proceed to check Kuli even if Steam found it, to resolve the URL for clickability
                 let kuliStatus: BadgeStatus | null = null;
                 let kuliUrl: string | null = null;
+                let searchName = currentAppName;
 
-                if (!cancelled && currentAppName) {
-                    console.log(`[decky-ukr-badge] Resolving Kuli for: ${currentAppName} (ID: ${appId})`);
+                if (isSteamId && appId) {
                     try {
-                        const response = await searchKuli(currentAppName);
-                        console.log(`[decky-ukr-badge] searchKuli response for ${currentAppName}:`, response);
+                        const officialName = await fetchSteamStoreName(appId);
+                        if (officialName) {
+                            console.log(`[decky-ukr-badge] Upgraded search name: "${searchName}" -> "${officialName}"`);
+                            searchName = cleanNonSteamName(officialName);
+                        }
+                    } catch (e) {
+                        console.warn("[decky-ukr-badge] Failed name upgrade:", e);
+                    }
+                }
+
+                if (!cancelled && searchName) {
+                    console.log(`[decky-ukr-badge] Resolving Kuli for: ${searchName} (ID: ${appId})`);
+                    try {
+                        const response = await searchKuli(searchName);
+                        console.log(`[decky-ukr-badge] searchKuli response for ${searchName}:`, response);
 
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
                             kuliStatus = response.status as BadgeStatus;
                             kuliUrl = `https://kuli.com.ua/${response.slug}`;
                         }
                     } catch (e) {
-                        console.error(`[decky-ukr-badge] Frontend status fetch failed for ${currentAppName}:`, e);
+                        console.error(`[decky-ukr-badge] Frontend status fetch failed for ${searchName}:`, e);
                     }
                 }
 

@@ -190,6 +190,23 @@ export async function fetchWithTimeout(
   return Promise.race([fetchPromise, timeoutPromise])
 }
 
+// Helper to fetch official game name from Steam Store API
+export async function fetchSteamStoreName(appId: string): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`));
+    if (res.status !== 200) return null;
+
+    const data = await res.json();
+    if (data && data[appId] && data[appId].success && data[appId].data) {
+      return data[appId].data.name;
+    }
+    return null;
+  } catch (e) {
+    console.warn("[decky-ukr-badge] Failed to fetch official Store name:", e);
+    return null;
+  }
+}
+
 // Helper for Levenshtein distance
 function levenshtein(a: string, b: string): number {
   const matrix = [];
