@@ -78,6 +78,29 @@ jobs:
                   echo "✅ Created release.zip"
                   unzip -l release.zip
 
+            - name: Generate Changelog
+              id: changelog
+              run: |
+                  # Get previous tag
+                  PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+                  CURRENT_TAG=${{ steps.version.outputs.tag }}
+                  
+                  echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
+                  
+                  if [ -n "$PREV_TAG" ]; then
+                      echo "📋 Generating changelog from $PREV_TAG to $CURRENT_TAG"
+                      
+                      # Generate changelog from commits
+                      CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges | head -20)
+                      
+                      # Escape for multiline output
+                      echo "changelog<<EOF" >> $GITHUB_OUTPUT
+                      echo "$CHANGELOG" >> $GITHUB_OUTPUT
+                      echo "EOF" >> $GITHUB_OUTPUT
+                  else
+                      echo "changelog=- Initial release" >> $GITHUB_OUTPUT
+                  fi
+
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
@@ -92,10 +115,14 @@ jobs:
                       3. Select **Install Plugin From File** and choose the downloaded zip
 
                       ### Changes
-                      - Auto-generated release from commit ${{ github.sha }}
+                      ${{ steps.changelog.outputs.changelog }}
 
                       ---
-                      [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
+                      📝 Auto-generated from commit [`${{ github.sha }}`](https://github.com/yataktyni/decky-ukr-badge/commit/${{ github.sha }})
+                      
+                      🔗 [Compare with previous release](https://github.com/yataktyni/decky-ukr-badge/compare/${{ steps.changelog.outputs.prev_tag }}...${{ steps.version.outputs.tag }})
+                      
+                      📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
                   draft: false
                   prerelease: false
                   files: release.zip
