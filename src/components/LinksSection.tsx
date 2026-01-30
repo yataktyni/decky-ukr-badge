@@ -83,9 +83,9 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 </div>
             </PanelSectionRow>
 
-            <LinkButton onClick={() => openUrl("https://kuli.com.ua/")} icon={<FaGamepad color="#fff" />} label="Kuli.com.ua" />
-            <LinkButton onClick={() => openUrl("https://www.youtube.com/watch?v=24gxXddKNv0")} icon={<FaYoutube color="#fff" />} label={t("video_guide", lang)} />
-            <LinkButton onClick={() => openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=3137617136")} icon={<FaSteam color="#FFFFFF" />} label={t("text_guide", lang)} />
+            <LinkButton onClick={() => openUrl("https://kuli.com.ua/")} icon={<FaGamepad />} label="Kuli.com.ua" />
+            <LinkButton onClick={() => openUrl("https://www.youtube.com/watch?v=24gxXddKNv0")} icon={<FaYoutube />} label={t("video_guide", lang)} />
+            <LinkButton onClick={() => openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=3137617136")} icon={<FaSteam />} label={t("text_guide", lang)} />
             <LinkButton onClick={() => openUrl("https://github.com/yataktyni/decky-ukr-badge")} icon={<FaGithub />} label="GitHub Source" />
         </PanelSection>
     );
