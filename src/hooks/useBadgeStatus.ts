@@ -68,9 +68,10 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
 
             try {
                 let currentAppName = appName;
+                const isSteamId = appId && (parseInt(appId) < 1000000000);
 
-                // Aggressive Metadata Fetch (Store-style) if name is missing or it's a Steam appId
-                if (appId && (!currentAppName || (parseInt(appId) < 1000000000))) {
+                // 1. Aggressive Store Metadata Check (Primary for Steam games)
+                if (isSteamId) {
                     try {
                         const steamResp = await fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);
                         const steamData = await steamResp.json();
@@ -93,7 +94,8 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 }
 
                 // 2. Kuli Community Support (via Backend)
-                if (currentAppName) {
+                // Used for non-Steam games OR Steam games that don't have official support
+                if (!cancelled && currentAppName) {
                     try {
                         const response = await callBackend<{ status: string; url: string }>("get_kuli_status", currentAppName);
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
@@ -101,7 +103,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                             const bUrl = response.url;
                             setStatus(bStatus);
                             setUrl(bUrl);
-                            cache[appId] = { timestamp: Date.now(), status: bStatus, url: bUrl };
+                            cache[appId || "unknown"] = { timestamp: Date.now(), status: bStatus, url: bUrl };
                             setCache(cache);
                             setLoading(false);
                             return;
@@ -115,7 +117,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 if (!cancelled) {
                     setStatus("NONE");
                     setUrl(null);
-                    cache[appId] = { timestamp: Date.now(), status: "NONE" };
+                    cache[appId || "unknown"] = { timestamp: Date.now(), status: "NONE" };
                     setCache(cache);
                 }
             } catch (e) {

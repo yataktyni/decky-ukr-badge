@@ -9,7 +9,11 @@ CURRENT_VERSION=$(jq -r .version < package.json)
 echo "📄 Current version: $CURRENT_VERSION"
 
 # Split version into components
-IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
+MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
+PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
+# Ensure PATCH doesn't have suffix if version is e.g. 1.2.3-beta
+PATCH=$(echo "$PATCH" | cut -d- -f1)
 
 # Smart Increment logic (Rollover at 10)
 NEW_PATCH=$((PATCH + 1))

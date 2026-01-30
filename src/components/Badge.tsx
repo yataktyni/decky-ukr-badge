@@ -53,7 +53,7 @@ interface BadgeProps {
 function hasProtonDBBadge(): boolean {
     try {
         if (typeof window !== "undefined") {
-            const protonBadgeExists = document.querySelector('[class*="protonbadge"], [class*="proton-badge"], [id*="protondb"]');
+            const protonBadgeExists = document.querySelector('[class*="protondb-"]');
             if (protonBadgeExists) return true;
         }
     } catch (e) { }
