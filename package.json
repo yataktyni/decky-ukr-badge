@@ -25,8 +25,7 @@
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
-    "sync-version": "./scripts/update-version.sh",
-    "zip": "./scripts/update-version.sh && mkdir -p release/decky-ukr-badge && cp -r dist release/decky-ukr-badge/ && cp main.py plugin.json package.json LICENSE README.md release/decky-ukr-badge/ && cd release && zip -r ../release.zip decky-ukr-badge && cd .. && rm -rf release && echo '✅ Created release.zip'"
+    "release": "bash ./scripts/release.sh"
   },
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
