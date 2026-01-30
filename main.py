@@ -281,6 +281,52 @@ async def search_kuli(game_name: str) -> Dict[str, str]:
     
     return {"status": "NONE", "url": ""}
 
+async def get_latest_version() -> Dict[str, Any]:
+    """Check GitHub for latest version and compare with current."""
+    try:
+        # Get current version from plugin.json
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        plugin_json_path = os.path.join(current_dir, "plugin.json")
+        
+        current_version = "0.0.0"
+        if os.path.exists(plugin_json_path):
+            with open(plugin_json_path, "r", encoding="utf-8") as f:
+                plugin_data = json.load(f)
+                current_version = plugin_data.get("version", "0.0.0")
+        
+        # Fetch latest release from GitHub
+        github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases/latest"
+        response = await http_get(github_api)
+        
+        if not response:
+            return {"current": current_version, "latest": None, "update_available": False}
+        
+        release_data = json.loads(response)
+        latest_tag = release_data.get("tag_name", "")
+        latest_version = latest_tag.lstrip("v")
+        
+        # Compare versions
+        def parse_version(v):
+            try:
+                return tuple(int(x) for x in v.split("."))
+            except:
+                return (0, 0, 0)
+        
+        current_tuple = parse_version(current_version)
+        latest_tuple = parse_version(latest_version)
+        
+        update_available = latest_tuple > current_tuple
+        
+        return {
+            "current": current_version,
+            "latest": latest_version,
+            "latest_tag": latest_tag,
+            "update_available": update_available
+        }
+    except Exception as e:
+        decky.logger.error(f"UA Badge: Version check failed: {e}")
+        return {"current": "unknown", "latest": None, "update_available": False}
+
 async def update_plugin() -> Dict[str, Any]:
     """Download and install latest release from GitHub."""
     import zipfile

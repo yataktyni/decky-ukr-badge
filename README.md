@@ -80,7 +80,7 @@ pnpm zip
 - 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [Код на GitHub](https://github.com/yataktyni/decky-ukr-badge)
-- 🌈 [Kuli.com.ua — каталог української локалізації ігор](https://kuli.com.ua/)
+- 🎈 [Kuli.com.ua — каталог української локалізації ігор](https://kuli.com.ua/)
 
 ---
 
@@ -168,7 +168,7 @@ pnpm zip
 - 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [GitHub Source](https://github.com/yataktyni/decky-ukr-badge)
-- 🌈 [Kuli.com.ua — Catalog of Ukrainian game translations](https://kuli.com.ua/)
+- 🎈 [Kuli.com.ua — Catalog of Ukrainian game translations](https://kuli.com.ua/)
 
 ---
 

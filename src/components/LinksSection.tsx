@@ -1,5 +1,5 @@
 // decky-ukr-badge/src/components/LinksSection.tsx
-import React, { FC, useState } from "react";
+import React, { FC, useState, useEffect } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem } from "@decky/ui";
 import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad, FaDownload } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
@@ -13,6 +13,13 @@ const log = logger.component("LinksSection");
 interface LinksSectionProps {
     lang: "en" | "uk";
     openUrl: (url: string) => void;
+}
+
+interface VersionInfo {
+    current: string;
+    latest: string | null;
+    latest_tag?: string;
+    update_available: boolean;
 }
 
 const generateQRCode = (url: string): string => {
@@ -47,6 +54,21 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
     const [showUsdtQR, setShowUsdtQR] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+    const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+
+    // Check for updates on mount
+    useEffect(() => {
+        const checkVersion = async () => {
+            try {
+                const info = await call<[], VersionInfo>("get_latest_version");
+                log.info("Version info:", info);
+                setVersionInfo(info);
+            } catch (e) {
+                log.error("Failed to check version:", e);
+            }
+        };
+        checkVersion();
+    }, []);
 
     const handleUpdate = async () => {
         log.info("Starting plugin update...");
@@ -57,6 +79,9 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             log.info("Update result:", result);
             if (result.success) {
                 setUpdateStatus(t("update_success", lang));
+                // Refresh version info after update
+                const info = await call<[], VersionInfo>("get_latest_version");
+                setVersionInfo(info);
             } else {
                 log.error("Update failed:", result.error);
                 setUpdateStatus(t("update_error", lang) + (result.error ? `: ${result.error}` : ""));
@@ -67,6 +92,15 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         } finally {
             setUpdating(false);
         }
+    };
+
+    // Determine button label
+    const getUpdateButtonLabel = () => {
+        if (updating) return t("updating", lang);
+        if (versionInfo?.update_available && versionInfo.latest_tag) {
+            return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
+        }
+        return t("update_plugin", lang);
     };
 
     return (
@@ -137,9 +171,30 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             <LinkButton
                 onClick={handleUpdate}
                 icon={<FaDownload />}
-                label={updating ? t("updating", lang) : t("update_plugin", lang)}
+                label={getUpdateButtonLabel()}
                 disabled={updating}
             />
+
+            {/* Version Display */}
+            {versionInfo && (
+                <PanelSectionRow>
+                    <div style={{
+                        textAlign: "center",
+                        fontSize: "11px",
+                        color: "rgba(255,255,255,0.5)",
+                        padding: "4px 0"
+                    }}>
+                        {t("current_version", lang)}: v{versionInfo.current}
+                        {versionInfo.update_available && (
+                            <span style={{ color: "#4ade80", marginLeft: "8px" }}>
+                                • {t("update_to", lang)} {versionInfo.latest_tag}
+                            </span>
+                        )}
+                    </div>
+                </PanelSectionRow>
+            )}
+
+            {/* Update Status */}
             {updateStatus && (
                 <PanelSectionRow>
                     <div style={{

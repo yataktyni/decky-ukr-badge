@@ -42,6 +42,8 @@ const translations: Record<string, TranslationDict> = {
     updating: "Updating...",
     update_success: "Updated successfully!",
     update_error: "Update failed",
+    current_version: "Current version",
+    update_to: "Update to",
   },
   uk: {
     plugin_description:
@@ -82,6 +84,8 @@ const translations: Record<string, TranslationDict> = {
     updating: "Оновлюється...",
     update_success: "Успішно оновлено!",
     update_error: "Помилка оновлення",
+    current_version: "Поточна версія",
+    update_to: "Оновити до",
   },
 };
 
