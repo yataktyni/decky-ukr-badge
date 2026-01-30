@@ -3,11 +3,8 @@ import { useState, useEffect } from "react";
 import { fetchNoCors } from "@decky/api";
 import { callBackend } from "./useSettings";
 import {
-    fetchSteamGameLanguages,
-    hasUkrainianSupport,
     cleanNonSteamName,
     searchKuli,
-    fetchSteamStoreName,
 } from "../utils";
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
@@ -74,6 +71,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 const isSteamId = appId && (parseInt(appId) < 1000000000);
 
                 let steamStatus: BadgeStatus | null = null;
+                let storeName: string | null = null;
 
                 if (!isSteamId) {
                     console.log(`[decky-ukr-badge] Non-Steam game detected: ${currentAppName} (${appId})`);
@@ -85,7 +83,8 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                         const steamResp = await fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);
                         const steamData = await steamResp.json();
                         if (steamData && steamData[appId]?.success) {
-                            currentAppName = steamData[appId].data.name;
+                            storeName = steamData[appId].data.name;
+                            currentAppName = storeName || currentAppName;
                             const languages = steamData[appId].data.supported_languages || "";
                             if (languages.toLowerCase().includes("ukrainian")) {
                                 steamStatus = "OFFICIAL";
@@ -93,22 +92,21 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                         }
 
                         // FALLBACK: If API says NO, check Store Page HTML directly.
-                        // Some games (e.g. Intravenous, Bad 2 Bad) don't list UA in API but do on Store Page.
                         if (steamStatus !== "OFFICIAL") {
                             console.log(`[decky-ukr-badge] API said NO/Empty, trying Store Page HTML for ${appId}`);
                             const htmlResp = await fetchNoCors(`https://store.steampowered.com/app/${appId}`);
                             if (htmlResp.ok) {
                                 const html = await htmlResp.text();
-                                // Check for "Ukrainian" text in the languages area
-                                // Simple regex check is usually sufficient for "supported languages" section
                                 if (html.includes("Ukrainian") || html.includes("Українська")) {
                                     console.log(`[decky-ukr-badge] Found Ukrainian in Store HTML for ${appId}`);
                                     steamStatus = "OFFICIAL";
 
-                                    // Also try to grab name if we missed it
-                                    if (!currentAppName || currentAppName === "") {
+                                    if (!storeName) {
                                         const titleMatch = html.match(/<div class="apphub_AppName">([^<]+)<\/div>/);
-                                        if (titleMatch) currentAppName = titleMatch[1];
+                                        if (titleMatch) {
+                                            storeName = titleMatch[1];
+                                            currentAppName = storeName;
+                                        }
                                     }
                                 }
                             }
@@ -121,34 +119,41 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 // 2. Kuli Community Support (via Frontend Shared Logic)
                 let kuliStatus: BadgeStatus | null = null;
                 let kuliUrl: string | null = null;
+
+                // Use the best name we have for search
                 let searchName = currentAppName;
 
                 if (!cancelled && searchName) {
                     console.log(`[decky-ukr-badge] Resolving Kuli for: ${searchName} (ID: ${appId})`);
                     try {
-                        const response = await searchKuli(searchName);
-                        console.log(`[decky-ukr-badge] searchKuli response for ${searchName}:`, response);
+                        let response = await searchKuli(searchName);
+
+                        // If searchName failed and we have a storeName that's different, try that too
+                        if (!response && storeName && storeName !== searchName) {
+                            console.log(`[decky-ukr-badge] Search failed for ${searchName}, trying storeName: ${storeName}`);
+                            response = await searchKuli(storeName);
+                        }
 
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
                             kuliStatus = response.status as BadgeStatus;
                             kuliUrl = `https://kuli.com.ua/${response.slug}`;
                         }
                     } catch (e) {
-                        console.error(`[decky-ukr-badge] Frontend status fetch failed for ${searchName}:`, e);
+                        console.error(`[decky-ukr-badge] Kuli search failed for ${searchName}:`, e);
                     }
                 }
 
                 // 3. Merge Results
                 let finalStatus: BadgeStatus = "NONE";
 
+                // Store API is the source of truth for OFFICIAL
                 if (steamStatus === "OFFICIAL") {
                     finalStatus = "OFFICIAL";
                 } else if (kuliStatus) {
                     finalStatus = kuliStatus;
                 }
 
-                // FIX: Use Kuli URL if available, even if Official. 
-                // Previously: const finalUrl = kuliUrl; // Only have URL if Kuli found it
+                // URL from Kuli is the source of truth for the link
                 const finalUrl = kuliUrl;
 
                 // Save and Cache

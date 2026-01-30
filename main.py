@@ -161,72 +161,107 @@ async def get_kuli_status(game_name: str) -> Dict[str, str]:
         if not name:
             return ""
         # Clean shortcut tags and versions
-        name = re.sub(r"\s*\((Shortcut|Non-Steam|App|Game)\)$", "", name, flags=re.IGNORECASE)
-        name = re.sub(r"\s*v\d+(\.\d+)*", "", name, flags=re.IGNORECASE)
-        return re.sub(r"[^a-z0-9]+", "-", re.sub(r"[':’]", "", name.lower())).strip("-")
+        cleaned = re.sub(r"\s*\((Shortcut|Non-Steam|App|Game)\)$", "", name, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\s*v\d+(\.\d+)*", "", cleaned, flags=re.IGNORECASE)
+        # URL-friendly slug
+        slug = cleaned.lower()
+        slug = re.sub(r"[':’]", "", slug)
+        slug = re.sub(r"[^a-z0-9]+", "-", slug)
+        slug = re.sub(r"-+", "-", slug)
+        return slug.strip("-")
+
+    headers = {
+        "Accept": "text/html",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
 
     slug = urlify(game_name)
     if not slug:
         return {"status": "NONE", "url": ""}
-    url = f"https://kuli.com.ua/{slug}"
     
+    # 1. Try DIRECT LINK first
+    direct_url = f"https://kuli.com.ua/{slug}"
     try:
-        headers = {
-            "Accept": "text/html",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        resp = requests.get(url, timeout=10.0, headers=headers)
-        
-        if resp.status_code == 404:
-            return await search_kuli(game_name)
-        
-        if resp.status_code != 200:
-            return {"status": "NONE", "url": ""}
-        
-        html = resp.text
-        if "item__instruction-main" in html:
-            return {"status": "COMMUNITY", "url": url}
-        if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
-            return {"status": "OFFICIAL", "url": url}
+        resp = requests.get(direct_url, timeout=10.0, headers=headers)
+        if resp.status_code == 200:
+            html = resp.text
+            markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"]
+            if any(m in html for m in markers):
+                status = "COMMUNITY" if "item__instruction-main" in html else "OFFICIAL"
+                return {"status": status, "url": direct_url}
     except Exception as e:
-        decky.logger.error(f"Kuli error: {e}")
-    return {"status": "NONE", "url": ""}
+        decky.logger.error(f"Kuli direct check error: {e}")
+
+    # 2. Fallback to SEARCH
+    return await search_kuli(game_name)
 
 async def search_kuli(game_name: str) -> Dict[str, str]:
     """Search fallback for kuli.com.ua, returns dict with status and url."""
     search_url = f"https://kuli.com.ua/games?query={urllib.parse.quote(game_name)}"
+    headers = {
+        "Accept": "text/html",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+
     try:
-        headers = {
-            "Accept": "text/html",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
         resp = requests.get(search_url, timeout=10.0, headers=headers)
         if resp.status_code != 200:
             return {"status": "NONE", "url": ""}
         
-        # Improved regex to find product link from the grid
-        match = re.search(r'class="product-item[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
+        html = resp.text
+        # Find all product items: (href, title)
+        # Try both item__title and product-title
+        pattern = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?class="(?:item__title|product-title)">([^<]+)'
+        matches = re.findall(pattern, html, re.DOTALL)
         
-        if not match:
-             match = re.search(r'class="product-item-full[^"]*".*?href="([^"]+)"', resp.text, re.DOTALL)
-             
-        if not match:
-             match = re.search(r'class="item-grid".*?href="([^"]+)"', resp.text, re.DOTALL)
-        
-        if not match:
+        if not matches:
+            # Fallback for nested product titles (like House Flipper)
+            pattern_nested = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?<h2 class="product-title">.*?<a[^>]*>([^<]+)'
+            matches = re.findall(pattern_nested, html, re.DOTALL)
+
+        if not matches:
+            # Absolute fallback for very basic grid items
+            pattern_simple = r'class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)"'
+            match = re.search(pattern_simple, html, re.DOTALL)
+            if match:
+                 matches = [(match.group(1), "Unknown")]
+
+        if not matches:
             return {"status": "NONE", "url": ""}
+
+        # Simple scoring: look for exact title match or best starts-with
+        best_match = None
+        min_dist = 999
         
-        href = match.group(1)
-        full_url = href if href.startswith("http") else urllib.parse.urljoin("https://kuli.com.ua", href)
+        gn_low = game_name.lower()
+        for href, title in matches:
+            t_low = title.strip().lower()
+            if t_low == gn_low:
+                best_match = href
+                break
+            
+            # Use starts-with as a secondary indicator
+            if t_low.startswith(gn_low) or gn_low.startswith(t_low):
+                dist = abs(len(t_low) - len(gn_low))
+                if dist < min_dist:
+                    min_dist = dist
+                    best_match = href
+
+        # If no good heuristic match, just take the first result
+        if not best_match:
+            best_match = matches[0][0]
         
-        # Verify the game page exists and has the correct markers
+        full_url = best_match if best_match.startswith("http") else urllib.parse.urljoin("https://kuli.com.ua", best_match)
+        
+        # Verify the game page exists
         game_resp = requests.get(full_url, timeout=10.0, headers=headers)
         if game_resp.status_code == 200:
-            html = game_resp.text
-            if "item__instruction-main" in html:
-                return {"status": "COMMUNITY", "url": full_url}
-            if any(m in html for m in ["html-product-details-page", "game-page", "item__title"]):
-                return {"status": "OFFICIAL", "url": full_url}
+            gh = game_resp.text
+            markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"]
+            if any(m in gh for m in markers):
+                status = "COMMUNITY" if "item__instruction-main" in gh else "OFFICIAL"
+                return {"status": status, "url": full_url}
+                
     except Exception as e:
         decky.logger.error(f"Kuli search error: {e}")
     return {"status": "NONE", "url": ""}

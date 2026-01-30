@@ -73,53 +73,7 @@ export function urlifyGameName(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/**
- * Fetches supported languages for a Steam game from the Steam API.
- * Returns an array of language names (lowercase) or null on error.
- */
-export async function fetchSteamGameLanguages(
-  appId: string,
-): Promise<string[] | null> {
-  try {
-    return await callBackend<string[]>("get_steam_languages", appId);
-  } catch (e) {
-    console.error("[decky-ukr-badge] Error fetching Steam languages:", e);
-    return null;
-  }
-}
-
-/**
- * Checks if Ukrainian is in the list of supported languages.
- */
-export function hasUkrainianSupport(languages: string[]): boolean {
-  return languages.some(
-    (lang) => lang === "ukrainian" || lang.includes("ukrainian"),
-  );
-}
-
-/**
- * Fetches translation status from kuli.com.ua.
- * Returns "OFFICIAL" if native support, "COMMUNITY" if fan translation exists, null otherwise.
- */
-export async function fetchKuliTranslationStatus(
-  gameName: string,
-): Promise<"OFFICIAL" | "COMMUNITY" | null> {
-  if (!gameName) {
-    return null;
-  }
-
-  try {
-    const response = await callBackend<{ status: string; url: string }>("get_kuli_status", gameName);
-    const status = response?.status;
-    if (status === "OFFICIAL" || status === "COMMUNITY") {
-      return status as "OFFICIAL" | "COMMUNITY";
-    }
-    return null;
-  } catch (e) {
-    console.error(`[decky-ukr-badge] Error fetching Kuli status for ${gameName}:`, e);
-    return null;
-  }
-}
+// (Removed unused functions: fetchSteamGameLanguages, hasUkrainianSupport, fetchKuliTranslationStatus, fetchSteamStoreName)
 
 /**
  * Opens a URL in Steam's built-in browser.
@@ -190,23 +144,6 @@ export async function fetchWithTimeout(
   return Promise.race([fetchPromise, timeoutPromise])
 }
 
-// Helper to fetch official game name from Steam Store API
-export async function fetchSteamStoreName(appId: string): Promise<string | null> {
-  try {
-    const res = await fetchWithTimeout(fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`));
-    if (res.status !== 200) return null;
-
-    const data = await res.json();
-    if (data && data[appId] && data[appId].success && data[appId].data) {
-      return data[appId].data.name;
-    }
-    return null;
-  } catch (e) {
-    console.warn("[decky-ukr-badge] Failed to fetch official Store name:", e);
-    return null;
-  }
-}
-
 // Helper for Levenshtein distance
 function levenshtein(a: string, b: string): number {
   const matrix = [];
@@ -226,12 +163,34 @@ function levenshtein(a: string, b: string): number {
 
 export async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
   try {
-    const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
     const headers = {
       "Accept": "text/html",
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     };
 
+    // 1. Try DIRECT LINK first (propose from user)
+    const directSlug = urlifyGameName(gameName);
+    const directUrl = `https://kuli.com.ua/${directSlug}`;
+    console.log(`[decky-ukr-badge] Trying direct Kuli link: ${directUrl}`);
+
+    try {
+      const directRes = await fetchWithTimeout(fetchNoCors(directUrl, { headers }));
+      if (directRes.status === 200) {
+        const directHtml = await directRes.text();
+        // Expand markers to include more reliable ones like html-product-details-page
+        const markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"];
+        if (markers.some(m => directHtml.includes(m))) {
+          console.log(`[decky-ukr-badge] Direct Kuli link HIT: ${directSlug}`);
+          const statusResult = directHtml.includes("item__instruction-main") ? "COMMUNITY" : "OFFICIAL";
+          return { status: statusResult, slug: directSlug };
+        }
+      }
+    } catch (e) {
+      console.warn(`[decky-ukr-badge] Direct link check failed for ${directSlug}:`, e);
+    }
+
+    // 2. Fallback to SEARCH if direct fails
+    const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
     const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }));
     if (res.status !== 200) return null;
 
@@ -253,18 +212,23 @@ export async function searchKuli(gameName: string): Promise<{ status: string, sl
         const dist = levenshtein(gameName.toLowerCase(), title.toLowerCase());
 
         let score = dist;
-        if (!title.toLowerCase().startsWith(gameName.toLowerCase())) score += 5;
-        if (Math.abs(title.length - gameName.length) > 5) score += 2;
+        // Exact match bonus
+        if (title.toLowerCase() === gameName.toLowerCase()) {
+          score = 0;
+        } else {
+          if (!title.toLowerCase().startsWith(gameName.toLowerCase())) score += 5;
+          if (Math.abs(title.length - gameName.length) > 5) score += 2;
+        }
 
         results.push({ href, title, score });
       }
     };
 
     // 1. Standard list items
-    processMatch(/class="product-item[^"]*".*?href="([^"]+)".*?class="item__title">([^<]+)</gs);
+    processMatch(/class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?class="(?:item__title|product-title)">([^<]+)</gs);
 
-    // 2. Full width items
-    processMatch(/class="product-item-full[^"]*".*?href="([^"]+)".*?class="item__title">([^<]+)</gs);
+    // 2. Fallback if strict title class failed (try to catch title in nested div)
+    processMatch(/class="(?:product-item|product-item-full|item-grid)[^"]*".*?href="([^"]+)".*?<h2 class="product-title">.*?<a[^>]*>([^<]+)</gs);
 
     // 3. Grid items
     processMatch(/class="item-grid[^"]*".*?href="([^"]+)".*?class="item__title">([^<]+)</gs);
@@ -284,8 +248,6 @@ export async function searchKuli(gameName: string): Promise<{ status: string, sl
     let href = results[0].href;
     console.log(`[decky-ukr-badge] Search Best Match for "${gameName}": "${results[0].title}" (Score: ${results[0].score}) from ${results.length} candidates`);
 
-
-
     if (href.startsWith("/")) href = href.substring(1);
     href = href.replace(/^https:\/\/kuli\.com\.ua\//, "");
 
@@ -298,7 +260,9 @@ export async function searchKuli(gameName: string): Promise<{ status: string, sl
 
     const gameHtml = await gameRes.text();
     if (gameHtml.includes("item__instruction-main")) return { status: "COMMUNITY", slug };
-    if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title"))
+
+    const markers = ["html-product-details-page", "game-page", "item__title", "product-essential", "product-name"];
+    if (markers.some(m => gameHtml.includes(m)))
       return { status: "OFFICIAL", slug };
 
     return null;
