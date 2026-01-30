@@ -64,38 +64,17 @@ export const Settings: FC = () => {
         setTimeouts(prev => ({ ...prev, [key]: setTimeout(() => persister(value), 300) }));
     };
 
-    const typeOptions = [{ data: 0, label: t("type_default", lang), value: "default" as const }, { data: 1, label: t("type_full", lang), value: "full" as const }];
-    const posOptions = [{ data: 0, label: t("top_left", lang), value: "top-left" as const }, { data: 1, label: t("top_right", lang), value: "top-right" as const }];
-
-
-
-    // Auto-focus first element when loading completes to reset scroll
-    useEffect(() => {
-        if (!loading) {
-            // Use multiple attempts to ensure the DOM is painted
-            const scrollInterval = setInterval(() => {
-                const container = document.querySelector(".decky-plugin-container, .game-paddings, .Scrollable");
-                if (container) {
-                    container.scrollTop = 0;
-                }
-
-                const firstInput = document.querySelector(".decky-plugin-settings .focusable, .decky-plugin-settings input, .DialogInput");
-                if (firstInput && (firstInput as HTMLElement).focus) {
-                    (firstInput as HTMLElement).focus();
-                }
-            }, 50);
-
-            const timeout = setTimeout(() => clearInterval(scrollInterval), 500);
-            return () => {
-                clearInterval(scrollInterval);
-                clearTimeout(timeout);
-            };
-        }
-        return undefined;
-    }, [loading]);
+    const typeOptions = [
+        { data: 0, label: t("type_default", lang), value: "default" as const },
+        { data: 1, label: t("type_full", lang), value: "full" as const }
+    ];
+    const posOptions = [
+        { data: 0, label: t("top_left", lang), value: "top-left" as const },
+        { data: 1, label: t("top_right", lang), value: "top-right" as const }
+    ];
 
     return (
-        <div className="decky-plugin-settings">
+        <>
             <PanelSection title={t("settings_title", lang)}>
                 {loading ? (
                     <PanelSectionRow>
@@ -141,7 +120,6 @@ export const Settings: FC = () => {
             </PanelSection>
 
             {!loading && <LinksSection lang={lang} openUrl={openUrl} />}
-        </div>
+        </>
     );
 };
-
