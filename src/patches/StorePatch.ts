@@ -3,74 +3,9 @@ import { fetchNoCors } from '@decky/api'
 import { findModuleExport } from '@decky/ui'
 import { BehaviorSubject } from 'rxjs'
 import { SettingsContext } from '../hooks/useSettings'
-import { urlifyGameName } from '../utils'
+import { urlifyGameName, searchKuli, fetchWithTimeout } from '../utils'
 
-const FETCH_TIMEOUT_MS = 5000
 
-// Helper function to add timeout to fetch requests
-async function fetchWithTimeout(
-    fetchPromise: Promise<Response>,
-    timeoutMs: number = FETCH_TIMEOUT_MS
-): Promise<Response> {
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
-    })
-    return Promise.race([fetchPromise, timeoutPromise])
-}
-
-async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
-    try {
-        const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
-        const headers = {
-            "Accept": "text/html",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        };
-
-        const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }));
-        if (res.status !== 200) return null;
-
-        const html = await res.text();
-
-        // Regex strategies (matching Python logic)
-        // 1. Standard product item
-        let match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
-
-        // 2. Full product item
-        if (!match) match = html.match(/class="product-item-full[^"]*".*?href="([^"]+)"/s);
-
-        // 3. Grid item
-        if (!match) match = html.match(/class="item-grid".*?href="([^"]+)"/s);
-
-        if (!match) return null;
-
-        let href = match[1];
-        // Clean up URL
-        if (href.startsWith("/")) {
-            href = href.substring(1); // remove leading slash
-        }
-        // If it starts with full url, strip domain to get slug
-        if (href.startsWith("https://kuli.com.ua/")) {
-            href = href.replace("https://kuli.com.ua/", "");
-        }
-
-        const slug = href;
-        const fullUrl = `https://kuli.com.ua/${slug}`;
-
-        // Verify
-        const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }));
-        if (gameRes.status !== 200) return null;
-
-        const gameHtml = await gameRes.text();
-        if (gameHtml.includes("item__instruction-main")) return { status: "COMMUNITY", slug };
-        if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title"))
-            return { status: "OFFICIAL", slug };
-
-        return null;
-    } catch (e) {
-        console.warn("[decky-ukr-badge] Store Patch Search Error:", e);
-        return null;
-    }
-}
 
 // Store app ID observable - components can subscribe to this
 export const storeAppId$ = new BehaviorSubject<string>('')

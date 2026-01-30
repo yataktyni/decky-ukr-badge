@@ -6,6 +6,7 @@ import {
     fetchSteamGameLanguages,
     hasUkrainianSupport,
     cleanNonSteamName,
+    searchKuli,
 } from "../utils";
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
@@ -116,7 +117,7 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                     }
                 }
 
-                // 2. Kuli Community Support (via Backend)
+                // 2. Kuli Community Support (via Frontend Shared Logic)
                 // We proceed to check Kuli even if Steam found it, to resolve the URL for clickability
                 let kuliStatus: BadgeStatus | null = null;
                 let kuliUrl: string | null = null;
@@ -124,13 +125,13 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 if (!cancelled && currentAppName) {
                     console.log(`[decky-ukr-badge] Resolving Kuli for: ${currentAppName} (ID: ${appId})`);
                     try {
-                        const response = await callBackend<{ status: string; url: string }>("get_kuli_status", currentAppName);
+                        const response = await searchKuli(currentAppName);
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
                             kuliStatus = response.status as BadgeStatus;
-                            kuliUrl = response.url;
+                            kuliUrl = `https://kuli.com.ua/${response.slug}`;
                         }
                     } catch (e) {
-                        console.error(`[decky-ukr-badge] Backend status fetch failed for ${currentAppName}:`, e);
+                        console.error(`[decky-ukr-badge] Frontend status fetch failed for ${currentAppName}:`, e);
                     }
                 }
 
@@ -143,7 +144,9 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                     finalStatus = kuliStatus;
                 }
 
-                const finalUrl = kuliUrl; // Only have URL if Kuli found it
+                // FIX: Use Kuli URL if available, even if Official. 
+                // Previously: const finalUrl = kuliUrl; // Only have URL if Kuli found it
+                const finalUrl = kuliUrl;
 
                 // Save and Cache
                 if (!cancelled) {

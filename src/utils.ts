@@ -1,5 +1,6 @@
 // decky-ukr-badge/utils.ts
 import { Router } from "@decky/ui";
+import { fetchNoCors } from "@decky/api";
 import { callBackend } from "./hooks/useSettings";
 
 /**
@@ -175,3 +176,60 @@ declare const SteamClient:
     };
   }
   | undefined;
+
+const FETCH_TIMEOUT_MS = 5000;
+
+// Helper function to add timeout to fetch requests
+export async function fetchWithTimeout(
+  fetchPromise: Promise<Response>,
+  timeoutMs: number = FETCH_TIMEOUT_MS
+): Promise<Response> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+  })
+  return Promise.race([fetchPromise, timeoutPromise])
+}
+
+export async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
+  try {
+    const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
+    const headers = {
+      "Accept": "text/html",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    };
+
+    const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }));
+    if (res.status !== 200) return null;
+
+    const html = await res.text();
+
+    // Regex strategies
+    let match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
+    if (!match) match = html.match(/class="product-item-full[^"]*".*?href="([^"]+)"/s);
+    if (!match) match = html.match(/class="item-grid".*?href="([^"]+)"/s);
+
+    if (!match) return null;
+
+    let href = match[1];
+    if (href.startsWith("/")) href = href.substring(1);
+    // Remove domain if present
+    href = href.replace(/^https:\/\/kuli\.com\.ua\//, "");
+
+    const slug = href;
+    const fullUrl = `https://kuli.com.ua/${slug}`;
+
+    // Verify page content for status
+    const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }));
+    if (gameRes.status !== 200) return null;
+
+    const gameHtml = await gameRes.text();
+    if (gameHtml.includes("item__instruction-main")) return { status: "COMMUNITY", slug };
+    if (gameHtml.includes("html-product-details-page") || gameHtml.includes("game-page") || gameHtml.includes("item__title"))
+      return { status: "OFFICIAL", slug };
+
+    return null;
+  } catch (e) {
+    console.error("[decky-ukr-badge] searchKuli failed:", e);
+    return null;
+  }
+}

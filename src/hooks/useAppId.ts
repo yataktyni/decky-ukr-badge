@@ -72,11 +72,25 @@ export function useAppId(): {
                     );
                     setAppId(pathId);
 
-                    // Fallback to searching the React tree or router for the title if possible
-                    // But for now, we'll try to get it from the window title as a last resort
+                    // Fallback strategies for Name
+                    let resolvedName = "";
+
+                    // 1. Try React Router / Navigation props (if accessible via global scope or utils)
+                    // (Skipped as we don't have easy access here without hacking internals)
+
+                    // 2. Document Title (Works well for Non-Steam shortcuts in detailed view)
                     if (typeof document !== "undefined" && document.title) {
-                        const title = document.title.split(" - ")[0];
-                        if (title && title !== "Steam") setAppName(title);
+                        const title = document.title;
+                        // Format is usually "Game Name" or "Game Name - Steam"
+                        const cleanTitle = title.replace(" - Steam", "").trim();
+                        if (cleanTitle && cleanTitle !== "Steam" && cleanTitle !== "Library" && cleanTitle !== "Home") {
+                            resolvedName = cleanTitle;
+                        }
+                    }
+
+                    if (resolvedName) {
+                        console.log(`[decky-ukr-badge] Extracted name from title for ${pathId}: ${resolvedName}`);
+                        setAppName(resolvedName);
                     }
 
                     setIsLoading(false);
