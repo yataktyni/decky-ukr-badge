@@ -202,7 +202,7 @@ export default definePlugin(() => {
 
     return {
         name: "decky-ukr-badge",
-        title: <div className={staticClasses.Title}>UA Badge</div>,
+        title: "UA Badge",
         icon: <FaFlag />,
         content: <SettingsPanel />,
         onDismount() {
