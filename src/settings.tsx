@@ -69,8 +69,25 @@ export const Settings: FC = () => {
 
 
 
+    // Auto-focus first element when loading completes to reset scroll
+    useEffect(() => {
+        if (!loading) {
+            // Small timeout to allow DOM to settle
+            setTimeout(() => {
+                const firstInput = document.querySelector(".decky-plugin-settings input, .decky-plugin-settings .focusable, .DialogInput");
+                if (firstInput && (firstInput as HTMLElement).focus) {
+                    (firstInput as HTMLElement).focus();
+                } else {
+                    // Fallback: try to scroll the parent container to top
+                    const parent = document.querySelector(".decky-plugin-container, .game-paddings, .Scrollable");
+                    if (parent) parent.scrollTop = 0;
+                }
+            }, 50);
+        }
+    }, [loading]);
+
     return (
-        <div>
+        <>
             <PanelSection title={t("settings_title", lang)}>
                 {loading ? (
                     <PanelSectionRow>
@@ -80,7 +97,6 @@ export const Settings: FC = () => {
                     </PanelSectionRow>
                 ) : (
                     <>
-
                         <PanelSectionRow>
                             <DropdownItem
                                 label={t("badge_type", lang)}
@@ -117,7 +133,7 @@ export const Settings: FC = () => {
             </PanelSection>
 
             {!loading && <LinksSection lang={lang} openUrl={openUrl} />}
-        </div>
+        </>
     );
 };
 

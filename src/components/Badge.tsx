@@ -126,7 +126,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
     return (
         <div
             ref={ref}
-            style={style}
+            style={{ ...style, pointerEvents: "none" }} // Pass through clicks on wrapper
         >
             <Focusable
                 onActivate={() => isClickable && openInSteamBrowser(clickUrl)}
@@ -147,6 +147,7 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
                     opacity: status === "NONE" ? 0.8 : 1,
                     fontFamily: '"Motiva Sans", sans-serif',
                     transition: "all 0.3s ease",
+                    pointerEvents: "auto", // Re-enable pointer events for the button
                 }}
             >
                 <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
