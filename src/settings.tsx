@@ -78,7 +78,9 @@ export const Settings: FC = () => {
             <PanelSection title={t("settings_title", lang)}>
                 {loading ? (
                     <PanelSectionRow>
-                        <Spinner />
+                        <div style={{ display: "flex", justifyContent: "center", padding: 20, width: "100%" }}>
+                            <Spinner />
+                        </div>
                     </PanelSectionRow>
                 ) : (
                     <>
