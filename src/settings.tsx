@@ -72,22 +72,30 @@ export const Settings: FC = () => {
     // Auto-focus first element when loading completes to reset scroll
     useEffect(() => {
         if (!loading) {
-            // Small timeout to allow DOM to settle
-            setTimeout(() => {
-                const firstInput = document.querySelector(".decky-plugin-settings input, .decky-plugin-settings .focusable, .DialogInput");
+            // Use multiple attempts to ensure the DOM is painted
+            const scrollInterval = setInterval(() => {
+                const container = document.querySelector(".decky-plugin-container, .game-paddings, .Scrollable");
+                if (container) {
+                    container.scrollTop = 0;
+                }
+
+                const firstInput = document.querySelector(".decky-plugin-settings .focusable, .decky-plugin-settings input, .DialogInput");
                 if (firstInput && (firstInput as HTMLElement).focus) {
                     (firstInput as HTMLElement).focus();
-                } else {
-                    // Fallback: try to scroll the parent container to top
-                    const parent = document.querySelector(".decky-plugin-container, .game-paddings, .Scrollable");
-                    if (parent) parent.scrollTop = 0;
                 }
             }, 50);
+
+            const timeout = setTimeout(() => clearInterval(scrollInterval), 500);
+            return () => {
+                clearInterval(scrollInterval);
+                clearTimeout(timeout);
+            };
         }
+        return undefined;
     }, [loading]);
 
     return (
-        <>
+        <div className="decky-plugin-settings">
             <PanelSection title={t("settings_title", lang)}>
                 {loading ? (
                     <PanelSectionRow>
@@ -133,7 +141,7 @@ export const Settings: FC = () => {
             </PanelSection>
 
             {!loading && <LinksSection lang={lang} openUrl={openUrl} />}
-        </>
+        </div>
     );
 };
 
