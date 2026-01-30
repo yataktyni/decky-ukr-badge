@@ -190,6 +190,23 @@ export async function fetchWithTimeout(
   return Promise.race([fetchPromise, timeoutPromise])
 }
 
+// Helper for Levenshtein distance
+function levenshtein(a: string, b: string): number {
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+  for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) == a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1));
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+}
+
 export async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
   try {
     const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
@@ -203,16 +220,50 @@ export async function searchKuli(gameName: string): Promise<{ status: string, sl
 
     const html = await res.text();
 
-    // Regex strategies
-    let match = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s);
-    if (!match) match = html.match(/class="product-item-full[^"]*".*?href="([^"]+)"/s);
-    if (!match) match = html.match(/class="item-grid".*?href="([^"]+)"/s);
+    // Regex to capture HREF and TITLE from product items
+    // Matches: <a class="product-item..." ... href="..."> ... <div class="item__title">Title</div> ... </a>
+    // Note: This regex is an approximation for HTML parsing. 
+    // We look for the block that contains href and the title.
 
-    if (!match) return null;
+    // Strategy: Find all hrefs in product-items, then verify? No, that's too slow (N requests).
+    // We need to extract titles from the search results page to compare.
 
-    let href = match[1];
+    const results: { href: string; title: string; score: number }[] = [];
+    const regex = /class="product-item.*?href="([^"]+)".*?class="item__title">([^<]+)</gs;
+
+    let match;
+    while ((match = regex.exec(html)) !== null) {
+      const href = match[1];
+      const title = match[2].trim();
+      const dist = levenshtein(gameName.toLowerCase(), title.toLowerCase());
+
+      // Bonus for exact startsWith (e.g. "Inside" vs "Best Inside")
+      let score = dist;
+      if (!title.toLowerCase().startsWith(gameName.toLowerCase())) score += 5;
+      if (Math.abs(title.length - gameName.length) > 5) score += 2; // Penalize length mismatch
+
+      results.push({ href, title, score });
+    }
+
+    // Sort by best score (lowest distance)
+    results.sort((a, b) => a.score - b.score);
+
+    if (results.length === 0) {
+      // Fallback to old simple regex if structure didn't match (e.g. grid view)
+      const simpleMatch = html.match(/class="product-item[^"]*".*?href="([^"]+)"/s) ||
+        html.match(/class="product-item-full[^"]*".*?href="([^"]+)"/s);
+      if (simpleMatch) {
+        results.push({ href: simpleMatch[1], title: "Unknown", score: 999 });
+      }
+    }
+
+    if (results.length === 0) return null;
+
+    // Pick top result
+    let href = results[0].href;
+    console.log(`[decky-ukr-badge] Search Best Match for "${gameName}": "${results[0].title}" (Score: ${results[0].score})`);
+
     if (href.startsWith("/")) href = href.substring(1);
-    // Remove domain if present
     href = href.replace(/^https:\/\/kuli\.com\.ua\//, "");
 
     const slug = href;
