@@ -27,8 +27,8 @@ export type Settings = {
 const DEFAULT_SETTINGS: Settings = {
     badgeType: "full",
     badgePosition: "top-right",
-    offsetX: 0,
-    offsetY: 60,
+    offsetX: 20,
+    offsetY: 90,
     showOnStore: true,
     storeOffsetX: 0,
     storeOffsetY: 20,
@@ -49,23 +49,6 @@ async function updateSetting<K extends keyof Settings>(key: K, value: Settings[K
         ]);
     } catch (error) {
         console.error("[decky-ukr-badge] Failed to save setting:", error);
-    }
-}
-
-async function resetSettings() {
-    LoadingContext.next(true);
-    try {
-        console.log("[decky-ukr-badge] Resetting settings via backend...");
-        const settings = await Promise.race([
-            callBackend<Settings>("reset_settings"),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Reset Timeout")), 3000))
-        ]);
-        console.log("[decky-ukr-badge] Reset settings received:", settings);
-        SettingsContext.next(settings);
-    } catch (error) {
-        console.error("[decky-ukr-badge] Failed to reset settings:", error);
-    } finally {
-        LoadingContext.next(false);
     }
 }
 
@@ -115,27 +98,7 @@ export function useSettings() {
         setShowOnStore: (v: Settings["showOnStore"]) => updateSetting("showOnStore", v),
         setStoreOffsetX: (v: Settings["storeOffsetX"]) => updateSetting("storeOffsetX", v),
         setStoreOffsetY: (v: Settings["storeOffsetY"]) => updateSetting("storeOffsetY", v),
-        resetSettings,
     };
 }
 
-export function useVersionInfo() {
-    const [versionInfo, setVersionInfo] = useState<{ plugin_version: string, steamos_version: string, decky_version: string } | null>(null);
-    const [error, setError] = useState<boolean>(false);
-
-    useEffect(() => {
-        Promise.race([
-            callBackend<any>("get_system_info"),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000))
-        ])
-            .then(setVersionInfo)
-            .catch((e) => {
-                console.error("[decky-ukr-badge] VersionInfo hang:", e);
-                setError(true);
-            });
-    }, []);
-
-    return { info: versionInfo, error };
-}
-
-export { SettingsContext, DEFAULT_SETTINGS };
+export { SettingsContext };

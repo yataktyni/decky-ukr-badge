@@ -3,31 +3,24 @@ import React, { FC, useState, useEffect } from "react";
 import {
     PanelSection,
     PanelSectionRow,
-    ButtonItem,
     DropdownItem,
     SliderField,
     ToggleField,
     Navigation,
 } from "@decky/ui";
 import { t, getSupportedLanguage } from "./translations";
-import { DEFAULT_SETTINGS, useSettings, useVersionInfo } from "./hooks/useSettings";
+import { useSettings } from "./hooks/useSettings";
 import Spinner from "./components/Spinner";
 import { LinksSection } from "./components/LinksSection";
 
 // Declare SteamClient for TypeScript
 declare const SteamClient: { System?: { OpenInSystemBrowser?: (url: string) => void } } | undefined;
 
-const CACHE_KEY = "decky-ukr-badge-cache";
-
 export const Settings: FC = () => {
     const {
         settings, loading, setBadgeType, setBadgePosition,
         setOffsetX, setOffsetY, setShowOnStore, setStoreOffsetX, setStoreOffsetY,
-        resetSettings,
     } = useSettings();
-
-    // Always call hook (rules of hooks)
-    const { info: versionInfo, error: versionError } = useVersionInfo();
 
     const [offsets, setOffsets] = useState({ x: 10, y: 10, sx: 0, sy: 0 });
     const [timeouts, setTimeouts] = useState<Record<string, ReturnType<typeof setTimeout> | null>>({});
@@ -74,6 +67,8 @@ export const Settings: FC = () => {
     const typeOptions = [{ data: 0, label: t("type_default", lang), value: "default" as const }, { data: 1, label: t("type_full", lang), value: "full" as const }];
     const posOptions = [{ data: 0, label: t("top_left", lang), value: "top-left" as const }, { data: 1, label: t("top_right", lang), value: "top-right" as const }];
 
+
+
     return (
         <div>
             <PanelSection title={t("settings_title", lang)}>
@@ -85,6 +80,7 @@ export const Settings: FC = () => {
                     </PanelSectionRow>
                 ) : (
                     <>
+
                         <PanelSectionRow>
                             <DropdownItem
                                 label={t("badge_type", lang)}
@@ -125,4 +121,3 @@ export const Settings: FC = () => {
     );
 };
 
-export { callBackend } from "./hooks/useSettings";

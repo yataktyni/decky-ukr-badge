@@ -26,9 +26,9 @@ SETTINGS_FILE = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
 
 DEFAULT_SETTINGS: Settings = {
     "badgeType": "full",
-    "badgePosition": "top-left",
-    "offsetX": 16,
-    "offsetY": 16,
+    "badgePosition": "top-right",
+    "offsetX": 20,
+    "offsetY": 90,
     "showOnStore": True,
     "storeOffsetX": 0,
     "storeOffsetY": 20,

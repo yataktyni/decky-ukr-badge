@@ -5,6 +5,7 @@ import {
     Navigation,
     appDetailsClasses,
     appDetailsHeaderClasses,
+    Focusable,
 } from "@decky/ui";
 
 import { useAppId } from "../hooks/useAppId";
@@ -53,9 +54,27 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
     const { settings, loading: settingsLoading } = useSettings();
     const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
 
-    // Prioritize passed props over hook values
+    // Prioritize passed props over hook values, but allow fallback to local State extraction
+    const [localAppName, setLocalAppName] = useState(pAppName || hAppName || "");
+
+    useEffect(() => {
+        if (!localAppName) {
+            // Attempt to grab from document title if all else fails (common for Non-Steam)
+            // Title format: "Game Name" or "Game Name - Steam" or similar
+            let title = document.title;
+            if (title) {
+                title = title.replace(" - Steam", "").trim();
+                // Filter out generic titles
+                if (title !== "Steam" && title !== "Library" && title !== "Home") {
+                    console.log("[decky-ukr-badge] Extracted name from title:", title);
+                    setLocalAppName(title);
+                }
+            }
+        }
+    }, [pAppName, hAppName, localAppName]);
+
     const appId = pAppId || hAppId;
-    const appName = pAppName || hAppName;
+    const appName = localAppName;
 
     const { status, url: kuliUrl, loading: statusLoading } = useBadgeStatus(appId, appName);
     const { badgeType } = settings;
@@ -108,9 +127,10 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
         <div
             ref={ref}
             style={style}
-            onClick={() => isClickable && openInSteamBrowser(clickUrl)}
         >
-            <button
+            <Focusable
+                onActivate={() => isClickable && openInSteamBrowser(clickUrl)}
+                onClick={() => isClickable && openInSteamBrowser(clickUrl)}
                 style={{
                     display: "inline-flex",
                     alignItems: "center",
@@ -129,10 +149,10 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
                     transition: "all 0.3s ease",
                 }}
             >
-                <span style={{ fontSize: "20px", lineHeight: 1 }}>🇺🇦</span>
+                <span style={{ fontSize: "20px", lineHeight: "1" }}>🇺🇦</span>
                 <BadgeIcon size={16} />
                 {label && <span>{label}</span>}
-            </button>
+            </Focusable>
         </div>
     );
 };

@@ -5,7 +5,7 @@ import { BehaviorSubject } from 'rxjs'
 import { SettingsContext } from '../hooks/useSettings'
 import { urlifyGameName } from '../utils'
 
-const FETCH_TIMEOUT_MS = 2000
+const FETCH_TIMEOUT_MS = 5000
 
 // Helper function to add timeout to fetch requests
 async function fetchWithTimeout(
@@ -143,27 +143,31 @@ async function injectBadgeIntoStore(appId: string) {
     // Problem: We need the Game Name for Kuli. AppID isn't enough for Kuli URL.
     // We can fetch Steam Store API to get the name?
 
+    console.log(`[UA Badge] Injecting badge for AppID: ${appId}`);
     try {
         // 1. Get Game Name from Steam API
+        console.log(`[UA Badge] Fetching Steam API for ${appId}`);
         const steamResp = await fetchWithTimeout(fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`));
         const steamData = await steamResp.json();
 
-        if (!steamData[appId]?.success) return;
+        if (!steamData[appId]?.success) {
+            console.warn(`[UA Badge] Steam API failed for ${appId}`, steamData);
+            return;
+        }
 
         const gameName = steamData[appId].data.name;
+        console.log(`[UA Badge] Game Name: ${gameName}`);
         const languages = steamData[appId].data.supported_languages || "";
 
         const hasUkr = languages.toLowerCase().includes("ukrainian");
 
         let status = "NONE";
         let confirmedOnKuli = false;
-        let kuliSlug = "";
+        let kuliSlug = urlifyGameName(gameName);
+        let kuliStatusFromHtml: string | null = null;
 
-        if (hasUkr) status = "OFFICIAL";
-        else {
-            // Check Kuli
-            kuliSlug = urlifyGameName(gameName);
-            // Add headers for robust check
+        // 1. Check Kuli (Always, for clickability)
+        try {
             const headers = {
                 "Accept": "text/html",
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -174,18 +178,32 @@ async function injectBadgeIntoStore(appId: string) {
             if (kuliResp.ok) {
                 confirmedOnKuli = true;
                 const kuliHtml = await kuliResp.text();
-                if (kuliHtml.includes("item__instruction-main")) status = "COMMUNITY";
-                else if (kuliHtml.includes("html-product-details-page")) status = "OFFICIAL";
+                // Extract status regardless (will only use if Steam didn't confirm)
+                if (kuliHtml.includes("item__instruction-main")) kuliStatusFromHtml = "COMMUNITY";
+                else if (kuliHtml.includes("html-product-details-page")) kuliStatusFromHtml = "OFFICIAL";
             } else if (kuliResp.status === 404) {
                 // Fallback to Search
                 console.log(`[decky-ukr-badge] Store: Direct slug failed for ${gameName}, searching...`);
+                // Use imported searchKuli, assuming it's available in scope or we fixed the import?
+                // Wait, searchKuli is defined in this file. Good.
                 const searchResult = await searchKuli(gameName);
                 if (searchResult) {
-                    status = searchResult.status;
+                    kuliStatusFromHtml = searchResult.status;
                     kuliSlug = searchResult.slug;
                     confirmedOnKuli = true;
                 }
             }
+        } catch (e) {
+            console.warn("[decky-ukr-badge] Store Patch Kuli Check Failed:", e);
+        }
+
+        // 2. Determine Final Status (Steam overrides Kuli for 'Official' status)
+        if (hasUkr) {
+            status = "OFFICIAL";
+        } else if (confirmedOnKuli && kuliStatusFromHtml) {
+            status = kuliStatusFromHtml;
+        } else {
+            status = "NONE";
         }
 
         const config = BADGE_COLORS[status as keyof typeof BADGE_COLORS] || BADGE_COLORS.NONE;

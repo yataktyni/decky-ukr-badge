@@ -71,12 +71,13 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 let currentAppName = cleanNonSteamName(appName || "");
                 const isSteamId = appId && (parseInt(appId) < 1000000000);
 
+                let steamStatus: BadgeStatus | null = null;
+
                 if (!isSteamId) {
                     console.log(`[decky-ukr-badge] Non-Steam game detected: ${currentAppName} (${appId})`);
                 }
 
                 // 1. Aggressive Store Metadata Check (Primary for Steam games)
-                // We check this FIRST to get 'Official' status and correct name for Kuli
                 if (isSteamId) {
                     try {
                         const steamResp = await fetchNoCors(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=en`);
@@ -85,13 +86,29 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                             currentAppName = steamData[appId].data.name;
                             const languages = steamData[appId].data.supported_languages || "";
                             if (languages.toLowerCase().includes("ukrainian")) {
-                                const result: BadgeStatus = "OFFICIAL";
-                                setStatus(result);
-                                setUrl(null);
-                                cache[appId] = { timestamp: Date.now(), status: result };
-                                setCache(cache);
-                                setLoading(false);
-                                return;
+                                steamStatus = "OFFICIAL";
+                            }
+                        }
+
+                        // FALLBACK: If API says NO, check Store Page HTML directly.
+                        // Some games (e.g. Intravenous, Bad 2 Bad) don't list UA in API but do on Store Page.
+                        if (steamStatus !== "OFFICIAL") {
+                            console.log(`[decky-ukr-badge] API said NO/Empty, trying Store Page HTML for ${appId}`);
+                            const htmlResp = await fetchNoCors(`https://store.steampowered.com/app/${appId}`);
+                            if (htmlResp.ok) {
+                                const html = await htmlResp.text();
+                                // Check for "Ukrainian" text in the languages area
+                                // Simple regex check is usually sufficient for "supported languages" section
+                                if (html.includes("Ukrainian") || html.includes("Українська")) {
+                                    console.log(`[decky-ukr-badge] Found Ukrainian in Store HTML for ${appId}`);
+                                    steamStatus = "OFFICIAL";
+
+                                    // Also try to grab name if we missed it
+                                    if (!currentAppName || currentAppName === "") {
+                                        const titleMatch = html.match(/<div class="apphub_AppName">([^<]+)<\/div>/);
+                                        if (titleMatch) currentAppName = titleMatch[1];
+                                    }
+                                }
                             }
                         }
                     } catch (e) {
@@ -100,33 +117,42 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 }
 
                 // 2. Kuli Community Support (via Backend)
-                // We strictly use currentAppName which was updated to Official Store Name above (if it was a Steam game)
+                // We proceed to check Kuli even if Steam found it, to resolve the URL for clickability
+                let kuliStatus: BadgeStatus | null = null;
+                let kuliUrl: string | null = null;
+
                 if (!cancelled && currentAppName) {
                     console.log(`[decky-ukr-badge] Resolving Kuli for: ${currentAppName} (ID: ${appId})`);
                     try {
                         const response = await callBackend<{ status: string; url: string }>("get_kuli_status", currentAppName);
                         if (!cancelled && response && (response.status === "OFFICIAL" || response.status === "COMMUNITY")) {
-                            const bStatus = response.status as BadgeStatus;
-                            const bUrl = response.url;
-                            setStatus(bStatus);
-                            setUrl(bUrl);
-                            cache[appId || "unknown"] = { timestamp: Date.now(), status: bStatus, url: bUrl };
-                            setCache(cache);
-                            setLoading(false);
-                            return;
+                            kuliStatus = response.status as BadgeStatus;
+                            kuliUrl = response.url;
                         }
                     } catch (e) {
                         console.error(`[decky-ukr-badge] Backend status fetch failed for ${currentAppName}:`, e);
                     }
                 }
 
-                // 3. Fallback to NONE
+                // 3. Merge Results
+                let finalStatus: BadgeStatus = "NONE";
+
+                if (steamStatus === "OFFICIAL") {
+                    finalStatus = "OFFICIAL";
+                } else if (kuliStatus) {
+                    finalStatus = kuliStatus;
+                }
+
+                const finalUrl = kuliUrl; // Only have URL if Kuli found it
+
+                // Save and Cache
                 if (!cancelled) {
-                    setStatus("NONE");
-                    setUrl(null);
-                    cache[appId || "unknown"] = { timestamp: Date.now(), status: "NONE" };
+                    setStatus(finalStatus);
+                    setUrl(finalUrl);
+                    cache[appId] = { timestamp: Date.now(), status: finalStatus, url: finalUrl || undefined };
                     setCache(cache);
                 }
+
             } catch (e) {
                 console.error("[decky-ukr-badge] Status fetch failed:", e);
                 if (!cancelled) setStatus("NONE");

@@ -35,6 +35,15 @@ GAMES = [
     "Half-Life 2",
     "God of War",
     "Horizon Zero Dawn",
+    "Door Kickers 2",
+    "Bad 2 Bad: Apocalypse",
+    "Intravenous",
+    "Neon Abyss",
+    "Soulstone Survivors",
+    "West of Dead",
+    "Hell Let Loose",
+    "Insurgency: Sandstorm",
+    "ABZU"
 ]
 
 def clean_non_steam_name(name):

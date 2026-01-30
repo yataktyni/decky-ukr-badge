@@ -13,8 +13,8 @@ echo "🔄 Fetching tags..."
 git fetch --tags
 
 # Get latest SemVer tag (vX.Y.Z)
-# We use sort -V to ensure version sorting (e.g. v0.9.10 > v0.9.9)
-LATEST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
+# Filter for tags with at least two dots to avoid v38 etc.
+LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n1)
 
 if [ -z "$LATEST_TAG" ]; then
     LATEST_TAG="v0.0.0"
