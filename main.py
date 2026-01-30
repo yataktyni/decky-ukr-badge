@@ -65,6 +65,24 @@ async def http_get(url: str, headers: Dict[str, str] | None = None) -> str | Non
         decky.logger.error(f"Unexpected HTTP error for {url}: {e}")
         return None
 
+def _sync_http_get_binary(url: str, headers: Dict[str, str] | None = None) -> bytes:
+    """Synchronous HTTP GET returning raw bytes for binary files."""
+    req = urllib.request.Request(url)
+    if headers:
+        for key, value in headers.items():
+            req.add_header(key, value)
+    
+    with urllib.request.urlopen(req, timeout=30) as response:  # Longer timeout for downloads
+        return response.read()
+
+async def http_get_binary(url: str, headers: Dict[str, str] | None = None) -> bytes | None:
+    """Non-blocking HTTP GET for binary data (e.g., zip files)."""
+    try:
+        return await asyncio.to_thread(_sync_http_get_binary, url, headers)
+    except Exception as e:
+        decky.logger.error(f"Binary download error for {url}: {e}")
+        return None
+
 # ============================================
 # Settings Management
 # ============================================
@@ -339,22 +357,34 @@ async def update_plugin() -> Dict[str, Any]:
     try:
         decky.logger.info("UA Badge: Starting plugin update...")
         
-        # Download the release.zip
-        zip_data = await http_get(release_url)
+        # Download the release.zip as binary
+        zip_data = await http_get_binary(release_url)
         if not zip_data:
             decky.logger.error("UA Badge: Failed to download release.zip")
             return {"success": False, "error": "Download failed"}
         
+        decky.logger.info(f"UA Badge: Downloaded {len(zip_data)} bytes")
+        
         # Extract to plugin directory
-        with zipfile.ZipFile(io.BytesIO(zip_data.encode('latin-1'))) as zf:
+        with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
             # Get list of files to extract
             for info in zf.infolist():
                 # Skip directories
                 if info.is_dir():
                     continue
+                
+                # Remove the top-level folder from path (e.g., "decky-ukr-badge/main.py" -> "main.py")
+                parts = info.filename.split("/", 1)
+                if len(parts) > 1:
+                    target_name = parts[1]
+                else:
+                    target_name = parts[0]
+                
+                if not target_name:
+                    continue
                     
                 # Extract file
-                target_path = os.path.join(plugin_dir, info.filename)
+                target_path = os.path.join(plugin_dir, target_name)
                 target_dir = os.path.dirname(target_path)
                 
                 if not os.path.exists(target_dir):
