@@ -104,7 +104,6 @@ function patchLibraryApp() {
                                 key="ukr-badge"
                                 pAppId={appId}
                                 pAppName={appName}
-                                context="library"
                             />,
                         );
                     }

@@ -47,21 +47,9 @@ function findTopCapsuleParent(ref: HTMLDivElement | null): Element | null {
 interface BadgeProps {
     pAppId?: string;
     pAppName?: string;
-    protonDBExists?: boolean;
-    context?: "library" | "store";
 }
 
-function hasProtonDBBadge(): boolean {
-    try {
-        if (typeof window !== "undefined") {
-            const protonBadgeExists = document.querySelector('[class*="protondb-"]');
-            if (protonBadgeExists) return true;
-        }
-    } catch (e) { }
-    return false;
-}
-
-const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProtonDBExists, context = "library" }) => {
+const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName }) => {
     const { settings, loading: settingsLoading } = useSettings();
     const { appId: hAppId, appName: hAppName, isLoading: hLoading } = useAppId();
 
@@ -74,7 +62,6 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
     const lang = getSupportedLanguage();
 
     const [isVisible, setIsVisible] = useState(true);
-    const [protonDBExists, setProtonDBExists] = useState(pProtonDBExists || false);
     const ref = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -95,19 +82,6 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
         return () => observer.disconnect();
     }, [status]);
 
-    useEffect(() => {
-        if (context !== "store") return undefined;
-
-        const checkProtonDB = () => {
-            const exists = hasProtonDBBadge();
-            setProtonDBExists(exists);
-        };
-
-        checkProtonDB();
-        const interval = setInterval(checkProtonDB, 2000);
-        return () => clearInterval(interval);
-    }, [context]);
-
     if (hLoading || statusLoading || settingsLoading || !status || !isVisible) return null;
 
     const config = BADGE_CONFIG[status as keyof typeof BADGE_CONFIG] || BADGE_CONFIG.NONE;
@@ -124,11 +98,6 @@ const Badge: React.FC<BadgeProps> = ({ pAppId, pAppName, protonDBExists: pProton
 
     const base = settings.badgePosition === "top-left" ? { top: "40px", left: "0px" } : { top: "60px", right: "0px" };
     let top = parseInt(base.top);
-
-    // ProtonDB shift abolished for Library, kept for Store
-    if (protonDBExists && context === "store") {
-        top += 30;
-    }
 
     style.top = `calc(${top}px + ${settings.offsetY}px)`;
     if (base.left) style.left = `calc(${base.left} + ${settings.offsetX}px)`;
