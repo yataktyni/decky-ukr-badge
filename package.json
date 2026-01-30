@@ -25,7 +25,8 @@
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
-    "release": "bash ./scripts/release.sh"
+    "release": "bash ./scripts/release.sh",
+    "zip": "zip -r release.zip . -x 'node_modules/*' '.git/*' '.agent/*' '.venv/*' '__pycache__/*' 'src/*' 'tsconfig.json' 'rollup.config.js' 'package.json' 'pnpm-lock.yaml'"
   },
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
