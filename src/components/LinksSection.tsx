@@ -1,10 +1,14 @@
 // decky-ukr-badge/src/components/LinksSection.tsx
 import React, { FC, useState } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem } from "@decky/ui";
-import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad } from "react-icons/fa";
+import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad, FaDownload } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { SiTether } from "react-icons/si";
+import { call } from "@decky/api";
 import { t } from "../translations";
+import { logger } from "../logger";
+
+const log = logger.component("LinksSection");
 
 interface LinksSectionProps {
     lang: "en" | "uk";
@@ -15,9 +19,18 @@ const generateQRCode = (url: string): string => {
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
 };
 
-const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string }> = ({ onClick, icon, label }) => (
+const Divider: FC = () => (
+    <div style={{
+        width: "100%",
+        height: "1px",
+        background: "rgba(255,255,255,0.15)",
+        margin: "16px 0"
+    }} />
+);
+
+const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }> = ({ onClick, icon, label, disabled }) => (
     <PanelSectionRow>
-        <ButtonItem layout="below" onClick={onClick}>
+        <ButtonItem layout="below" onClick={onClick} disabled={disabled}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
                 {icon}
                 <span>{label}</span>
@@ -32,6 +45,29 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
     const [showKofiQR, setShowKofiQR] = useState(false);
     const [showUsdtQR, setShowUsdtQR] = useState(false);
+    const [updating, setUpdating] = useState(false);
+    const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+
+    const handleUpdate = async () => {
+        log.info("Starting plugin update...");
+        setUpdating(true);
+        setUpdateStatus(null);
+        try {
+            const result = await call<[], { success: boolean; message?: string; error?: string }>("update_plugin");
+            log.info("Update result:", result);
+            if (result.success) {
+                setUpdateStatus(t("update_success", lang));
+            } else {
+                log.error("Update failed:", result.error);
+                setUpdateStatus(t("update_error", lang) + (result.error ? `: ${result.error}` : ""));
+            }
+        } catch (e) {
+            log.error("Update exception:", e);
+            setUpdateStatus(t("update_error", lang));
+        } finally {
+            setUpdating(false);
+        }
+    };
 
     return (
         <PanelSection title={`🔗 ${t("links", lang)}`}>
@@ -84,11 +120,38 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 </div>
             </PanelSectionRow>
 
+            {/* Divider after donations */}
+            <Divider />
+
+            {/* Info Links */}
             <LinkButton onClick={() => openUrl("https://kuli.com.ua/")} icon={<FaGamepad />} label={t("kuli_website", lang)} />
             <LinkButton onClick={() => openUrl("https://www.youtube.com/watch?v=24gxXddKNv0")} icon={<FaYoutube />} label={t("video_guide", lang)} />
             <LinkButton onClick={() => openUrl("https://steamcommunity.com/sharedfiles/filedetails/?id=3137617136")} icon={<FaSteam />} label={t("text_guide", lang)} />
             <LinkButton onClick={() => openUrl("https://github.com/yataktyni/decky-ukr-badge")} icon={<FaGithub />} label={t("github_source", lang)} />
             <LinkButton onClick={() => openUrl("https://x.com/yataktyni")} icon={<FaXTwitter />} label={t("author_x", lang)} />
+
+            {/* Divider after info links */}
+            <Divider />
+
+            {/* Update Plugin Button */}
+            <LinkButton
+                onClick={handleUpdate}
+                icon={<FaDownload />}
+                label={updating ? t("updating", lang) : t("update_plugin", lang)}
+                disabled={updating}
+            />
+            {updateStatus && (
+                <PanelSectionRow>
+                    <div style={{
+                        textAlign: "center",
+                        padding: "8px",
+                        fontSize: "12px",
+                        color: updateStatus.includes("success") || updateStatus.includes("Успішно") ? "#4ade80" : "#f87171"
+                    }}>
+                        {updateStatus}
+                    </div>
+                </PanelSectionRow>
+            )}
         </PanelSection>
     );
 };

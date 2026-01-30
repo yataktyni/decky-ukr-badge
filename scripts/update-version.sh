@@ -1,42 +1,57 @@
 #!/bin/bash
 # scripts/update-version.sh
-# Sync version from package.json, increment it, and update both files.
+# Update version in package.json and plugin.json
+#
+# Usage:
+#   ./scripts/update-version.sh patch   # Bug fixes (1.0.8 → 1.0.9)
+#   ./scripts/update-version.sh minor   # New features (1.0.9 → 1.1.0)
+#   ./scripts/update-version.sh major   # Breaking changes (1.9.5 → 2.0.0)
 
 set -e
+
+BUMP_TYPE="${1:-patch}"
+
+# Validate bump type
+if [[ ! "$BUMP_TYPE" =~ ^(patch|minor|major)$ ]]; then
+    echo "❌ Invalid bump type: $BUMP_TYPE"
+    echo "   Usage: $0 [patch|minor|major]"
+    exit 1
+fi
 
 # Read current version from package.json
 CURRENT_VERSION=$(jq -r .version < package.json)
 echo "📄 Current version: $CURRENT_VERSION"
 
 # Split version into components
-MAJOR=$(echo "$CURRENT_VERSION" | cut -d. -f1)
-MINOR=$(echo "$CURRENT_VERSION" | cut -d. -f2)
-PATCH=$(echo "$CURRENT_VERSION" | cut -d. -f3)
-# Ensure PATCH doesn't have suffix if version is e.g. 1.2.3-beta
-PATCH=$(echo "$PATCH" | cut -d- -f1)
+IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
-# Smart Increment logic (Rollover at 10)
-NEW_PATCH=$((PATCH + 1))
-NEW_MINOR=$MINOR
-NEW_MAJOR=$MAJOR
+# Increment based on bump type
+case "$BUMP_TYPE" in
+    patch)
+        PATCH=$((PATCH + 1))
+        ;;
+    minor)
+        MINOR=$((MINOR + 1))
+        PATCH=0
+        ;;
+    major)
+        MAJOR=$((MAJOR + 1))
+        MINOR=0
+        PATCH=0
+        ;;
+esac
 
-if [ $NEW_PATCH -ge 10 ]; then
-    NEW_PATCH=0
-    NEW_MINOR=$((MINOR + 1))
-fi
-
-if [ $NEW_MINOR -ge 10 ]; then
-    NEW_MINOR=0
-    NEW_MAJOR=$((MAJOR + 1))
-fi
-
-NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
-echo "📦 New version: $NEW_VERSION"
+NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+echo "📦 New version: $NEW_VERSION ($BUMP_TYPE bump)"
 
 # Update package.json
 jq --arg v "$NEW_VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
-echo "✅ Updated package.json version to $NEW_VERSION"
+echo "✅ Updated package.json"
 
 # Update plugin.json
 jq --arg v "$NEW_VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
-echo "✅ Updated plugin.json version to $NEW_VERSION"
+echo "✅ Updated plugin.json"
+
+echo ""
+echo "🎉 Version updated to $NEW_VERSION"
+echo "   Next: git add -A && git commit -m 'chore: bump version to $NEW_VERSION'"

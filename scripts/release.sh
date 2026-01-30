@@ -1,52 +1,54 @@
 #!/bin/bash
 # scripts/release.sh
-# Automated release helper:
-# 1. Fetches latest tags
-# 2. Calculates next patch version
-# 3. Creates tag
-# 4. Pushes tag
+# Create and push a git tag for the current version
+#
+# Usage:
+#   ./scripts/release.sh          # Tag current version
+#   ./scripts/release.sh patch    # Bump patch, then tag
+#   ./scripts/release.sh minor    # Bump minor, then tag
+#   ./scripts/release.sh major    # Bump major, then tag
 
 set -e
 
-# Fetch tags to ensure we have latest truth
-echo "🔄 Fetching tags..."
-git fetch --tags
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJECT_DIR"
 
-# Get latest SemVer tag (vX.Y.Z)
-# Filter for tags with at least two dots to avoid v38 etc.
-LATEST_TAG=$(git tag -l "v*.*.*" | sort -V | tail -n1)
+BUMP_TYPE="$1"
 
-if [ -z "$LATEST_TAG" ]; then
-    LATEST_TAG="v0.0.0"
+# If bump type specified, update version first
+if [[ -n "$BUMP_TYPE" ]]; then
+    echo "📦 Bumping version ($BUMP_TYPE)..."
+    bash "$SCRIPT_DIR/update-version.sh" "$BUMP_TYPE"
+    echo ""
 fi
 
-echo "📍 Latest tag: $LATEST_TAG"
+# Get current version from package.json
+VERSION=$(jq -r .version < package.json)
+TAG="v$VERSION"
 
-# Strip 'v' prefix
-VERSION=${LATEST_TAG#v}
+echo "🔍 Checking if tag $TAG exists..."
 
-# Split into components
-IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-
-# Increment logic
-PATCH=$((PATCH + 1))
-
-# Simplistic Rollover (keep same as update-version.sh)
-if [ $PATCH -ge 10 ]; then
-    PATCH=0
-    MINOR=$((MINOR + 1))
+# Check if tag already exists
+if git rev-parse "$TAG" >/dev/null 2>&1; then
+    echo "❌ Tag $TAG already exists!"
+    echo "   Either bump version first or delete the existing tag."
+    exit 1
 fi
 
-if [ $MINOR -ge 10 ]; then
-    MINOR=0
-    MAJOR=$((MAJOR + 1))
+echo "🏷️  Creating tag: $TAG"
+
+# Stage and commit version changes if any
+if [[ -n "$(git status --porcelain package.json plugin.json 2>/dev/null)" ]]; then
+    git add package.json plugin.json
+    git commit -m "chore: release $TAG"
 fi
 
-NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+# Create and push tag
+git tag "$TAG"
+git push origin main --tags
 
-echo "🚀 Releasing $NEW_TAG..."
-
-git tag $NEW_TAG
-git push origin $NEW_TAG
-
-echo "✅ Released $NEW_TAG! CI will build and publish it."
+echo ""
+echo "✅ Released $TAG!"
+echo "   - Tag pushed to origin"
+echo "   - Decky CI will build and publish automatically"

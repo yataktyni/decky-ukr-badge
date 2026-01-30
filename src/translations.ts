@@ -38,6 +38,10 @@ const translations: Record<string, TranslationDict> = {
     steamos_version: "SteamOS Version",
     decky_version: "Decky Version",
     author_x: "Message Me",
+    update_plugin: "Update Plugin",
+    updating: "Updating...",
+    update_success: "Updated successfully!",
+    update_error: "Update failed",
   },
   uk: {
     plugin_description:
@@ -74,6 +78,10 @@ const translations: Record<string, TranslationDict> = {
     steamos_version: "Версія SteamOS",
     decky_version: "Версія Decky",
     author_x: "Написати мені",
+    update_plugin: "Оновити плагін",
+    updating: "Оновлюється...",
+    update_success: "Успішно оновлено!",
+    update_error: "Помилка оновлення",
   },
 };
 

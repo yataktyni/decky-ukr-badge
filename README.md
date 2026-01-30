@@ -15,6 +15,7 @@
 - **🤝 Спільнота** — переклад доступний завдяки спільноті на [kuli.com.ua](https://kuli.com.ua/).
 - **❌ Відсутня** — наразі українська локалізація для цієї гри не знайдена.
 - **🛒 Відображення в магазині** — значок автоматично з'являється на сторінках Steam Store.
+- **⛽ Оновлення в один клік** — оновлюйте плагін безпосередньо з налаштувань.
 - **📖 Корисні посилання** — швидкий доступ до X (Twitter) автора, відеоінструкцій та посібників Steam.
 
 ### ⚙️ Налаштування
@@ -79,7 +80,15 @@ pnpm zip
 - 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [Код на GitHub](https://github.com/yataktyni/decky-ukr-badge)
-- 🎈 [Kuli.com.ua — каталог української локалізації ігор](https://kuli.com.ua/)
+- 🌈 [Kuli.com.ua — каталог української локалізації ігор](https://kuli.com.ua/)
+
+---
+
+### 📝 Плани на майбутнє
+
+- [ ] Розширення для браузера (Chromium) для https://store.steampowered.com
+- [ ] Додаткові мови з власними локалізованими інструкціями
+- [ ] Автоматичне встановлення перекладів для підтримуваних ігрових рушіїв в один клік
 
 ---
 ---
@@ -94,6 +103,7 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 - **🤝 Community** — translations provided by the community via [kuli.com.ua](https://kuli.com.ua/).
 - **❌ None** — no Ukrainian localization found for this game yet.
 - **🛒 Store Overlay** — the badge automatically appears on Steam Store pages.
+- **⛽ One-Click Update** — update the plugin directly from settings.
 - **📖 Useful Links** — quick access to author's X (Twitter), video guides and Steam Community guides.
 
 ### ⚙️ Settings
@@ -158,7 +168,15 @@ pnpm zip
 - 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [GitHub Source](https://github.com/yataktyni/decky-ukr-badge)
-- 🎈 [Kuli.com.ua — Catalog of Ukrainian game translations](https://kuli.com.ua/)
+- 🌈 [Kuli.com.ua — Catalog of Ukrainian game translations](https://kuli.com.ua/)
+
+---
+
+### 📝 Roadmap
+
+- [ ] Browser extension (Chromium) for https://store.steampowered.com
+- [ ] Additional language badges with localized guides
+- [ ] Automatic translation installer for supported game engines (one-click from URL or local file)
 
 ---
 
