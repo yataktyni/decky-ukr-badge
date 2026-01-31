@@ -61,10 +61,27 @@ export function loadSettings() {
     LoadingContext.next(true);
     log.info("Loading settings via call...");
 
-    Promise.race([
-        call<[], Settings>("get_settings"),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000))
-    ])
+    // Retry function with backoff
+    const tryLoad = async (attempt: number, maxAttempts: number): Promise<Settings> => {
+        const timeout = 3000 + (attempt * 2000); // 3s, 5s, 7s...
+        log.info(`Settings load attempt ${attempt + 1}/${maxAttempts} (timeout: ${timeout}ms)`);
+
+        try {
+            const result = await Promise.race([
+                call<[], Settings>("get_settings"),
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeout))
+            ]);
+            return result;
+        } catch (error) {
+            if (attempt < maxAttempts - 1) {
+                log.warn(`Attempt ${attempt + 1} failed, retrying...`, error);
+                return tryLoad(attempt + 1, maxAttempts);
+            }
+            throw error;
+        }
+    };
+
+    tryLoad(0, 3)
         .then((settings) => {
             log.info("Settings received:", settings);
             if (settings && typeof settings === "object") {
@@ -74,7 +91,7 @@ export function loadSettings() {
             }
         })
         .catch((error) => {
-            log.error("Settings load failed, using defaults:", error);
+            log.error("Settings load failed after all attempts, using defaults:", error);
             SettingsContext.next(DEFAULT_SETTINGS);
         })
         .finally(() => {

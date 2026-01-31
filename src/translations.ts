@@ -41,6 +41,8 @@ const translations: Record<string, TranslationDict> = {
     current_version: "Current version",
     update_to: "Update to",
     version_check_failed: "version check failed",
+    already_up_to_date: "Already up to date",
+    restart_to_apply: "Restart Decky to apply",
   },
   uk: {
     plugin_description:
@@ -80,6 +82,8 @@ const translations: Record<string, TranslationDict> = {
     current_version: "Поточна версія",
     update_to: "Оновити до",
     version_check_failed: "помилка перевірки версії",
+    already_up_to_date: "Вже оновлено",
+    restart_to_apply: "Перезапустіть Decky для застосування",
   },
 };
 

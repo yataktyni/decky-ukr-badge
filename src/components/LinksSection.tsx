@@ -78,7 +78,8 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 setVersionInfo(info);
             } catch (e) {
                 log.error("Failed to check version from GitHub:", e);
-                setVersionInfo(prev => prev || {
+                // Preserve current version if we already fetched it
+                setVersionInfo(prev => prev ? { ...prev, update_available: false } : {
                     current: "unknown",
                     latest: null,
                     update_available: false
@@ -101,14 +102,21 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         }, 120000);
 
         try {
-            const result = await call<[], { success: boolean; message?: string; error?: string }>("update_plugin");
+            const result = await call<[], { success: boolean; message?: string; error?: string; already_current?: boolean; needs_restart?: boolean }>("update_plugin");
             clearTimeout(timeoutId);
             log.info("Update result:", result);
             if (result.success) {
-                setUpdateStatus({ msg: t("update_success", lang), isError: false });
-                // Refresh version info after update
-                const info = await call<[], VersionInfo>("get_latest_version");
-                setVersionInfo(info);
+                if (result.already_current) {
+                    setUpdateStatus({ msg: t("already_up_to_date", lang), isError: false });
+                } else {
+                    setUpdateStatus({
+                        msg: `${t("update_success", lang)} - ${t("restart_to_apply", lang)}`,
+                        isError: false
+                    });
+                    // Refresh version info after update
+                    const info = await call<[], VersionInfo>("get_latest_version");
+                    setVersionInfo(info);
+                }
             } else {
                 log.error("Update failed:", result.error);
                 setUpdateStatus({
@@ -209,50 +217,36 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 disabled={updating}
             />
 
-            {/* Version Display (Prominent & Compact) */}
-            {versionInfo && (
-                <PanelSectionRow>
-                    <div style={{
-                        textAlign: "center",
-                        width: "100%",
-                        fontSize: "12px",
-                        color: "rgba(255,255,255,0.4)",
-                        marginTop: "-8px",
-                        marginBottom: "12px",
-                        fontWeight: 500
-                    }}>
-                        {t("current_version", lang)}: <span style={{ color: "#fff", fontWeight: 800 }}>v{versionInfo.current}</span>
-                        {versionInfo.update_available && versionInfo.latest_tag && (
-                            <div style={{ color: "#4ade80", fontSize: "11px", marginTop: "4px", fontWeight: "bold" }}>
-                                ✨ {t("update_to", lang)} {versionInfo.latest_tag}
-                            </div>
-                        )}
-                        {versionInfo.current === "unknown" && (
-                            <div style={{ fontSize: "11px", color: "#f87171", marginTop: "4px" }}>
-                                ⚠️ {t("version_check_failed", lang)}
-                            </div>
-                        )}
-                    </div>
-                </PanelSectionRow>
+            {/* Update Status Message (inline below button) */}
+            {updateStatus && (
+                <div style={{
+                    textAlign: "center",
+                    fontSize: "11px",
+                    marginTop: "-12px",
+                    marginBottom: "8px",
+                    color: !updateStatus.isError ? "#4ade80" : "#f87171",
+                    fontWeight: "bold"
+                }}>
+                    {!updateStatus.isError ? "✅" : "❌"} {updateStatus.msg}
+                </div>
             )}
 
-            {/* Update Status Message */}
-            {updateStatus && (
-                <PanelSectionRow>
-                    <div style={{
-                        textAlign: "center",
-                        width: "100%",
-                        padding: "6px 12px",
-                        fontSize: "13px",
-                        borderRadius: "6px",
-                        background: !updateStatus.isError ? "rgba(74, 222, 128, 0.15)" : "rgba(248, 113, 113, 0.15)",
-                        color: !updateStatus.isError ? "#4ade80" : "#f87171",
-                        marginTop: "-6px",
-                        border: `1px solid ${!updateStatus.isError ? "rgba(74, 222, 128, 0.2)" : "rgba(248, 113, 113, 0.2)"}`
-                    }}>
-                        {updateStatus.msg}
-                    </div>
-                </PanelSectionRow>
+            {/* Version Display (always at bottom) */}
+            {versionInfo && (
+                <div style={{
+                    textAlign: "center",
+                    fontSize: "11px",
+                    color: "rgba(255,255,255,0.35)",
+                    marginTop: "8px",
+                    paddingBottom: "8px"
+                }}>
+                    v{versionInfo.current}
+                    {versionInfo.update_available && versionInfo.latest_tag && (
+                        <span style={{ color: "#4ade80", marginLeft: "8px" }}>
+                            → {versionInfo.latest_tag}
+                        </span>
+                    )}
+                </div>
             )}
         </PanelSection>
     );
