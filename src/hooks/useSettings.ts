@@ -63,7 +63,7 @@ export function loadSettings() {
 
     Promise.race([
         call<[], Settings>("get_settings"),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 3000))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 10000))
     ])
         .then((settings) => {
             log.info("Settings received:", settings);

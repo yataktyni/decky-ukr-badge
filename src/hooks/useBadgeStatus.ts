@@ -6,12 +6,15 @@ import {
     cleanNonSteamName,
     searchKuli,
     fetchWithTimeout,
+    isSteamAppId,
 } from "../utils";
 import { logger } from "../logger";
 
 const log = logger.component("useBadgeStatus");
 
 export type BadgeStatus = "OFFICIAL" | "COMMUNITY" | "NONE";
+
+const statusCache: Record<string, { status: BadgeStatus; url: string | null }> = {};
 
 /**
  * Hook to manage fetching of Ukrainian localization status
@@ -30,9 +33,18 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 return;
             }
 
+            // Check cache
+            if (statusCache[appId]) {
+                log.info(`Using cached status for ${appId}:`, statusCache[appId]);
+                setStatus(statusCache[appId].status);
+                setUrl(statusCache[appId].url);
+                setLoading(false);
+                return;
+            }
+
             try {
                 let currentAppName = cleanNonSteamName(appName || "");
-                const isSteamId = appId && (parseInt(appId) < 1000000000);
+                const isSteamId = isSteamAppId(appId);
 
                 let steamStatus: BadgeStatus | null = null;
                 let storeName: string | null = null;
@@ -95,6 +107,9 @@ export function useBadgeStatus(appId: string | undefined, appName: string | unde
                 const finalUrl = kuliUrl;
 
                 if (!cancelled) {
+                    // Update cache
+                    statusCache[appId] = { status: finalStatus, url: finalUrl };
+
                     setStatus(finalStatus);
                     setUrl(finalUrl);
                 }

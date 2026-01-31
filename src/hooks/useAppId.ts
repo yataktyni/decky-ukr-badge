@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "./useParams";
 import { fetchNoCors } from "@decky/api";
-import { cleanNonSteamName } from "../utils";
+import { cleanNonSteamName, isSteamAppId } from "../utils";
 import { logger } from "../logger";
 
 const log = logger.component("useAppId");
@@ -101,14 +101,12 @@ export function useAppId(): {
                 setAppId(pathId);
                 setAppName(appName);
 
-                // If this is a non-Steam game (appId starts with a specific prefix or is very large),
-                // try to resolve it to a real Steam game via search
-                if (appName) {
+                if (appName && !isSteamAppId(pathId)) {
                     const rawName = appName;
 
                     const cleanedName = cleanNonSteamName(rawName);
                     if (cleanedName && cleanedName.length > 2) {
-                        log.info(`Resolving non-Steam game: ${cleanedName}`);
+                        log.info(`Resolving non-Steam game: ${cleanedName} (ID: ${pathId})`);
                         try {
                             const searchRes = await fetchNoCors(
                                 `https://steamcommunity.com/actions/SearchApps/${encodeURIComponent(cleanedName)}`,

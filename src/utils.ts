@@ -13,8 +13,20 @@ export function cleanNonSteamName(name: string): string {
     if (!name) return "";
     return name
         .replace(/\s*\((Shortcut|Non-Steam|App|Game)\)$/i, "")
-        .replace(/\s*v\d+(\.\d+)*/i, "")
+        .replace(/\s*(?:v|version|ver)\.?\s*\d+(?:\.\d+)*/i, "")
+        .replace(/\s*(?:Remastered|Definitive Edition|Director's Cut|Enhanced Edition|Game of the Year|GOTY|Special Edition|Legendary Edition|Complete Edition|Deluxe Edition|Ultimate Edition)$/i, "")
         .trim();
+}
+
+/**
+ * Checks if an AppID is a standard Steam Game ID (as opposed to a non-Steam shortcut).
+ */
+export function isSteamAppId(appId: string | undefined): boolean {
+    if (!appId) return false;
+    const id = parseInt(appId, 10);
+    // Standard Steam AppIDs are currently < 1,000,000,000.
+    // Non-Steam shortcuts typically have much larger IDs or IDs derived from their path/name.
+    return !isNaN(id) && id < 1000000000;
 }
 
 /**
@@ -25,6 +37,7 @@ export function urlifyGameName(name: string): string {
     return cleaned
         .toLowerCase()
         .replace(/[':’]/g, "")
+        .replace(/&/g, "and")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/-+/g, "-")
         .trim()
@@ -94,160 +107,118 @@ function levenshtein(a: string, b: string): number {
 
 export async function searchKuli(gameName: string): Promise<{ status: string, slug: string } | null> {
     if (!gameName) return null;
-    try {
-        const headers = {
-            "Accept": "text/html",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        };
 
-        // Helper: detect if response is a valid game page (not 404/redirect)
-        const isValidGamePage = (html: string): boolean => {
-            // Kuli 404 pages redirect to /page-not-found or contain specific error markers
-            if (html.includes('page-not-found') ||
-                html.includes('Сторінку не знайдено') ||
-                html.includes('404')) {
-                return false;
-            }
-            // Valid game pages have product details
-            return html.includes('html-product-details-page') ||
-                html.includes('product-essential') ||
-                html.includes('item__instruction-main');
-        };
-
-        // Helper: determine status from page HTML
-        const getStatusFromHtml = (html: string): string => {
-            if (html.includes("item__instruction-main")) return "COMMUNITY";
-            return "OFFICIAL";
-        };
-
-        // 1. Try DIRECT LINK first (Parity with StorePatch logic)
-        const directSlug = urlifyGameName(gameName);
-        const directUrl = `https://kuli.com.ua/${directSlug}`;
-        log.info(`Trying direct Kuli link: ${directUrl}`);
-
+    // Internal helper to perform search with a given query
+    async function performSearch(query: string): Promise<{ status: string, slug: string } | null> {
         try {
-            const directRes = await fetchWithTimeout(fetchNoCors(directUrl, { headers }), 10000);
-            const directHtml = await directRes.text();
+            const headers = {
+                "Accept": "text/html",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            };
 
-            if (isValidGamePage(directHtml)) {
-                log.info(`Direct link HIT for ${gameName} -> ${directSlug}`);
-                return { status: getStatusFromHtml(directHtml), slug: directSlug };
-            } else {
-                log.info(`Direct link MISS for ${directSlug} (404 or redirect)`);
-            }
-        } catch (e) {
-            log.warn(`Direct check failed for ${directSlug}:`, e);
-        }
-
-        // 2. Fallback to SEARCH
-        log.info(`Searching Kuli for: ${gameName}`);
-        const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(gameName)}`;
-        const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }), 10000);
-
-        const html = await res.text();
-        const results: { slug: string; title: string; score: number }[] = [];
-
-        // Parse product items - Kuli uses <a href="/slug"> with nested product-title
-        // Match pattern: href="/slug" followed by product-title class with title text
-        const productItemRegex = /<a[^>]+href="\/([a-z0-9-]+)"[^>]*class="[^"]*product-item[^"]*"[^>]*>[\s\S]*?<(?:h2|div)[^>]*class="[^"]*product-title[^"]*"[^>]*>[\s\S]*?<div[^>]*class="[^"]*product-title-wrapper[^"]*"[^>]*>\s*([^<]+)/gi;
-
-        let match;
-        while ((match = productItemRegex.exec(html)) !== null) {
-            const slug = match[1];
-            const title = match[2].trim();
-
-            if (!title || !slug || results.some(r => r.slug === slug)) continue;
-
-            const gLow = gameName.toLowerCase().trim();
-            const tLow = title.toLowerCase().trim();
-            const sLow = slug.toLowerCase();
-
-            // Calculate match score (lower is better)
-            let score = levenshtein(gLow, tLow);
-
-            // Exact match bonuses
-            if (tLow === gLow) score = 0;
-            else if (sLow === directSlug) score = 0; // Slug exact match
-
-            // Penalize extended names (e.g., "House Flipper 2" when searching "House Flipper")
-            // If game title STARTS with search term but has more (sequel/DLC), penalize
-            if (tLow.startsWith(gLow) && tLow.length > gLow.length) {
-                const extra = tLow.substring(gLow.length).trim();
-                // If the extra part looks like a sequel/version (number, colon, etc.)
-                if (/^[\s:0-9-]+/.test(extra)) {
-                    score += 50; // Heavy penalty for sequels
+            // Helper: detect if response is a valid game page (not 404/redirect)
+            const isValidGamePage = (html: string): boolean => {
+                const hLow = html.toLowerCase();
+                if (hLow.includes('page-not-found') ||
+                    hLow.includes('сторінку не знайдено') ||
+                    hLow.includes('404')) {
+                    return false;
                 }
+                return hLow.includes('product-details-page') ||
+                    hLow.includes('product-essential') ||
+                    hLow.includes('item__instruction-main');
+            };
+
+            const getStatusFromHtml = (html: string): string => {
+                if (html.toLowerCase().includes("item__instruction-main")) return "COMMUNITY";
+                return "OFFICIAL";
+            };
+
+            // 1. Try DIRECT LINK first
+            const directSlug = urlifyGameName(query);
+            const directUrl = `https://kuli.com.ua/${directSlug}`;
+            log.info(`Trying direct Kuli link for "${query}": ${directUrl}`);
+
+            try {
+                const directRes = await fetchWithTimeout(fetchNoCors(directUrl, { headers }), 8000);
+                const directHtml = await directRes.text();
+
+                if (isValidGamePage(directHtml)) {
+                    log.info(`Direct link HIT for "${query}" -> ${directSlug}`);
+                    return { status: getStatusFromHtml(directHtml), slug: directSlug };
+                }
+            } catch (e) {
+                log.warn(`Direct check failed for ${directSlug}:`, e);
             }
 
-            // Boost if search term contains the title exactly
-            if (gLow.includes(tLow) || tLow.includes(gLow)) {
-                score = Math.min(score, 5);
-            }
+            // 2. Fallback to SEARCH
+            log.info(`Searching Kuli for: ${query}`);
+            const searchUrl = `https://kuli.com.ua/games?query=${encodeURIComponent(query)}`;
+            const res = await fetchWithTimeout(fetchNoCors(searchUrl, { headers }), 10000);
 
-            results.push({ slug, title, score });
-            log.info(`Search result: "${title}" (${slug}) score=${score}`);
-        }
+            const html = await res.text();
+            const results: { slug: string; title: string; score: number }[] = [];
 
-        // Fallback regex for simpler HTML structure
-        if (results.length === 0) {
-            const simpleRegex = /href="\/([a-z0-9-]+)"[^>]*>[\s\S]*?class="product-title[^"]*"[^>]*>[\s\S]*?([^<]+)</gi;
-            while ((match = simpleRegex.exec(html)) !== null) {
+            // More robust product item matching
+            const productItemRegex = /href="\/([a-z0-9-]+)"[^>]*>[\s\S]*?class="product-title[^"]*"[^>]*>[\s\S]*?([^<]+)</gi;
+
+            let match;
+            while ((match = productItemRegex.exec(html)) !== null) {
                 const slug = match[1];
                 const title = match[2].trim();
 
-                if (!title || !slug || slug === 'games' || slug === '' || results.some(r => r.slug === slug)) continue;
+                if (!title || !slug || slug === 'games' || results.some(r => r.slug === slug)) continue;
 
-                const gLow = gameName.toLowerCase().trim();
+                const qLow = query.toLowerCase().trim();
                 const tLow = title.toLowerCase().trim();
 
-                let score = levenshtein(gLow, tLow);
-                if (tLow === gLow) score = 0;
-
-                // Penalize sequels
-                if (tLow.startsWith(gLow) && tLow.length > gLow.length) {
-                    score += 50;
-                }
+                let score = levenshtein(qLow, tLow);
+                if (tLow === qLow) score = 0;
+                else if (tLow.includes(qLow) || qLow.includes(tLow)) score = Math.min(score, 10);
 
                 results.push({ slug, title, score });
-                log.info(`Fallback result: "${title}" (${slug}) score=${score}`);
             }
-        }
 
-        if (results.length === 0) {
-            log.info(`No search results for: ${gameName}`);
-            return null;
-        }
+            if (results.length === 0) return null;
 
-        // Sort by score (best first)
-        results.sort((a, b) => a.score - b.score);
-        log.info(`Best match: "${results[0].title}" (${results[0].slug}) score=${results[0].score}`);
+            results.sort((a, b) => a.score - b.score);
+            const best = results[0];
 
-        // Safety check for bad matches - only reject if score is very high AND no substring match
-        if (results[0].score > 20) {
-            const gLow = gameName.toLowerCase();
-            if (!results[0].title.toLowerCase().includes(gLow) && !gLow.includes(results[0].title.toLowerCase())) {
-                log.info(`Rejecting bad match: score ${results[0].score} too high`);
+            if (best.score > 25) {
+                log.info(`Rejecting match "${best.title}" (score ${best.score}) for query "${query}"`);
                 return null;
             }
+
+            log.info(`Best match for "${query}": "${best.title}" (${best.slug}) score=${best.score}`);
+
+            // Verify verification page
+            const verifyUrl = `https://kuli.com.ua/${best.slug}`;
+            const verifyRes = await fetchWithTimeout(fetchNoCors(verifyUrl, { headers }), 8000);
+            const verifyHtml = await verifyRes.text();
+
+            if (isValidGamePage(verifyHtml)) {
+                return { status: getStatusFromHtml(verifyHtml), slug: best.slug };
+            }
+
+            return null;
+        } catch (e) {
+            log.error(`performSearch failed for ${query}:`, e);
+            return null;
         }
-
-        const bestSlug = results[0].slug;
-        const fullUrl = `https://kuli.com.ua/${bestSlug}`;
-
-        // Verify the selected result page
-        log.info(`Verifying best match: ${fullUrl}`);
-        const gameRes = await fetchWithTimeout(fetchNoCors(fullUrl, { headers }), 8000);
-        const gameHtml = await gameRes.text();
-
-        if (isValidGamePage(gameHtml)) {
-            log.info(`Verified: ${bestSlug}`);
-            return { status: getStatusFromHtml(gameHtml), slug: bestSlug };
-        }
-
-        log.info(`Verification failed for ${bestSlug}`);
-        return null;
-    } catch (e) {
-        log.error(`searchKuli failed for ${gameName}:`, e);
-        return null;
     }
+
+    // Attempt 1: Full cleaned name
+    let result = await performSearch(gameName);
+    if (result) return result;
+
+    // Attempt 2: If name is long/complex, try first two words
+    const words = cleanNonSteamName(gameName).split(/\s+/);
+    if (words.length > 2) {
+        const shorterQuery = words.slice(0, 2).join(" ");
+        log.info(`Retrying with shorter query: "${shorterQuery}"`);
+        result = await performSearch(shorterQuery);
+        if (result) return result;
+    }
+
+    return null;
 }

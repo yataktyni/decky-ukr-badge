@@ -124,24 +124,24 @@ async def set_settings(key: str, value: Any) -> bool:
         SETTINGS[key] = value # type: ignore
         return save_settings()
     return False
-
-
-
-async def get_latest_version() -> Dict[str, Any]:
-    """Check GitHub for latest version and compare with current."""
+async def get_current_version() -> str:
     try:
-        # Get current version from plugin.json
         current_dir = os.path.dirname(os.path.abspath(__file__))
         plugin_json_path = os.path.join(current_dir, "plugin.json")
-        
         current_version = "0.0.0"
-        decky.logger.info(f"Looking for plugin.json at: {plugin_json_path}")
         if os.path.exists(plugin_json_path):
             with open(plugin_json_path, "r", encoding="utf-8") as f:
                 plugin_data = json.load(f)
                 current_version = plugin_data.get("version", "0.0.0")
-        
-        decky.logger.info(f"Current version from plugin.json: {current_version}")
+        return current_version
+    except Exception as e:
+        decky.logger.error(f"Failed to get current version: {e}")
+        return "unknown"
+
+async def get_latest_version() -> Dict[str, Any]:
+    """Check GitHub for latest version and compare with current."""
+    try:
+        current_version = await get_current_version()
         
         # Fetch latest release from GitHub
         github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases/latest"
@@ -204,39 +204,31 @@ async def update_plugin() -> Dict[str, Any]:
         
         decky.logger.info(f"Downloaded {len(zip_data)} bytes")
         
-        # Extract to plugin directory
-        with zipfile.ZipFile(io.BytesIO(zip_data)) as zf:
-            # Get list of files to extract
-            file_count = 0
-            for info in zf.infolist():
-                # Skip directories
-                if info.is_dir():
-                    continue
-                
-                # Remove the top-level folder from path (e.g., "decky-ukr-badge/main.py" -> "main.py")
-                parts = info.filename.split("/", 1)
-                if len(parts) > 1:
-                    target_name = parts[1]
-                else:
-                    target_name = parts[0]
-                
-                if not target_name:
-                    continue
+        def extract_zip(data: bytes, target_dir: str) -> int:
+            with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                count = 0
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
                     
-                # Extract file
-                target_path = os.path.join(plugin_dir, target_name)
-                target_dir = os.path.dirname(target_path)
-                
-                if not os.path.exists(target_dir):
-                    os.makedirs(target_dir, exist_ok=True)
-                
-                try:
+                    # Remove top-level folder from path
+                    parts = info.filename.split("/", 1)
+                    target_name = parts[1] if len(parts) > 1 else parts[0]
+                    
+                    if not target_name:
+                        continue
+                        
+                    target_path = os.path.join(target_dir, target_name)
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    
                     with zf.open(info) as src, open(target_path, 'wb') as dst:
                         dst.write(src.read())
-                    file_count += 1
-                except Exception as file_error:
-                    decky.logger.error(f"Failed to extract {target_name}: {file_error}")
-                    return {"success": False, "error": f"Failed to extract {target_name}: {str(file_error)}"}
+                    count += 1
+                return count
+
+        # Offload extraction to a thread to avoid blocking the main loop
+        decky.logger.info("Extracting update...")
+        file_count = await asyncio.to_thread(extract_zip, zip_data, plugin_dir)
         
         decky.logger.info(f"Plugin update complete! Extracted {file_count} files.")
         return {"success": True, "message": "Update complete. Please restart Decky Loader."}
