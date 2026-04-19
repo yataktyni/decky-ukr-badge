@@ -1,6 +1,6 @@
 {
   "name": "decky-ukr-badge",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "Displays a badge for games with Ukrainian localization on Steam Deck.",
   "type": "module",
   "author": "yataktyni",
