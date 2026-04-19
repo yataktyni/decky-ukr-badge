@@ -7,6 +7,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 import re
+import time
 from typing import Dict, Any, TypedDict
 
 import decky
@@ -164,6 +165,13 @@ class Plugin:
 
     async def get_latest_version(self) -> Dict[str, Any]:
         """Check GitHub for latest version based on highest valid semver tag in recent releases."""
+        return await self._check_latest_version_internal(include_debug=False)
+
+    async def debug_version_check(self) -> Dict[str, Any]:
+        """Temporary diagnostics endpoint for Steam Deck runtime troubleshooting."""
+        return await self._check_latest_version_internal(include_debug=True)
+
+    async def _check_latest_version_internal(self, include_debug: bool = False) -> Dict[str, Any]:
         def normalize_semver_core(value: str) -> str:
             raw = (value or "").strip().lstrip("v")
             m = re.match(r"^(\d+)\.(\d+)\.(\d+)", raw)
@@ -179,20 +187,37 @@ class Plugin:
             except Exception:
                 return (0, 0, 0)
 
+        current_version_raw = await self.get_current_version()
+        current_version = normalize_semver_core(current_version_raw)
+        current_tuple = parse_version_tuple(current_version)
+        github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases?per_page=20"
+
+        base_result: Dict[str, Any] = {
+            "current": current_version,
+            "latest": None,
+            "latest_tag": None,
+            "update_available": False,
+            "source_ok": False,
+            "error": None,
+            "checked_at": int(time.time())
+        }
+
+        if include_debug:
+            plugin_dir = os.path.dirname(os.path.abspath(__file__))
+            base_result["plugin_json_path"] = os.path.join(plugin_dir, "plugin.json")
+            base_result["current_raw"] = current_version_raw
+            base_result["github_api"] = github_api
+
         try:
-            current_version_raw = await self.get_current_version()
-            current_version = normalize_semver_core(current_version_raw)
-            current_tuple = parse_version_tuple(current_version)
-
-            github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases?per_page=20"
             response = await http_get(github_api)
-
             if not response:
-                return {"current": current_version, "latest": None, "update_available": False}
+                base_result["error"] = "GitHub releases request failed or returned empty response"
+                return base_result
 
             releases = json.loads(response)
             if not isinstance(releases, list):
-                return {"current": current_version, "latest": None, "update_available": False}
+                base_result["error"] = "GitHub releases API returned non-list JSON"
+                return base_result
 
             best_tag = ""
             best_version = "0.0.0"
@@ -215,24 +240,32 @@ class Plugin:
                     best_tag = tag_name
 
             if best_tag == "":
-                return {"current": current_version, "latest": None, "update_available": False}
+                base_result["source_ok"] = True
+                base_result["error"] = "No stable releases found"
+                return base_result
 
             update_available = best_tuple > current_tuple
+            base_result["source_ok"] = True
+            base_result["latest"] = best_version
+            base_result["latest_tag"] = best_tag
+            base_result["update_available"] = update_available
 
             decky.logger.info(
                 f"Version check: current={current_version_raw} ({current_version}), "
                 f"selected_tag={best_tag} ({best_version}), update={update_available}"
             )
 
-            return {
-                "current": current_version,
-                "latest": best_version,
-                "latest_tag": best_tag,
-                "update_available": update_available
-            }
+            if include_debug:
+                base_result["selected_tuple"] = list(best_tuple)
+                base_result["current_tuple"] = list(current_tuple)
+
+            return base_result
+
         except Exception as e:
-            decky.logger.error(f"Version check failed: {e}")
-            return {"current": "unknown", "latest": None, "update_available": False}
+            err = f"Version check failed: {e}"
+            decky.logger.error(err)
+            base_result["error"] = err
+            return base_result
 
     async def update_plugin(self) -> Dict[str, Any]:
         """Download and install latest release from GitHub."""

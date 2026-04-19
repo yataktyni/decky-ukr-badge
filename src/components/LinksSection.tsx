@@ -17,8 +17,11 @@ interface LinksSectionProps {
 interface VersionInfo {
     current: string;
     latest: string | null;
-    latest_tag?: string;
+    latest_tag?: string | null;
     update_available: boolean;
+    source_ok?: boolean;
+    error?: string | null;
+    checked_at?: number;
 }
 
 const generateQRCode = (url: string): string => {
@@ -54,6 +57,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
     const [updating, setUpdating] = useState(false);
     const [updateStatus, setUpdateStatus] = useState<{ msg: string; isError: boolean } | null>(null);
     const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+    const [diagOutput, setDiagOutput] = useState<string>("");
 
     // Check for updates on mount
     useEffect(() => {
@@ -64,7 +68,9 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 setVersionInfo(prev => prev ? { ...prev, current } : {
                     current,
                     latest: null,
-                    update_available: false
+                    update_available: false,
+                    source_ok: false,
+                    error: null
                 });
             } catch (e) {
                 log.warn("Failed to get immediate version:", e);
@@ -78,10 +84,12 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             } catch (e) {
                 log.error("Failed to check version from GitHub:", e);
                 // Preserve current version if we already fetched it
-                setVersionInfo(prev => prev ? { ...prev, update_available: false } : {
+                setVersionInfo(prev => prev ? { ...prev, update_available: false, source_ok: false, error: "Version check failed" } : {
                     current: "unknown",
                     latest: null,
-                    update_available: false
+                    update_available: false,
+                    source_ok: false,
+                    error: "Version check failed"
                 });
             }
         };
@@ -142,10 +150,26 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
     const getUpdateMetaLabel = () => {
         if (!versionInfo) return "";
+        if (versionInfo.source_ok === false || !versionInfo.latest) {
+            return `Version check failed${versionInfo.error ? `: ${versionInfo.error}` : ""}`;
+        }
         if (versionInfo.update_available && versionInfo.latest_tag) {
             return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
         }
         return `${t("already_up_to_date", lang)} (v${versionInfo.current})`;
+    };
+
+    const runDiagnostics = async () => {
+        try {
+            const diag = await call<[], Record<string, unknown>>("debug_version_check");
+            const text = JSON.stringify(diag, null, 2);
+            log.info("Version diagnostics:", diag);
+            setDiagOutput(text);
+        } catch (e) {
+            const text = `Diagnostics failed: ${e instanceof Error ? e.message : String(e)}`;
+            log.error(text);
+            setDiagOutput(text);
+        }
     };
 
     return (
@@ -217,6 +241,13 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 disabled={updating}
             />
 
+            {/* Temporary diagnostics button */}
+            <LinkButton
+                onClick={runDiagnostics}
+                icon={<FaGithub />}
+                label="Run Version Diagnostics"
+            />
+
             {/* Stable update meta line */}
             <PanelSectionRow>
                 <div style={{
@@ -234,6 +265,27 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                     padding: "0 6px"
                 }}>
                     {getUpdateMetaLabel()}
+                </div>
+            </PanelSectionRow>
+
+            {/* Diagnostics output */}
+            <PanelSectionRow>
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "20px",
+                    fontSize: "10px",
+                    marginTop: "2px",
+                    marginBottom: "2px",
+                    color: "rgba(255,255,255,0.75)",
+                    width: "100%",
+                    textAlign: "left",
+                    overflowWrap: "anywhere",
+                    padding: "0 6px",
+                    whiteSpace: "pre-wrap"
+                }}>
+                    {diagOutput || "Diagnostics output will appear here"}
                 </div>
             </PanelSectionRow>
 
