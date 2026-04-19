@@ -52,7 +52,11 @@ async def test_get_latest_version_update_available(monkeypatch):
         return "1.0.0"
 
     async def fake_http_get(url, headers=None):
-        return json.dumps({"tag_name": "v1.2.0"})
+        return json.dumps([
+            {"tag_name": "v0.9.0", "draft": False, "prerelease": False},
+            {"tag_name": "v1.2.0", "draft": False, "prerelease": False},
+            {"tag_name": "v1.1.5", "draft": False, "prerelease": False},
+        ])
 
     monkeypatch.setattr(plugin, "get_current_version", fake_current)
     monkeypatch.setattr(main, "http_get", fake_http_get)
@@ -72,7 +76,10 @@ async def test_get_latest_version_handles_suffixed_tags(monkeypatch):
         return "1.6.4"
 
     async def fake_http_get(url, headers=None):
-        return json.dumps({"tag_name": "v1.6.5-node24fix"})
+        return json.dumps([
+            {"tag_name": "v1.6.5-node24fix", "draft": False, "prerelease": False},
+            {"tag_name": "v1.6.4", "draft": False, "prerelease": False},
+        ])
 
     monkeypatch.setattr(plugin, "get_current_version", fake_current)
     monkeypatch.setattr(main, "http_get", fake_http_get)
@@ -101,6 +108,29 @@ async def test_get_latest_version_http_failure(monkeypatch):
     assert info["current"] == "1.0.0"
     assert info["latest"] is None
     assert info["update_available"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_latest_version_ignores_draft_and_prerelease(monkeypatch):
+    plugin = main.Plugin()
+
+    async def fake_current():
+        return "1.0.0"
+
+    async def fake_http_get(url, headers=None):
+        return json.dumps([
+            {"tag_name": "v9.9.9", "draft": True, "prerelease": False},
+            {"tag_name": "v8.8.8", "draft": False, "prerelease": True},
+            {"tag_name": "v1.2.3", "draft": False, "prerelease": False},
+        ])
+
+    monkeypatch.setattr(plugin, "get_current_version", fake_current)
+    monkeypatch.setattr(main, "http_get", fake_http_get)
+
+    info = await plugin.get_latest_version()
+    assert info["latest"] == "1.2.3"
+    assert info["latest_tag"] == "v1.2.3"
+    assert info["update_available"] is True
 
 
 @pytest.mark.asyncio

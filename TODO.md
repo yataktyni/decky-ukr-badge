@@ -1,6 +1,5 @@
-- [x] Fix version parsing in backend for tags like v1.6.5-node24fix
-- [x] Fix update button label layout jump in LinksSection
-- [x] Ensure settings/config title shows "decky-ukr-badge"
-- [x] Update/add tests for version parsing and frontend update label behavior
-- [ ] Run backend/frontend tests
-- [ ] Commit, push, and tag hotfix release
+- [ ] Stabilize update button UI in `src/components/LinksSection.tsx` (no width overflow, no height jump)
+- [ ] Improve backend version detection in `main.py` using GitHub releases list and highest valid semver tag
+- [ ] Update frontend tests in `tests/LinksSection.test.tsx` for stable label/version rendering
+- [ ] Update backend tests in `tests/test_main.py` for releases-list version selection
+- [ ] Run test suite (`pytest` and `pnpm vitest run`)

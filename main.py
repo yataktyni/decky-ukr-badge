@@ -163,7 +163,7 @@ class Plugin:
             return "unknown"
 
     async def get_latest_version(self) -> Dict[str, Any]:
-        """Check GitHub for latest version."""
+        """Check GitHub for latest version based on highest valid semver tag in recent releases."""
         def normalize_semver_core(value: str) -> str:
             raw = (value or "").strip().lstrip("v")
             m = re.match(r"^(\d+)\.(\d+)\.(\d+)", raw)
@@ -182,30 +182,52 @@ class Plugin:
         try:
             current_version_raw = await self.get_current_version()
             current_version = normalize_semver_core(current_version_raw)
+            current_tuple = parse_version_tuple(current_version)
 
-            github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases/latest"
+            github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases?per_page=20"
             response = await http_get(github_api)
 
             if not response:
                 return {"current": current_version, "latest": None, "update_available": False}
 
-            release_data = json.loads(response)
-            latest_tag = release_data.get("tag_name", "")
-            latest_version = normalize_semver_core(latest_tag)
+            releases = json.loads(response)
+            if not isinstance(releases, list):
+                return {"current": current_version, "latest": None, "update_available": False}
 
-            current_tuple = parse_version_tuple(current_version)
-            latest_tuple = parse_version_tuple(latest_version)
-            update_available = latest_tuple > current_tuple
+            best_tag = ""
+            best_version = "0.0.0"
+            best_tuple = (0, 0, 0)
+
+            for release in releases:
+                if not isinstance(release, dict):
+                    continue
+                if release.get("draft") is True:
+                    continue
+                if release.get("prerelease") is True:
+                    continue
+
+                tag_name = str(release.get("tag_name", "")).strip()
+                version = normalize_semver_core(tag_name)
+                version_tuple = parse_version_tuple(version)
+                if version_tuple > best_tuple:
+                    best_tuple = version_tuple
+                    best_version = version
+                    best_tag = tag_name
+
+            if best_tag == "":
+                return {"current": current_version, "latest": None, "update_available": False}
+
+            update_available = best_tuple > current_tuple
 
             decky.logger.info(
                 f"Version check: current={current_version_raw} ({current_version}), "
-                f"latest_tag={latest_tag} ({latest_version}), update={update_available}"
+                f"selected_tag={best_tag} ({best_version}), update={update_available}"
             )
 
             return {
                 "current": current_version,
-                "latest": latest_version,
-                "latest_tag": latest_tag,
+                "latest": best_version,
+                "latest_tag": best_tag,
                 "update_available": update_available
             }
         except Exception as e:

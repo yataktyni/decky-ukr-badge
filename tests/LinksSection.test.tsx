@@ -39,7 +39,7 @@ describe("LinksSection update flow", () => {
     openUrl.mockReset();
   });
 
-  it("shows update_to label when update is available", async () => {
+  it("shows stable update button label and separate update meta line", async () => {
     callMock
       .mockResolvedValueOnce("1.0.0")
       .mockResolvedValueOnce({
@@ -52,6 +52,7 @@ describe("LinksSection update flow", () => {
     render(React.createElement(LinksSection, { lang: "en", openUrl }));
 
     await waitFor(() => {
+      expect(screen.getByText(/^update_plugin$/i)).toBeInTheDocument();
       expect(screen.getByText(/update_to v1.1.0/i)).toBeInTheDocument();
     });
   });
@@ -75,9 +76,9 @@ describe("LinksSection update flow", () => {
 
     render(React.createElement(LinksSection, { lang: "en", openUrl }));
 
-    await waitFor(() => screen.getByText(/update_to v1.1.0/i));
+    await waitFor(() => screen.getByText(/^update_plugin$/i));
 
-    fireEvent.click(screen.getByText(/update_to v1.1.0/i));
+    fireEvent.click(screen.getByText(/^update_plugin$/i));
 
     await waitFor(() => {
       expect(screen.getByText(/update_success - restart_to_apply/i)).toBeInTheDocument();
@@ -97,9 +98,9 @@ describe("LinksSection update flow", () => {
 
     render(React.createElement(LinksSection, { lang: "en", openUrl }));
 
-    await waitFor(() => screen.getByText(/update_plugin \(v1.0.0\)/i));
+    await waitFor(() => screen.getByText(/^update_plugin$/i));
 
-    fireEvent.click(screen.getByText(/update_plugin \(v1.0.0\)/i));
+    fireEvent.click(screen.getByText(/^update_plugin$/i));
 
     await waitFor(() => {
       expect(screen.getByText(/already_up_to_date/i)).toBeInTheDocument();
@@ -119,9 +120,9 @@ describe("LinksSection update flow", () => {
 
     render(React.createElement(LinksSection, { lang: "en", openUrl }));
 
-    await waitFor(() => screen.getByText(/update_to v1.2.0/i));
+    await waitFor(() => screen.getByText(/^update_plugin$/i));
 
-    fireEvent.click(screen.getByText(/update_to v1.2.0/i));
+    fireEvent.click(screen.getByText(/^update_plugin$/i));
 
     await waitFor(() => {
       expect(screen.getByText(/update_error: Download failed/i)).toBeInTheDocument();

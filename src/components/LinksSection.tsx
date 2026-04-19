@@ -34,12 +34,12 @@ const Divider: FC = () => (
     }} />
 );
 
-const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean; labelMinWidth?: string }> = ({ onClick, icon, label, disabled, labelMinWidth = "150px" }) => (
+const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }> = ({ onClick, icon, label, disabled }) => (
     <PanelSectionRow>
         <ButtonItem layout="below" onClick={onClick} disabled={disabled}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", minHeight: "22px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", minHeight: "22px", width: "100%" }}>
                 {icon}
-                <span style={{ minWidth: labelMinWidth, textAlign: "center", display: "inline-block" }}>{label}</span>
+                <span style={{ textAlign: "center", display: "inline-block", whiteSpace: "normal", overflowWrap: "anywhere" }}>{label}</span>
             </div>
         </ButtonItem>
     </PanelSectionRow>
@@ -137,11 +137,15 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
     const getUpdateButtonLabel = () => {
         if (updating) return t("updating", lang);
-        if (versionInfo?.update_available && versionInfo.latest_tag) {
+        return t("update_plugin", lang);
+    };
+
+    const getUpdateMetaLabel = () => {
+        if (!versionInfo) return "";
+        if (versionInfo.update_available && versionInfo.latest_tag) {
             return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
         }
-        const versionToShow = versionInfo?.latest || versionInfo?.current;
-        return `${t("update_plugin", lang)}${versionToShow ? ` (v${versionToShow})` : ""}`;
+        return `${t("already_up_to_date", lang)} (v${versionInfo.current})`;
     };
 
     return (
@@ -211,46 +215,49 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 icon={<FaDownload />}
                 label={getUpdateButtonLabel()}
                 disabled={updating}
-                labelMinWidth="260px"
             />
 
-            {/* Update Status Message (inline below button) */}
-            {updateStatus && (
-                <PanelSectionRow>
-                    <div style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "6px",
-                        fontSize: "11px",
-                        marginTop: "4px",
-                        marginBottom: "4px",
-                        color: !updateStatus.isError ? "#4ade80" : "#f87171",
-                        fontWeight: "bold",
-                        width: "100%"
-                    }}>
-                        {!updateStatus.isError ? "✅" : "❌"} {updateStatus.msg}
-                    </div>
-                </PanelSectionRow>
-            )}
-
-            {/* Version Display (always at bottom) */}
-            {versionInfo && (
+            {/* Stable update meta line */}
+            <PanelSectionRow>
                 <div style={{
-                    textAlign: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "20px",
                     fontSize: "11px",
-                    color: "rgba(255,255,255,0.35)",
-                    marginTop: "4px",
-                    paddingBottom: "8px"
+                    marginTop: "2px",
+                    marginBottom: "2px",
+                    color: "rgba(255,255,255,0.65)",
+                    width: "100%",
+                    textAlign: "center",
+                    overflowWrap: "anywhere",
+                    padding: "0 6px"
                 }}>
-                    v{versionInfo.current}
-                    {versionInfo.update_available && versionInfo.latest_tag && (
-                        <span style={{ color: "#4ade80", marginLeft: "8px" }}>
-                            → {versionInfo.latest_tag}
-                        </span>
-                    )}
+                    {getUpdateMetaLabel()}
                 </div>
-            )}
+            </PanelSectionRow>
+
+            {/* Update Status Message */}
+            <PanelSectionRow>
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "20px",
+                    gap: "6px",
+                    fontSize: "11px",
+                    marginTop: "2px",
+                    marginBottom: "2px",
+                    color: updateStatus ? (!updateStatus.isError ? "#4ade80" : "#f87171") : "transparent",
+                    fontWeight: "bold",
+                    width: "100%",
+                    textAlign: "center",
+                    overflowWrap: "anywhere",
+                    padding: "0 6px"
+                }}>
+                    {updateStatus ? `${!updateStatus.isError ? "✅" : "❌"} ${updateStatus.msg}` : "placeholder"}
+                </div>
+            </PanelSectionRow>
         </PanelSection>
     );
 };
