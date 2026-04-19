@@ -127,6 +127,6 @@ jobs:
                   prerelease: false
                   files: |
                     release.zip
-                    dist/plugin.json
+                    plugin.json
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
