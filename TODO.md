@@ -1,6 +1,6 @@
-- [ ] Add backend unit tests for core plugin/update flows
-- [ ] Add pytest dev dependency file
-- [ ] Update release workflow to run tests
-- [ ] Add CI workflow for push/pull_request tests
-- [ ] Update README with local test instructions
-- [ ] Run tests locally in sandbox
+- [x] Fix version parsing in backend for tags like v1.6.5-node24fix
+- [x] Fix update button label layout jump in LinksSection
+- [x] Ensure settings/config title shows "decky-ukr-badge"
+- [x] Update/add tests for version parsing and frontend update label behavior
+- [ ] Run backend/frontend tests
+- [ ] Commit, push, and tag hotfix release

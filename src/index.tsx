@@ -206,7 +206,7 @@ export default definePlugin(() => {
 
     return {
         name: "decky-ukr-badge",
-        title: "UA Badge",
+        title: "decky-ukr-badge",
         icon: <FaFlag />,
         content: <SettingsPanel />,
         onDismount() {

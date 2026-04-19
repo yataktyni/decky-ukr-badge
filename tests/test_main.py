@@ -65,6 +65,26 @@ async def test_get_latest_version_update_available(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_get_latest_version_handles_suffixed_tags(monkeypatch):
+    plugin = main.Plugin()
+
+    async def fake_current():
+        return "1.6.4"
+
+    async def fake_http_get(url, headers=None):
+        return json.dumps({"tag_name": "v1.6.5-node24fix"})
+
+    monkeypatch.setattr(plugin, "get_current_version", fake_current)
+    monkeypatch.setattr(main, "http_get", fake_http_get)
+
+    info = await plugin.get_latest_version()
+    assert info["current"] == "1.6.4"
+    assert info["latest"] == "1.6.5"
+    assert info["latest_tag"] == "v1.6.5-node24fix"
+    assert info["update_available"] is True
+
+
+@pytest.mark.asyncio
 async def test_get_latest_version_http_failure(monkeypatch):
     plugin = main.Plugin()
 

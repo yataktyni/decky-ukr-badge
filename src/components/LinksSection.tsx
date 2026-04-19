@@ -34,12 +34,12 @@ const Divider: FC = () => (
     }} />
 );
 
-const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }> = ({ onClick, icon, label, disabled }) => (
+const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean; labelMinWidth?: string }> = ({ onClick, icon, label, disabled, labelMinWidth = "150px" }) => (
     <PanelSectionRow>
         <ButtonItem layout="below" onClick={onClick} disabled={disabled}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", minHeight: "22px" }}>
                 {icon}
-                <span style={{ minWidth: "150px", textAlign: "center" }}>{label}</span>
+                <span style={{ minWidth: labelMinWidth, textAlign: "center", display: "inline-block" }}>{label}</span>
             </div>
         </ButtonItem>
     </PanelSectionRow>
@@ -211,6 +211,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 icon={<FaDownload />}
                 label={getUpdateButtonLabel()}
                 disabled={updating}
+                labelMinWidth="260px"
             />
 
             {/* Update Status Message (inline below button) */}

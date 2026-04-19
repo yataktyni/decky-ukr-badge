@@ -6,6 +6,7 @@ import os
 import urllib.parse
 import urllib.request
 import urllib.error
+import re
 from typing import Dict, Any, TypedDict
 
 import decky
@@ -51,7 +52,7 @@ def _sync_http_get(url: str, headers: Dict[str, str] | None = None) -> str:
     req = urllib.request.Request(url)
     for key, value in headers.items():
         req.add_header(key, value)
-    
+
     with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as response:
         return response.read().decode("utf-8")
 
@@ -73,7 +74,7 @@ def _sync_http_get_binary(url: str, headers: Dict[str, str] | None = None) -> by
     req = urllib.request.Request(url)
     for key, value in headers.items():
         req.add_header(key, value)
-    
+
     with urllib.request.urlopen(req, timeout=30) as response:
         return response.read()
 
@@ -94,18 +95,18 @@ async def http_get_binary(url: str, headers: Dict[str, str] | None = None) -> by
 class Plugin:
     settings: Settings = DEFAULT_SETTINGS.copy()
     settings_file: str = ""
-    
+
     # Lifecycle Methods
     async def _main(self):
         """Called when plugin loads."""
         decky.logger.info("decky-ukr-badge: _main called")
         self.settings_file = os.path.join(decky.DECKY_PLUGIN_SETTINGS_DIR, "settings.json")
         self._load_settings()
-    
+
     async def _unload(self):
         """Called when plugin unloads."""
         decky.logger.info("decky-ukr-badge: _unload called")
-    
+
     # Settings Management
     def _load_settings(self) -> Settings:
         if os.path.exists(self.settings_file):
@@ -118,7 +119,7 @@ class Plugin:
             except Exception as e:
                 decky.logger.error(f"Settings load failed: {e}")
         return self.settings
-    
+
     def _save_settings(self) -> bool:
         try:
             os.makedirs(os.path.dirname(self.settings_file), exist_ok=True)
@@ -128,26 +129,26 @@ class Plugin:
         except Exception as e:
             decky.logger.error(f"Settings save failed: {e}")
             return False
-    
+
     # Public API Methods (called from frontend)
     async def get_settings(self) -> Settings:
         decky.logger.info("get_settings called")
         return self._load_settings()
-    
+
     async def set_settings(self, key: str, value: Any) -> bool:
         decky.logger.info(f"set_settings: {key}={value}")
         if key in DEFAULT_SETTINGS:
             self.settings[key] = value  # type: ignore
             return self._save_settings()
         return False
-    
+
     async def get_current_version(self) -> str:
         """Get current plugin version from plugin.json."""
         try:
             plugin_dir = os.path.dirname(os.path.abspath(__file__))
             plugin_json_path = os.path.join(plugin_dir, "plugin.json")
             decky.logger.info(f"[VERSION] Looking for: {plugin_json_path}")
-            
+
             if os.path.exists(plugin_json_path):
                 with open(plugin_json_path, "r", encoding="utf-8") as f:
                     plugin_data = json.load(f)
@@ -160,34 +161,47 @@ class Plugin:
         except Exception as e:
             decky.logger.error(f"get_current_version failed: {e}")
             return "unknown"
-    
+
     async def get_latest_version(self) -> Dict[str, Any]:
         """Check GitHub for latest version."""
+        def normalize_semver_core(value: str) -> str:
+            raw = (value or "").strip().lstrip("v")
+            m = re.match(r"^(\d+)\.(\d+)\.(\d+)", raw)
+            if not m:
+                return "0.0.0"
+            return f"{m.group(1)}.{m.group(2)}.{m.group(3)}"
+
+        def parse_version_tuple(value: str) -> tuple[int, int, int]:
+            core = normalize_semver_core(value)
+            try:
+                major, minor, patch = core.split(".")
+                return (int(major), int(minor), int(patch))
+            except Exception:
+                return (0, 0, 0)
+
         try:
-            current_version = await self.get_current_version()
-            
+            current_version_raw = await self.get_current_version()
+            current_version = normalize_semver_core(current_version_raw)
+
             github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases/latest"
             response = await http_get(github_api)
-            
+
             if not response:
                 return {"current": current_version, "latest": None, "update_available": False}
-            
+
             release_data = json.loads(response)
             latest_tag = release_data.get("tag_name", "")
-            latest_version = latest_tag.lstrip("v")
-            
-            def parse_version(v):
-                try:
-                    return tuple(int(x) for x in v.split("."))
-                except:
-                    return (0, 0, 0)
-            
-            current_tuple = parse_version(current_version)
-            latest_tuple = parse_version(latest_version)
+            latest_version = normalize_semver_core(latest_tag)
+
+            current_tuple = parse_version_tuple(current_version)
+            latest_tuple = parse_version_tuple(latest_version)
             update_available = latest_tuple > current_tuple
-            
-            decky.logger.info(f"Version check: current={current_version}, latest={latest_version}, update={update_available}")
-            
+
+            decky.logger.info(
+                f"Version check: current={current_version_raw} ({current_version}), "
+                f"latest_tag={latest_tag} ({latest_version}), update={update_available}"
+            )
+
             return {
                 "current": current_version,
                 "latest": latest_version,
@@ -197,68 +211,68 @@ class Plugin:
         except Exception as e:
             decky.logger.error(f"Version check failed: {e}")
             return {"current": "unknown", "latest": None, "update_available": False}
-    
+
     async def update_plugin(self) -> Dict[str, Any]:
         """Download and install latest release from GitHub."""
         import zipfile
         import io
-        
+
         # Check if update is needed
         decky.logger.info("[UPDATE] Checking if update is needed...")
         version_info = await self.get_latest_version()
-        
+
         if not version_info.get("update_available"):
             decky.logger.info("[UPDATE] Already up to date")
             return {"success": True, "message": "Already up to date", "already_current": True}
-        
+
         release_url = "https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip"
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         try:
             decky.logger.info("[UPDATE] Downloading release.zip...")
             zip_data = await http_get_binary(release_url)
             if not zip_data:
                 return {"success": False, "error": "Download failed"}
-            
+
             decky.logger.info(f"[UPDATE] Downloaded {len(zip_data)} bytes")
-            
+
             def extract_zip(data: bytes, target_dir: str) -> int:
                 with zipfile.ZipFile(io.BytesIO(data)) as zf:
                     # check if all files share a common root directory
                     paths = [info.filename for info in zf.infolist() if not info.is_dir()]
                     if not paths:
                         return 0
-                        
+
                     first_parts = [p.split('/')[0] for p in paths if '/' in p]
                     has_root_dir = len(set(first_parts)) == 1 and all('/' in p for p in paths)
-                    
+
                     count = 0
                     for info in zf.infolist():
                         if info.is_dir():
                             continue
-                        
+
                         target_name = info.filename
                         if has_root_dir:
                             # Strip the root directory safely
                             parts = target_name.split("/", 1)
                             target_name = parts[1] if len(parts) > 1 else parts[0]
-                            
+
                         if not target_name:
                             continue
-                            
+
                         target_path = os.path.join(target_dir, target_name)
                         os.makedirs(os.path.dirname(target_path), exist_ok=True)
                         with zf.open(info) as src, open(target_path, 'wb') as dst:
                             dst.write(src.read())
                         count += 1
                     return count
-            
+
             decky.logger.info("[UPDATE] Extracting...")
             file_count = await asyncio.to_thread(extract_zip, zip_data, plugin_dir)
-            
+
             decky.logger.info(f"[UPDATE] Complete! Extracted {file_count} files")
             return {"success": True, "message": "Update complete. Restart Decky.", "needs_restart": True}
-            
+
         except zipfile.BadZipFile:
             return {"success": False, "error": "Invalid zip file"}
         except Exception as e:
