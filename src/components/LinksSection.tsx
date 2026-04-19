@@ -136,13 +136,13 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         }
     };
 
-    // Determine button label
     const getUpdateButtonLabel = () => {
         if (updating) return t("updating", lang);
         if (versionInfo?.update_available && versionInfo.latest_tag) {
             return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
         }
-        return `${t("update_plugin", lang)}${versionInfo?.current ? ` (v${versionInfo.current})` : ""}`;
+        const versionToShow = versionInfo?.latest || versionInfo?.current;
+        return `${t("update_plugin", lang)}${versionToShow ? ` (v${versionToShow})` : ""}`;
     };
 
     return (
@@ -219,16 +219,19 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
             {/* Update Status Message (inline below button) */}
             {updateStatus && (
-                <div style={{
-                    textAlign: "center",
-                    fontSize: "11px",
-                    marginTop: "-12px",
-                    marginBottom: "8px",
-                    color: !updateStatus.isError ? "#4ade80" : "#f87171",
-                    fontWeight: "bold"
-                }}>
-                    {!updateStatus.isError ? "✅" : "❌"} {updateStatus.msg}
-                </div>
+                <PanelSectionRow>
+                    <div style={{
+                        textAlign: "center",
+                        fontSize: "11px",
+                        marginTop: "4px",
+                        marginBottom: "4px",
+                        color: !updateStatus.isError ? "#4ade80" : "#f87171",
+                        fontWeight: "bold",
+                        width: "100%"
+                    }}>
+                        {!updateStatus.isError ? "✅" : "❌"} {updateStatus.msg}
+                    </div>
+                </PanelSectionRow>
             )}
 
             {/* Version Display (always at bottom) */}
@@ -237,7 +240,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                     textAlign: "center",
                     fontSize: "11px",
                     color: "rgba(255,255,255,0.35)",
-                    marginTop: "8px",
+                    marginTop: "4px",
                     paddingBottom: "8px"
                 }}>
                     v{versionInfo.current}

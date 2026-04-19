@@ -224,14 +224,28 @@ class Plugin:
             
             def extract_zip(data: bytes, target_dir: str) -> int:
                 with zipfile.ZipFile(io.BytesIO(data)) as zf:
+                    # check if all files share a common root directory
+                    paths = [info.filename for info in zf.infolist() if not info.is_dir()]
+                    if not paths:
+                        return 0
+                        
+                    first_parts = [p.split('/')[0] for p in paths if '/' in p]
+                    has_root_dir = len(set(first_parts)) == 1 and all('/' in p for p in paths)
+                    
                     count = 0
                     for info in zf.infolist():
                         if info.is_dir():
                             continue
-                        parts = info.filename.split("/", 1)
-                        target_name = parts[1] if len(parts) > 1 else parts[0]
+                        
+                        target_name = info.filename
+                        if has_root_dir:
+                            # Strip the root directory safely
+                            parts = target_name.split("/", 1)
+                            target_name = parts[1] if len(parts) > 1 else parts[0]
+                            
                         if not target_name:
                             continue
+                            
                         target_path = os.path.join(target_dir, target_name)
                         os.makedirs(os.path.dirname(target_path), exist_ok=True)
                         with zf.open(info) as src, open(target_path, 'wb') as dst:
