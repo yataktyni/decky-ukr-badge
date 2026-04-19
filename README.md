@@ -96,6 +96,7 @@ pnpm zip
 
 ### 🔗 Посилання
 
+- ❤️ [Підтримати на Ko-fi](https://ko-fi.com/yataktyni/tip)
 - 💚 [Підтримати криптою (NOWPayments)](https://nowpayments.io/donation/yataktyni)
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [Код на GitHub](https://github.com/yataktyni/decky-ukr-badge)
@@ -203,6 +204,7 @@ pnpm zip
 
 ### 🔗 Links
 
+- ❤️ [Support on Ko-fi](https://ko-fi.com/yataktyni/tip)
 - 💚 [Crypto Donation (NOWPayments)](https://nowpayments.io/donation/yataktyni)
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [GitHub Source](https://github.com/yataktyni/decky-ukr-badge)
