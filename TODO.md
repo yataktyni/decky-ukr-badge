@@ -1,0 +1,6 @@
+- [ ] Add backend unit tests for core plugin/update flows
+- [ ] Add pytest dev dependency file
+- [ ] Update release workflow to run tests
+- [ ] Add CI workflow for push/pull_request tests
+- [ ] Update README with local test instructions
+- [ ] Run tests locally in sandbox

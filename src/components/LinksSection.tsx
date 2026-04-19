@@ -217,10 +217,12 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             {updateStatus && (
                 <PanelSectionRow>
                     <div style={{
-                        textAlign: "center",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "6px",
                         fontSize: "11px",
                         marginTop: "4px",
-                        marginLeft: "-4px",
                         marginBottom: "4px",
                         color: !updateStatus.isError ? "#4ade80" : "#f87171",
                         fontWeight: "bold",

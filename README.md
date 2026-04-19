@@ -177,6 +177,42 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 
 ---
 
+### ✅ Tests (Backend + Frontend)
+
+```bash
+# Backend tests
+python3 -m pip install -r requirements-dev.txt
+pytest -q
+
+# Frontend tests
+pnpm install
+pnpm test:frontend
+```
+
+Covered areas include:
+
+Backend:
+- settings load/save/default merge
+- current version read from `plugin.json`
+- latest version check via GitHub API response handling
+- update flow:
+  - already up-to-date
+  - successful zip extraction (both wrapped-root and flat archives)
+  - invalid zip error path
+
+Frontend:
+- utility functions (`src/utils.ts`)
+- badge rendering/click/position behavior (`src/components/Badge.tsx`)
+- update button/version/status behavior (`src/components/LinksSection.tsx`)
+- settings hook load/persist behavior (`src/hooks/useSettings.ts`)
+- badge status hook Steam/Kuli/error paths (`src/hooks/useBadgeStatus.ts`)
+
+CI/CD:
+- `.github/workflows/ci.yml` runs backend + frontend tests on push and pull requests.
+- `.github/workflows/release.yml` runs backend + frontend tests before building and publishing tagged releases.
+
+---
+
 ### 🛠️ Building from Source (For Developers)
 
 **Requirements:**

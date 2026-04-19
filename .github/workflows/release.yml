@@ -6,7 +6,43 @@ on:
             - 'v*'
 
 jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.11'
+
+            - name: Install Python test dependencies
+              run: |
+                  python -m pip install --upgrade pip
+                  pip install -r requirements-dev.txt
+
+            - name: Run backend tests
+              run: pytest -q
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 9
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Install frontend dependencies
+              run: pnpm install --no-frozen-lockfile
+
+            - name: Run frontend tests
+              run: pnpm test:frontend
+
     build-and-release:
+        needs: test
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -39,13 +75,13 @@ jobs:
             - name: Inject Version into Files
               run: |
                   VERSION=${{ steps.version.outputs.version }}
-                  
+
                   # Update package.json
                   jq --arg v "$VERSION" '.version = $v' package.json > package.json.tmp && mv package.json.tmp package.json
-                  
+
                   # Update plugin.json
                   jq --arg v "$VERSION" '.version = $v' plugin.json > plugin.json.tmp && mv plugin.json.tmp plugin.json
-                  
+
                   echo "✅ Injected version $VERSION into package.json and plugin.json"
 
             - name: Install dependencies
@@ -84,15 +120,15 @@ jobs:
                   # Get previous tag
                   PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
                   CURRENT_TAG=${{ steps.version.outputs.tag }}
-                  
+
                   echo "prev_tag=$PREV_TAG" >> $GITHUB_OUTPUT
-                  
+
                   if [ -n "$PREV_TAG" ]; then
                       echo "📋 Generating changelog from $PREV_TAG to $CURRENT_TAG"
-                      
+
                       # Generate changelog from commits
                       CHANGELOG=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --no-merges | head -20)
-                      
+
                       # Escape for multiline output
                       echo "changelog<<EOF" >> $GITHUB_OUTPUT
                       echo "$CHANGELOG" >> $GITHUB_OUTPUT
@@ -119,9 +155,9 @@ jobs:
 
                       ---
                       📝 Auto-generated from commit [`${{ github.sha }}`](https://github.com/yataktyni/decky-ukr-badge/commit/${{ github.sha }})
-                      
+
                       🔗 [Compare with previous release](https://github.com/yataktyni/decky-ukr-badge/compare/${{ steps.changelog.outputs.prev_tag }}...${{ steps.version.outputs.tag }})
-                      
+
                       📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
                   draft: false
                   prerelease: false

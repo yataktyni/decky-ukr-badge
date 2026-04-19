@@ -1,6 +1,6 @@
 {
   "name": "decky-ukr-badge",
-  "version": "1.6.4",
+  "version": "1.6.5",
   "description": "Displays a badge for games with Ukrainian localization on Steam Deck.",
   "type": "module",
   "author": "yataktyni",
@@ -26,18 +26,26 @@
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
     "release": "bash ./scripts/release.sh",
-    "zip": "zip -r release.zip . -x 'node_modules/*' '.git/*' '.agent/*' '.venv/*' '__pycache__/*' 'src/*' 'tsconfig.json' 'rollup.config.js' 'package.json' 'pnpm-lock.yaml'"
+    "zip": "zip -r release.zip . -x 'node_modules/*' '.git/*' '.agent/*' '.venv/*' '__pycache__/*' 'src/*' 'tsconfig.json' 'rollup.config.js' 'package.json' 'pnpm-lock.yaml'",
+    "test:frontend": "vitest run --environment jsdom",
+    "test": "pnpm test:frontend"
   },
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
     "@decky/ui": "^4.7.2",
     "@rollup/plugin-commonjs": "^28.0.3",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.0.1",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@types/webpack": "^5.28.5",
+    "jsdom": "^25.0.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
     "rollup": "^4.22.5",
     "shx": "^0.3.4",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.4"
   },
   "dependencies": {
     "@decky/api": "^1.1.2",
