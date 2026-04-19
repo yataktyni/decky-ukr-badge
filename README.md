@@ -42,10 +42,28 @@
 1. Завантажте `release.zip` з [релізів](https://github.com/yataktyni/decky-ukr-badge/releases/latest).
 2. Розпакуйте архів.
 3. Скопіюйте папку `decky-ukr-badge` до:
+
    ```
    /home/deck/homebrew/plugins/
    ```
 4. Перезавантажте Decky Loader або Steam Deck.
+
+#### Спосіб 3: Через термінал (Консоль)
+
+1. Відкрийте Консоль (Konsole) в режимі робочого столу (Desktop Mode).
+2. Вставте та виконайте команду:
+   ```bash
+   curl -fsSL https://bit.ly/4vDDIab | sh
+   ```
+
+#### Спосіб 4: Decky → Developer via URL
+
+1. На Steam Deck відкрийте **Decky Loader** (кнопка `...`).
+2. Перейдіть до ⚙️ **Налаштування** → **Developer**.
+3. Вставте наступне посилання в поле "Install via URL":
+   ```text
+   https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
+   ```
 
 ---
 
@@ -130,10 +148,28 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 1. Download `release.zip` from [releases](https://github.com/yataktyni/decky-ukr-badge/releases/latest).
 2. Extract the archive.
 3. Copy the `decky-ukr-badge` folder to:
+
    ```
    /home/deck/homebrew/plugins/
    ```
 4. Restart Decky Loader or your Steam Deck.
+
+#### Method 3: Via Terminal (Konsole)
+
+1. Open Konsole in Desktop Mode.
+2. Paste and run this command:
+   ```bash
+   curl -fsSL https://bit.ly/4vDDIab | sh
+   ```
+
+#### Method 4: Decky → Developer via URL
+
+1. On your Steam Deck, open **Decky Loader** (press `...` button).
+2. Go to ⚙️ **Settings** → **Developer**.
+3. Paste the following link into the "Install via URL" field:
+   ```text
+   https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
+   ```
 
 ---
 

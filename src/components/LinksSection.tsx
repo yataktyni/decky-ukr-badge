@@ -224,6 +224,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                         textAlign: "center",
                         fontSize: "11px",
                         marginTop: "4px",
+                        marginLeft: "-4px",
                         marginBottom: "4px",
                         color: !updateStatus.isError ? "#4ade80" : "#f87171",
                         fontWeight: "bold",
