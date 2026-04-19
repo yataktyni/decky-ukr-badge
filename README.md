@@ -52,6 +52,7 @@
 
 1. Відкрийте Консоль (Konsole) в режимі робочого столу (Desktop Mode).
 2. Вставте та виконайте команду:
+
    ```bash
    curl -fsSL https://bit.ly/4vDDIab | sh
    ```
@@ -61,6 +62,7 @@
 1. На Steam Deck відкрийте **Decky Loader** (кнопка `...`).
 2. Перейдіть до ⚙️ **Налаштування** → **Developer**.
 3. Вставте наступне посилання в поле "Install via URL":
+
    ```text
    https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
    ```
@@ -158,6 +160,7 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 
 1. Open Konsole in Desktop Mode.
 2. Paste and run this command:
+
    ```bash
    curl -fsSL https://bit.ly/4vDDIab | sh
    ```
@@ -167,6 +170,7 @@ A **Decky Loader** plugin for Steam Deck that adds a Ukrainian localization badg
 1. On your Steam Deck, open **Decky Loader** (press `...` button).
 2. Go to ⚙️ **Settings** → **Developer**.
 3. Paste the following link into the "Install via URL" field:
+
    ```text
    https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip
    ```
