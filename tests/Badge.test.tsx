@@ -4,7 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@decky/api", () => ({ call: vi.fn() }));
 vi.mock("@decky/ui", () => ({
-  Focusable: (props: any) => React.createElement("button", props, props.children),
+  Focusable: (props: any) => {
+    const { onActivate, children, ...rest } = props;
+    return React.createElement("button", { ...rest, onClick: onActivate ?? rest.onClick }, children);
+  },
 }));
 
 const openSpy = vi.fn();

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { render, waitFor, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const callMock = vi.fn();
@@ -82,7 +82,9 @@ describe("useSettings / loadSettings", () => {
     await waitFor(() => expect(latest?.loading).toBe(false));
 
     callMock.mockResolvedValueOnce(true);
-    await latest.setOffsetX(123);
+    await act(async () => {
+      await latest.setOffsetX(123);
+    });
 
     await waitFor(() => {
       expect(latest.settings.offsetX).toBe(123);
