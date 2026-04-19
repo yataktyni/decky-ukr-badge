@@ -125,6 +125,8 @@ jobs:
                       📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
                   draft: false
                   prerelease: false
-                  files: release.zip
+                  files: |
+                    release.zip
+                    dist/plugin.json
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

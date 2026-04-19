@@ -37,9 +37,9 @@ const Divider: FC = () => (
 const LinkButton: FC<{ onClick: () => void; icon: React.ReactNode; label: string; disabled?: boolean }> = ({ onClick, icon, label, disabled }) => (
     <PanelSectionRow>
         <ButtonItem layout="below" onClick={onClick} disabled={disabled}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center", minHeight: "22px" }}>
                 {icon}
-                <span>{label}</span>
+                <span style={{ minWidth: "150px", textAlign: "center" }}>{label}</span>
             </div>
         </ButtonItem>
     </PanelSectionRow>
