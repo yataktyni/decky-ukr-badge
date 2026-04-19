@@ -163,4 +163,7 @@ jobs:
                   📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
                   EOF
 
-                  gh release create "${{ steps.version.outputs.tag }}"                     --title "Release ${{ steps.version.outputs.tag }}"                     --notes-file RELEASE_NOTES.md                     release.zip plugin.json
+                  gh release create "${{ steps.version.outputs.tag }}" \
+                    --title "Release ${{ steps.version.outputs.tag }}" \
+                    --notes-file RELEASE_NOTES.md \
+                    release.zip

@@ -1,5 +1,0 @@
-- [ ] Stabilize update button UI in `src/components/LinksSection.tsx` (no width overflow, no height jump)
-- [ ] Improve backend version detection in `main.py` using GitHub releases list and highest valid semver tag
-- [ ] Update frontend tests in `tests/LinksSection.test.tsx` for stable label/version rendering
-- [ ] Update backend tests in `tests/test_main.py` for releases-list version selection
-- [ ] Run test suite (`pytest` and `pnpm vitest run`)
