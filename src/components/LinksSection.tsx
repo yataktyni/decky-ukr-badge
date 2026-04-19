@@ -58,6 +58,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
     const [updateStatus, setUpdateStatus] = useState<{ msg: string; isError: boolean } | null>(null);
     const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
     const [diagOutput, setDiagOutput] = useState<string>("");
+    const [forceUpdating, setForceUpdating] = useState(false);
 
     // Check for updates on mount
     useEffect(() => {
@@ -146,6 +147,52 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
     const getUpdateButtonLabel = () => {
         if (updating) return t("updating", lang);
         return t("update_plugin", lang);
+    };
+
+    const handleForceUpdate = async () => {
+        log.info("Starting forced plugin update (skip version check)...");
+        setForceUpdating(true);
+        setUpdateStatus(null);
+
+        const timeoutId = setTimeout(() => {
+            log.error("Force update timed out after 120 seconds");
+            setForceUpdating(false);
+            setUpdateStatus({ msg: t("update_error", lang) + ": Timeout", isError: true });
+        }, 120000);
+
+        try {
+            const result = await call<[], { success: boolean; message?: string; error?: string; needs_restart?: boolean }>("force_update_plugin");
+            clearTimeout(timeoutId);
+            log.info("Force update result:", result);
+
+            if (result.success) {
+                setUpdateStatus({
+                    msg: `${t("update_success", lang)} - ${t("restart_to_apply", lang)}`,
+                    isError: false
+                });
+
+                try {
+                    const info = await call<[], VersionInfo>("get_latest_version");
+                    setVersionInfo(info);
+                } catch (e) {
+                    log.warn("Post-force-update version refresh failed:", e);
+                }
+            } else {
+                setUpdateStatus({
+                    msg: t("update_error", lang) + (result.error ? `: ${result.error}` : ""),
+                    isError: true
+                });
+            }
+        } catch (e) {
+            clearTimeout(timeoutId);
+            log.error("Force update exception:", e);
+            setUpdateStatus({
+                msg: t("update_error", lang) + (e instanceof Error ? `: ${e.message}` : ""),
+                isError: true
+            });
+        } finally {
+            setForceUpdating(false);
+        }
     };
 
     const getUpdateMetaLabel = () => {
@@ -241,11 +288,19 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
                 disabled={updating}
             />
 
+            <LinkButton
+                onClick={handleForceUpdate}
+                icon={<FaDownload />}
+                label={forceUpdating ? "Force Updating..." : "Force Update (skip version check)"}
+                disabled={forceUpdating || updating}
+            />
+
             {/* Temporary diagnostics button */}
             <LinkButton
                 onClick={runDiagnostics}
                 icon={<FaGithub />}
                 label="Run Version Diagnostics"
+                disabled={forceUpdating || updating}
             />
 
             {/* Stable update meta line */}

@@ -2,8 +2,8 @@ name: Build and Release
 
 on:
     push:
-        tags:
-            - 'v*'
+        branches:
+            - main
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -66,14 +66,15 @@ jobs:
               with:
                   node-version: 24
 
-            - name: Extract Version from Tag
+            - name: Compute Release Tag/Version
               id: version
               run: |
-                  # Extract version from tag (v1.2.3 -> 1.2.3)
-                  VERSION=${GITHUB_REF_NAME#v}
-                  echo "version=$VERSION" >> $GITHUB_OUTPUT
-                  echo "tag=$GITHUB_REF_NAME" >> $GITHUB_OUTPUT
-                  echo "📦 Release Version: $VERSION"
+                  BASE_VERSION=$(jq -r .version < plugin.json)
+                  TAG="v${BASE_VERSION}"
+                  echo "version=$BASE_VERSION" >> $GITHUB_OUTPUT
+                  echo "tag=$TAG" >> $GITHUB_OUTPUT
+                  echo "📦 Release Version: $BASE_VERSION"
+                  echo "🏷️ Release Tag: $TAG"
 
             - name: Inject Version into Files
               run: |
@@ -162,6 +163,11 @@ jobs:
 
                   📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
                   EOF
+
+                  if gh release view "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+                      echo "Release ${{ steps.version.outputs.tag }} already exists. Deleting old release/tag..."
+                      gh release delete "${{ steps.version.outputs.tag }}" --yes --cleanup-tag || true
+                  fi
 
                   gh release create "${{ steps.version.outputs.tag }}" \
                     --title "Release ${{ steps.version.outputs.tag }}" \

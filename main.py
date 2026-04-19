@@ -192,6 +192,9 @@ class Plugin:
         current_tuple = parse_version_tuple(current_version)
         github_api = "https://api.github.com/repos/yataktyni/decky-ukr-badge/releases?per_page=20"
 
+        # Defensive sanitization in case runtime/plugin files accidentally mutate value
+        github_api = (github_api or "").strip().split()[0]
+
         base_result: Dict[str, Any] = {
             "current": current_version,
             "latest": None,
@@ -209,6 +212,10 @@ class Plugin:
             base_result["github_api"] = github_api
 
         try:
+            if not github_api.startswith("https://api.github.com/repos/yataktyni/decky-ukr-badge/releases"):
+                base_result["error"] = f"Misconfigured GitHub API URL: {github_api}"
+                return base_result
+
             response = await http_get(github_api)
             if not response:
                 base_result["error"] = "GitHub releases request failed or returned empty response"
@@ -267,18 +274,10 @@ class Plugin:
             base_result["error"] = err
             return base_result
 
-    async def update_plugin(self) -> Dict[str, Any]:
-        """Download and install latest release from GitHub."""
+    async def _download_and_extract_latest_release(self) -> Dict[str, Any]:
+        """Download and install latest release.zip from GitHub."""
         import zipfile
         import io
-
-        # Check if update is needed
-        decky.logger.info("[UPDATE] Checking if update is needed...")
-        version_info = await self.get_latest_version()
-
-        if not version_info.get("update_available"):
-            decky.logger.info("[UPDATE] Already up to date")
-            return {"success": True, "message": "Already up to date", "already_current": True}
 
         release_url = "https://github.com/yataktyni/decky-ukr-badge/releases/latest/download/release.zip"
         plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -333,3 +332,20 @@ class Plugin:
         except Exception as e:
             decky.logger.error(f"Update failed: {e}")
             return {"success": False, "error": str(e)}
+
+    async def update_plugin(self) -> Dict[str, Any]:
+        """Download and install latest release from GitHub (with version check)."""
+        # Check if update is needed
+        decky.logger.info("[UPDATE] Checking if update is needed...")
+        version_info = await self.get_latest_version()
+
+        if not version_info.get("update_available"):
+            decky.logger.info("[UPDATE] Already up to date")
+            return {"success": True, "message": "Already up to date", "already_current": True}
+
+        return await self._download_and_extract_latest_release()
+
+    async def force_update_plugin(self) -> Dict[str, Any]:
+        """Force update by downloading latest release.zip without version check."""
+        decky.logger.info("[FORCE_UPDATE] Starting forced update without version check...")
+        return await self._download_and_extract_latest_release()
