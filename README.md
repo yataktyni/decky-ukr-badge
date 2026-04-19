@@ -96,8 +96,7 @@ pnpm zip
 
 ### 🔗 Посилання
 
-- ❤️ [Підтримати на Ko-fi](https://ko-fi.com/yataktyni/tip)
-- 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
+- 💚 [Підтримати криптою (NOWPayments)](https://nowpayments.io/donation/yataktyni)
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [Код на GitHub](https://github.com/yataktyni/decky-ukr-badge)
 - 🎈 [Kuli.com.ua — каталог української локалізації ігор](https://kuli.com.ua/)
@@ -204,8 +203,7 @@ pnpm zip
 
 ### 🔗 Links
 
-- ❤️ [Support on Ko-fi](https://ko-fi.com/yataktyni/tip)
-- 💚 USDT TRC20: `TP63PYsRk3H9JypuHhqmfpwyCqBYyLBxQL`
+- 💚 [Crypto Donation (NOWPayments)](https://nowpayments.io/donation/yataktyni)
 - 🐦 [X (Twitter)](https://x.com/yataktyni)
 - 📦 [GitHub Source](https://github.com/yataktyni/decky-ukr-badge)
 - 🎈 [Kuli.com.ua — Catalog of Ukrainian game translations](https://kuli.com.ua/)
