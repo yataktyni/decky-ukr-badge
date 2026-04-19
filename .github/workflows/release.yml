@@ -5,6 +5,9 @@ on:
         tags:
             - 'v*'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
     test:
         runs-on: ubuntu-latest
@@ -26,14 +29,14 @@ jobs:
               run: pytest -q
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v4
+              uses: pnpm/action-setup@v5
               with:
                   version: 9
 
             - name: Set up Node.js
               uses: actions/setup-node@v5
               with:
-                  node-version: 20
+                  node-version: 24
 
             - name: Install frontend dependencies
               run: pnpm install --no-frozen-lockfile
@@ -54,14 +57,14 @@ jobs:
                   fetch-depth: 0
 
             - name: Setup pnpm
-              uses: pnpm/action-setup@v4
+              uses: pnpm/action-setup@v5
               with:
                   version: 9
 
             - name: Set up Node.js
               uses: actions/setup-node@v5
               with:
-                  node-version: 20
+                  node-version: 24
 
             - name: Extract Version from Tag
               id: version
@@ -138,31 +141,26 @@ jobs:
                   fi
 
             - name: Create GitHub Release
-              uses: softprops/action-gh-release@v2
-              with:
-                  tag_name: ${{ steps.version.outputs.tag }}
-                  name: Release ${{ steps.version.outputs.tag }}
-                  body: |
-                      ## 🇺🇦 decky-ukr-badge ${{ steps.version.outputs.tag }}
-
-                      ### Installation
-                      1. Download `release.zip` below
-                      2. On Steam Deck, open **Decky Loader** → ⚙️ **Settings** → **Developer**
-                      3. Select **Install Plugin From File** and choose the downloaded zip
-
-                      ### Changes
-                      ${{ steps.changelog.outputs.changelog }}
-
-                      ---
-                      📝 Auto-generated from commit [`${{ github.sha }}`](https://github.com/yataktyni/decky-ukr-badge/commit/${{ github.sha }})
-
-                      🔗 [Compare with previous release](https://github.com/yataktyni/decky-ukr-badge/compare/${{ steps.changelog.outputs.prev_tag }}...${{ steps.version.outputs.tag }})
-
-                      📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
-                  draft: false
-                  prerelease: false
-                  files: |
-                    release.zip
-                    plugin.json
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cat > RELEASE_NOTES.md << 'EOF'
+                  ## 🇺🇦 decky-ukr-badge ${{ steps.version.outputs.tag }}
+
+                  ### Installation
+                  1. Download `release.zip` below
+                  2. On Steam Deck, open **Decky Loader** → ⚙️ **Settings** → **Developer**
+                  3. Select **Install Plugin From File** and choose the downloaded zip
+
+                  ### Changes
+                  ${{ steps.changelog.outputs.changelog }}
+
+                  ---
+                  📝 Auto-generated from commit [`${{ github.sha }}`](https://github.com/yataktyni/decky-ukr-badge/commit/${{ github.sha }})
+
+                  🔗 [Compare with previous release](https://github.com/yataktyni/decky-ukr-badge/compare/${{ steps.changelog.outputs.prev_tag }}...${{ steps.version.outputs.tag }})
+
+                  📖 [Full documentation](https://github.com/yataktyni/decky-ukr-badge#readme)
+                  EOF
+
+                  gh release create "${{ steps.version.outputs.tag }}"                     --title "Release ${{ steps.version.outputs.tag }}"                     --notes-file RELEASE_NOTES.md                     release.zip plugin.json
