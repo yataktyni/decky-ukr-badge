@@ -1,7 +1,7 @@
 // decky-ukr-badge/src/components/LinksSection.tsx
 import React, { FC, useState, useEffect } from "react";
 import { PanelSection, PanelSectionRow, ButtonItem } from "@decky/ui";
-import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad, FaDownload, FaBitcoin } from "react-icons/fa";
+import { FaSteam, FaYoutube, FaGithub, FaQrcode, FaGamepad, FaBitcoin } from "react-icons/fa";
 import { FaXTwitter } from "react-icons/fa6";
 import { call } from "@decky/api";
 import { t } from "../translations";
@@ -54,11 +54,7 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
 
     const [showKofiQR, setShowKofiQR] = useState(false);
     const [showCryptoQR, setShowCryptoQR] = useState(false);
-    const [updating, setUpdating] = useState(false);
-    const [updateStatus, setUpdateStatus] = useState<{ msg: string; isError: boolean } | null>(null);
     const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
-    const [diagOutput, setDiagOutput] = useState<string>("");
-    const [forceUpdating, setForceUpdating] = useState(false);
 
     // Check for updates on mount
     useEffect(() => {
@@ -97,127 +93,6 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
         checkVersion();
     }, []);
 
-    const handleUpdate = async () => {
-        log.info("Starting plugin update...");
-        setUpdating(true);
-        setUpdateStatus(null);
-
-        // Timeout to prevent getting stuck in "updating..." state
-        const timeoutId = setTimeout(() => {
-            log.error("Update timed out after 60 seconds");
-            setUpdating(false);
-            setUpdateStatus({ msg: t("update_error", lang) + ": Timeout", isError: true });
-        }, 120000);
-
-        try {
-            const result = await call<[], { success: boolean; message?: string; error?: string; already_current?: boolean; needs_restart?: boolean }>("update_plugin");
-            clearTimeout(timeoutId);
-            log.info("Update result:", result);
-            if (result.success) {
-                if (result.already_current) {
-                    setUpdateStatus({ msg: t("already_up_to_date", lang), isError: false });
-                } else {
-                    setUpdateStatus({
-                        msg: `${t("update_success", lang)} - ${t("restart_to_apply", lang)}`,
-                        isError: false
-                    });
-                    // Refresh version info after update
-                    const info = await call<[], VersionInfo>("get_latest_version");
-                    setVersionInfo(info);
-                }
-            } else {
-                log.error("Update failed:", result.error);
-                setUpdateStatus({
-                    msg: t("update_error", lang) + (result.error ? `: ${result.error}` : ""),
-                    isError: true
-                });
-            }
-        } catch (e) {
-            clearTimeout(timeoutId);
-            log.error("Update exception:", e);
-            setUpdateStatus({
-                msg: t("update_error", lang) + (e instanceof Error ? `: ${e.message}` : ""),
-                isError: true
-            });
-        } finally {
-            setUpdating(false);
-        }
-    };
-
-    const getUpdateButtonLabel = () => {
-        if (updating) return t("updating", lang);
-        return t("update_plugin", lang);
-    };
-
-    const handleForceUpdate = async () => {
-        log.info("Starting forced plugin update (skip version check)...");
-        setForceUpdating(true);
-        setUpdateStatus(null);
-
-        const timeoutId = setTimeout(() => {
-            log.error("Force update timed out after 120 seconds");
-            setForceUpdating(false);
-            setUpdateStatus({ msg: t("update_error", lang) + ": Timeout", isError: true });
-        }, 120000);
-
-        try {
-            const result = await call<[], { success: boolean; message?: string; error?: string; needs_restart?: boolean }>("force_update_plugin");
-            clearTimeout(timeoutId);
-            log.info("Force update result:", result);
-
-            if (result.success) {
-                setUpdateStatus({
-                    msg: `${t("update_success", lang)} - ${t("restart_to_apply", lang)}`,
-                    isError: false
-                });
-
-                try {
-                    const info = await call<[], VersionInfo>("get_latest_version");
-                    setVersionInfo(info);
-                } catch (e) {
-                    log.warn("Post-force-update version refresh failed:", e);
-                }
-            } else {
-                setUpdateStatus({
-                    msg: t("update_error", lang) + (result.error ? `: ${result.error}` : ""),
-                    isError: true
-                });
-            }
-        } catch (e) {
-            clearTimeout(timeoutId);
-            log.error("Force update exception:", e);
-            setUpdateStatus({
-                msg: t("update_error", lang) + (e instanceof Error ? `: ${e.message}` : ""),
-                isError: true
-            });
-        } finally {
-            setForceUpdating(false);
-        }
-    };
-
-    const getUpdateMetaLabel = () => {
-        if (!versionInfo) return "";
-        if (versionInfo.source_ok === false || !versionInfo.latest) {
-            return `Version check failed${versionInfo.error ? `: ${versionInfo.error}` : ""}`;
-        }
-        if (versionInfo.update_available && versionInfo.latest_tag) {
-            return `${t("update_to", lang)} ${versionInfo.latest_tag}`;
-        }
-        return `${t("already_up_to_date", lang)} (v${versionInfo.current})`;
-    };
-
-    const runDiagnostics = async () => {
-        try {
-            const diag = await call<[], Record<string, unknown>>("debug_version_check");
-            const text = JSON.stringify(diag, null, 2);
-            log.info("Version diagnostics:", diag);
-            setDiagOutput(text);
-        } catch (e) {
-            const text = `Diagnostics failed: ${e instanceof Error ? e.message : String(e)}`;
-            log.error(text);
-            setDiagOutput(text);
-        }
-    };
 
     return (
         <PanelSection title={`🔗 ${t("links", lang)}`}>
@@ -280,89 +155,23 @@ export const LinksSection: FC<LinksSectionProps> = ({ lang, openUrl }) => {
             {/* Divider after info links */}
             <Divider />
 
-            {/* Update Section */}
-            <LinkButton
-                onClick={handleUpdate}
-                icon={<FaDownload />}
-                label={getUpdateButtonLabel()}
-                disabled={updating}
-            />
-
-            <LinkButton
-                onClick={handleForceUpdate}
-                icon={<FaDownload />}
-                label={forceUpdating ? "Force Updating..." : "Force Update (skip version check)"}
-                disabled={forceUpdating || updating}
-            />
-
-            {/* Temporary diagnostics button */}
-            <LinkButton
-                onClick={runDiagnostics}
-                icon={<FaGithub />}
-                label="Run Version Diagnostics"
-                disabled={forceUpdating || updating}
-            />
-
-            {/* Stable update meta line */}
+            {/* Version only (update UI hidden) */}
             <PanelSectionRow>
                 <div style={{
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     minHeight: "20px",
-                    fontSize: "11px",
-                    marginTop: "2px",
-                    marginBottom: "2px",
-                    color: "rgba(255,255,255,0.65)",
-                    width: "100%",
-                    textAlign: "center",
-                    overflowWrap: "anywhere",
-                    padding: "0 6px"
-                }}>
-                    {getUpdateMetaLabel()}
-                </div>
-            </PanelSectionRow>
-
-            {/* Diagnostics output */}
-            <PanelSectionRow>
-                <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: "20px",
-                    fontSize: "10px",
+                    fontSize: "12px",
                     marginTop: "2px",
                     marginBottom: "2px",
                     color: "rgba(255,255,255,0.75)",
                     width: "100%",
-                    textAlign: "left",
-                    overflowWrap: "anywhere",
-                    padding: "0 6px",
-                    whiteSpace: "pre-wrap"
-                }}>
-                    {diagOutput || "Diagnostics output will appear here"}
-                </div>
-            </PanelSectionRow>
-
-            {/* Update Status Message */}
-            <PanelSectionRow>
-                <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    minHeight: "20px",
-                    gap: "6px",
-                    fontSize: "11px",
-                    marginTop: "2px",
-                    marginBottom: "2px",
-                    color: updateStatus ? (!updateStatus.isError ? "#4ade80" : "#f87171") : "transparent",
-                    fontWeight: "bold",
-                    width: "100%",
                     textAlign: "center",
                     overflowWrap: "anywhere",
                     padding: "0 6px"
                 }}>
-                    {updateStatus ? `${!updateStatus.isError ? "✅" : "❌"} ${updateStatus.msg}` : "placeholder"}
+                    {`Version: v${versionInfo?.current ?? "unknown"}`}
                 </div>
             </PanelSectionRow>
         </PanelSection>

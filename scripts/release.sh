@@ -4,9 +4,10 @@
 #
 # Usage:
 #   ./scripts/release.sh          # Tag current version
-#   ./scripts/release.sh patch    # Bump patch, then tag
-#   ./scripts/release.sh minor    # Bump minor, then tag
-#   ./scripts/release.sh major    # Bump major, then tag
+#   ./scripts/release.sh patch    # Bump patch (1.2.8 -> 1.2.9), then tag
+#   ./scripts/release.sh minor    # Bump minor (1.2.9 -> 1.3.0), then tag
+#   ./scripts/release.sh major    # Bump major (1.9.9 -> 2.0.0), then tag
+#   ./scripts/release.sh --help   # Show help
 
 set -e
 
@@ -15,6 +16,15 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 
 BUMP_TYPE="$1"
+
+if [[ "$BUMP_TYPE" == "--help" || "$BUMP_TYPE" == "-h" ]]; then
+    echo "Usage:"
+    echo "  ./scripts/release.sh          # Tag current version"
+    echo "  ./scripts/release.sh patch    # Bump patch (1.2.8 -> 1.2.9), then tag"
+    echo "  ./scripts/release.sh minor    # Bump minor (1.2.9 -> 1.3.0), then tag"
+    echo "  ./scripts/release.sh major    # Bump major (1.9.9 -> 2.0.0), then tag"
+    exit 0
+fi
 
 # If bump type specified, update version first
 if [[ -n "$BUMP_TYPE" ]]; then
